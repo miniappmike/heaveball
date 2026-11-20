@@ -1,0 +1,67 @@
+# Heaveball
+
+Heaveball is a spectator-first fictional sports league built around a physical sport for everyday athletes. The playable milestone is an autonomous match that fans can watch, pause and use to understand the sport. The longer-term goal is a league fans can follow between games, with recognizable clubs, persistent players and reporting grounded in what happened on the field.
+
+## Contributor orientation
+
+The current release is a browser-local exhibition between Ember and Harbor. Open the [live Matchroom](https://heaveball-matchroom.hardyburl128.chatgpt.site) to generate squads and watch a match. Reloading starts a fresh session. The public GitHub repository contains the rules, playbook, player-generation spec, history and visual references. Matchroom’s simulation, renderer and release script live in its separate Sites source repository.
+
+For gameplay changes, inspect the match JavaScript in the Site’s dist directory. The view JavaScript draws the field and players and handles the handbook and controls. The HTML provides layout and styles. The two textured dirt strips above and below the blue center square identify the no-possession area. Compare rule changes against the current handbook and this summary, especially the four-yard ring and the free run lane for touching a ball on dirt, which supersede the original draft geometry and strip treatment.
+
+Before releasing, exercise roster generation, the start gate and the affected match rules. For pacing changes, sample full randomized games and report combined scores and possession duration in game-clock seconds. Keep the roadmap below distinct from shipped features. Current playtesting priorities include recognizing off-ball routes, spotting illegal touches and checking that center-zone tackles and runway control affect results.
+
+## Watching a match
+
+Ember and Harbor each field eight players. The pregame handbook explains the rules and shows both clubs’ average ratings, overall strength and a predicted spread based on their ratings. Generate new rosters redraws both teams and updates the comparison before kickoff. Play match starts the selected matchup. The numbered overhead view shows the ball, scoreboard, clock, play-by-play, possession share and runway control. Player scouting connects a jersey to its player, dimensions and skills. Playback opens at 1× and supports pause, 3×, 7× and 10×.
+
+## Player generation
+
+| Role | Height | Weight | Jersey |
+| --- | --- | --- | --- |
+| Heaver | 5′8″–6′4″ | 170–220 lb | 00–99 |
+| Runner | 5′7″–6′4″ | 155–240 lb | Usually 00–40 or 80–89 |
+| Anchor | 5′11″–6′5″ | 200–260 lb | Usually 30–99 |
+
+Builds cluster near each role’s midpoint. Two-digit jerseys are unique within a team. Runners and Anchors draw from their typical ranges 90% of the time. Ratings span 20–100, with a typical value near 60 and role biases toward throwing for Heavers, hands and agility for Runners, and strength for Anchors.
+
+The eleven ratings are Arm Strength, Throw Accuracy, Strength, Speed, Jump, Hands, Reaction, Discipline, IQ, Kicking and Agility. The prototype also tracks energy during play. Mass, speed, strength, support and approach angle matter in contact. Roles describe typical strengths and movement eligibility.
+
+## Field and scoring
+
+Two teams play two 20-minute halves on a 50-by-34-yard field. Both attack one four-yard ring in a ten-yard square center zone. Green quadrants permit throwing and running. Yellow runways permit running and handoffs. All roles can enter the center zone. Only Anchors may cross into the opposing half. Players can traverse the intervening strips off the ball. A touch there awards the opponent a free run lane.
+
+| Points | Play |
+| --- | --- |
+| 1 | Intercept a pass or recover a fumble in the center. Keep possession. |
+| 2 | Carry the ball from outside the center through the ring. |
+| 3 | Catch a teammate’s pass in the center and break the ring line under control. |
+| 5 | Catch an airborne save kick in the center before it lands. Either team can score. |
+
+## Possessions and restarts
+
+Players read spacing, run routes on both halves, switch the ball across the field, use short outlets, attack the runway and hand off under pressure. Live carriers search for angles and slow with fatigue. Defenders mark receivers, close lanes and guard the ring. Agility and reaction shape jukes. Offensive Anchors can block for carriers, and nearby players can influence a pile drive.
+
+A quadrant tackle produces a stationary throw from the tackle spot. A runway tackle turns the ball over. A dive stopped short also turns it over, while a center catch stopped short retains possession. Incompletions stay live. Fumbles occur on tackles, and a recovered fumble restarts in the nearest quadrant. A free run lane gives the offense a Runner and blocker against two defending Anchors. A tackle there retains possession. A scoring club chooses the next restart quadrant after scoring two, three or five and must vary consecutive choices.
+
+Quadrant-center resets pause for 1.5 simulation seconds. Defenders align goal-side of their marks, Anchors spread along the runway seams, and runway Runners begin two yards from the backline on offense or five yards from the center boundary on defense.
+
+## Gameplay targets
+
+Typical combined scores should fall between 30 and 80. Possessions should average close to a game-clock minute, with two- to three-minute battles and rare rallies around eight minutes. These targets guide randomized match testing. Fans should be able to see how an open outlet, a strong block or a timely stop changed a possession.
+
+## League and media roadmap
+
+The current browser prototype generates fresh exhibition matches. The planned league layer would retain player and club identities, schedule games and record standings, statistics and season history. Shared broadcasts would reveal events as they air. Recordings of player and ball movement alongside the event log would support replays, highlights and box scores. Pregame stories, recaps and ongoing media coverage would use those same records so a fan could trace a headline to the play that earned it. Persistent seasons, synchronized broadcasts, replay archives and an automated newsroom are future work.
+
+## Source and release workflow
+
+The sport repository holds the revised rulebook, coaching playbook, player-generation specification and fictional history. The Matchroom Site uses a browser simulation, a canvas renderer and a pregame interface. The prototype currently ends at regulation. The rulebook also describes substitutions and sudden death for later implementation. [Sport repository](https://github.com/miniappmike/heaveball)
+
+Maintain the project scope in this file as features change. Running `python build.py` updates the versioned asset references and build record and creates matching Markdown and Word copies for the static build. The Word export requires Pandoc. When publishing a release, sync both copies to the public repository so contributors can review the same snapshot.
+
+## Build record
+
+Built 2026-11-20 10:14 UTC.
+
+- match-31c844dc78.js
+- view-eb486b6167.js
