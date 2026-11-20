@@ -12,7 +12,7 @@ Before releasing, exercise roster generation, the start gate and the affected ma
 
 ## Watching a match
 
-Ember and Harbor each field eight players. The pregame handbook explains the rules and shows both clubs’ average ratings, overall strength and a predicted spread based on their ratings. Generate new rosters redraws both teams and updates the comparison before kickoff. Play match starts the selected matchup. The numbered overhead view shows the ball, scoreboard, clock, play-by-play, possession share and runway control. Player scouting connects a jersey to its player, dimensions and skills. Playback opens at 1× and supports pause, 3×, 7× and 10×.
+Ember and Harbor each field eight players. The pregame handbook explains the rules and shows both clubs’ average ratings, overall strength and a predicted spread based on their ratings. Generate new rosters redraws both teams and updates the comparison before kickoff. Play match starts the selected matchup. The numbered overhead view shows the ball, scoreboard, clock, play-by-play, possession share and runway control. Player scouting connects a jersey to its player, dimensions and skills. Playback opens at 1× and supports pause, 2×, 4× and 8×.
 
 The handbook appears in the page with expandable team averages. Full screen fits the complete field to the landscape viewport with an exit control and clock. Browsers that restrict native fullscreen use an in-page field view. Jersey labels use measured digit bounds for centering. Narrow layouts stack the field above scouting and play-by-play. The build includes the match engine, renderer and dirt texture in the entry page for embedded previews. Each release should update this contributor guide and regenerate and sync both Markdown and Word copies.
 
@@ -41,7 +41,7 @@ Two teams play two 20-minute halves on a 50-by-34-yard field. Both attack one fo
 
 ## Possessions and restarts
 
-Players read spacing, run routes on both halves, switch the ball across the field, use short outlets, attack the runway and hand off under pressure. Live carriers search for angles and slow with fatigue. Defenders mark receivers, close lanes and guard the ring. Agility and reaction shape jukes. Offensive Anchors can block for carriers, and nearby players can influence a pile drive.
+Hand throws travel 25% faster than the previous baseline, with flight time determined by throw distance and Arm Strength. On drive-and-kick possessions the carrier probes the runway, checks space ahead and fatigue, and retreats to a legal quadrant to pass when the lane closes. Outlet selection considers all roles, including Anchors, using separation, Hands and distance. Players read spacing, run routes on both halves, switch the ball across the field, use short outlets, attack the runway and hand off under pressure. Live carriers search for angles and slow with fatigue. Defenders mark receivers, close lanes and guard the ring. Agility and reaction shape jukes. Offensive Anchors can block for carriers, and nearby players can influence a pile drive.
 
 A quadrant tackle produces a stationary throw from the tackle spot. A runway tackle turns the ball over. A dive stopped short also turns it over, while a center catch stopped short retains possession. Incompletions stay live. Fumbles occur on tackles, and a recovered fumble restarts in the nearest quadrant. A free run lane gives the offense a Runner and blocker against two defending Anchors. A tackle there retains possession. A scoring club chooses the next restart quadrant after scoring two, three or five and must vary consecutive choices.
 
@@ -63,7 +63,7 @@ Maintain the project scope in this file as features change. Running `python buil
 
 ## Build record
 
-Built 2026-11-20 10:26 UTC.
+Built 2026-11-20 10:54 UTC.
 
-- match-31c844dc78.js
+- match-6f68cf4d9a.js
 - view-6cf9be1fe2.js
