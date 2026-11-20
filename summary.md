@@ -14,6 +14,8 @@ Before releasing, exercise roster generation, the start gate and the affected ma
 
 Ember and Harbor each field eight players. The pregame handbook explains the rules and shows both clubs’ average ratings, overall strength and a predicted spread based on their ratings. Generate new rosters redraws both teams and updates the comparison before kickoff. Play match starts the selected matchup. The numbered overhead view shows the ball, scoreboard, clock, play-by-play, possession share and runway control. Player scouting connects a jersey to its player, dimensions and skills. Playback opens at 1× and supports pause, 3×, 7× and 10×.
 
+The handbook appears in the page with expandable team averages. Narrow layouts stack the field above scouting and play-by-play. The build includes the match engine, renderer and dirt texture in the entry page for embedded previews. Each release should update this contributor guide and regenerate and sync both Markdown and Word copies.
+
 ## Player generation
 
 | Role | Height | Weight | Jersey |
@@ -61,7 +63,7 @@ Maintain the project scope in this file as features change. Running `python buil
 
 ## Build record
 
-Built 2026-11-20 10:14 UTC.
+Built 2026-11-20 10:17 UTC.
 
 - match-31c844dc78.js
-- view-eb486b6167.js
+- view-1dcd25aafb.js
