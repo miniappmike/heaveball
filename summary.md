@@ -49,7 +49,7 @@ Quadrant-center resets pause for 1.5 simulation seconds. Defenders align goal-si
 
 ## Gameplay targets
 
-Typical combined scores should fall between 30 and 80. Possession length depends on opportunity and coaching style. Each new team draws a playbook with a baseline aggression and a set of preferred opening calls. Patient passing, Balanced, Free flow and Runway power teams take progressively earlier chances on average. Each individual call also adjusts how long the team builds an attack, how quickly the passer reads an outlet and how readily a carrier takes an open lane. Mid-possession adjustments can change that appetite for risk. Teams protecting a late lead play more conservatively. Long possessions can still develop when a patient team keeps finding outlets. A trailing team takes earlier chances late in the second half, with urgency increasing with the deficit. These targets guide randomized match testing. Fans should be able to see how an open outlet, a strong block or a timely stop changed a possession.
+The target is roughly 50 combined points on average, with most games between 30 and 80. IQ and Discipline influence a carrier’s estimate of runway space, a passer’s ability to recognize defenders in the passing lane, and a help defender’s choice to switch or stay with a dangerous cutter. Defensive Anchors shade closer to the ring, contact matters on contested receptions and defenders have a modest advantage finishing a tackle. The scoring values still come directly from the play. Possession length depends on opportunity and coaching style. Each new team draws a playbook with a baseline aggression and a set of preferred opening calls. Patient passing, Balanced, Free flow and Runway power teams take progressively earlier chances on average. Each individual call also adjusts how long the team builds an attack, how quickly the passer reads an outlet and how readily a carrier takes an open lane. Mid-possession adjustments can change that appetite for risk. Teams protecting a late lead play more conservatively. Long possessions can still develop when a patient team keeps finding outlets. A trailing team takes earlier chances late in the second half, with urgency increasing with the deficit. These targets guide randomized match testing. Fans should be able to see how an open outlet, a strong block or a timely stop changed a possession.
 
 ## League and media roadmap
 
@@ -63,7 +63,7 @@ Maintain the project scope in this file as features change. Running `python buil
 
 ## Build record
 
-Built 2026-11-20 11:35 UTC.
+Built 2026-11-20 11:41 UTC.
 
-- match-6f06119547.js
+- match-f4a2e33c1e.js
 - view-aa22bac6a5.js
