@@ -41,7 +41,7 @@ Two teams play two 20-minute halves on a 50-by-34-yard field. Both attack one fo
 
 ## Possessions and restarts
 
-Hand throws travel 20% faster than the previous release (1.5 times the original baseline), with flight time determined by throw distance and Arm Strength. On drive-and-kick possessions the carrier probes the runway, checks space ahead and fatigue, and retreats to a legal quadrant to pass when the lane closes. Outlet selection considers all roles, including Anchors, using separation, Hands and distance. Players read spacing, run routes on both halves, switch the ball across the field, use short outlets, attack the runway and hand off under pressure. Live carriers search for angles and slow with fatigue. Defenders mark receivers, close lanes and guard the ring. Agility and reaction shape jukes. Offensive Anchors can block for carriers, and nearby players can influence a pile drive.
+Hand throws travel 20% faster than the previous release (1.5 times the original baseline), with flight time determined by throw distance and Arm Strength. On drive-and-kick possessions the carrier probes the runway, checks space ahead and fatigue, and retreats to a legal quadrant to pass when the lane closes. Outlet selection considers all roles, including Anchors, using separation, Hands and distance. Players read spacing, run routes on both halves, switch the ball across the field, use short outlets, attack the runway and hand off under pressure. Live carriers search for angles and slow with fatigue. Defenders mark receivers, close lanes and guard the ring. Agility and reaction shape jukes. Carriers favor safe throwing angles nearer the blue and can attack an open runway while building possession. When progress stalls or coverage tightens, the offense reads the entry lane and its Anchor matchup again. It can switch to drive-and-kick, a power run, an off-ball screen or an Anchor slip before the possession ends. One Anchor can screen a receiver’s marker while another draws help on the far side. Anchors remain eligible outlets and handoff options and can join a live pile to add force. Defenders keep a fading estimate of drives and screens, adjust ring depth and can switch coverage when a screen frees a receiver. Screen contacts and changes of assignment appear in play-by-play.
 
 A quadrant tackle produces a stationary throw from the tackle spot. A runway tackle turns the ball over. A dive stopped short also turns it over, while a center catch stopped short retains possession. Incompletions stay live. Fumbles occur on tackles, and a recovered fumble restarts in the nearest quadrant. A free run lane gives the offense a Runner and blocker against two defending Anchors. A tackle there retains possession. A scoring club chooses the next restart quadrant after scoring two, three or five and must vary consecutive choices.
 
@@ -63,7 +63,7 @@ Maintain the project scope in this file as features change. Running `python buil
 
 ## Build record
 
-Built 2026-11-20 11:13 UTC.
+Built 2026-11-20 11:30 UTC.
 
-- match-afb61fa0ea.js
+- match-928cd80b6a.js
 - view-72a5171cda.js
