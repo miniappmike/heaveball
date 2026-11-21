@@ -30,7 +30,7 @@ The eleven ratings are Arm Strength, Throw Accuracy, Strength, Speed, Jump, Hand
 
 ## Field and scoring
 
-Two teams play two 20-minute halves on a 50-by-34-yard field. Both attack one four-yard ring in a ten-yard square center zone. Green quadrants permit throwing and running. Yellow runways permit running and handoffs. All roles can enter the center zone. Only Anchors may cross into the opposing half. Players can traverse the intervening strips off the ball. A touch there awards the opponent a free run lane.
+Two teams play two 20-minute halves on a 50-by-34-yard field. Both attack one four-yard ring in a ten-yard square center zone. Green quadrants permit throwing and running. Yellow runways permit running and handoffs. All roles can enter the center zone. Defenders may run through the ring and must set up outside it. Only Anchors may cross into the opposing half. Players can traverse the intervening strips off the ball. A touch there awards the opponent a free run lane.
 
 | Points | Play |
 | --- | --- |
@@ -73,7 +73,7 @@ Maintain the project scope in this file as features change. Running `python buil
 
 ## Build record
 
-Built 2026-11-21 01:03 UTC.
+Built 2026-11-21 02:02 UTC.
 
-- match-828788da41.js
+- match-7fc7ab124e.js
 - view-819edac337.js
