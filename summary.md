@@ -59,7 +59,7 @@ Quadrant-center resets pause for 1.5 simulation seconds. Defenders align goal-si
 
 ## Gameplay targets
 
-The target is roughly 50 combined points on average, with most games between 30 and 80. IQ and Discipline influence a carrier’s estimate of runway space, a passer’s ability to recognize defenders in the passing lane, and a help defender’s choice to switch or stay with a dangerous cutter. Defensive Anchors shade closer to the ring, contact matters on contested receptions and defenders have a modest advantage finishing a tackle. The scoring values still come directly from the play. Possession length depends on opportunity and coaching style. Each new team draws a playbook with a baseline aggression and a set of preferred opening calls. Patient passing, Balanced, Free flow and Runway power teams take progressively earlier chances on average. Each individual call also adjusts how long the team builds an attack, how quickly the passer reads an outlet and how readily a carrier takes an open lane. Mid-possession adjustments can change that appetite for risk. In the last five minutes, a team trailing by five or more attacks sooner and sends a defender to press the ball. In the last two minutes, a team leading by five or more favors short outlets and uses more clock. Long possessions can still develop when a patient team keeps finding outlets. These targets guide randomized match testing. Fans should be able to see how an open outlet, a strong block or a timely stop changed a possession.
+Most games should finish with 30–55 combined points, and scores below 20 or above 75 should be uncommon. IQ and Discipline influence a carrier’s estimate of runway space, a passer’s ability to recognize defenders in the passing lane, and a help defender’s choice to switch or stay with a dangerous cutter. Defensive Anchors shade closer to the ring, contact matters on contested receptions and defenders have a modest advantage finishing a tackle. The scoring values still come directly from the play. Possession length depends on opportunity and coaching style. Each new team draws a playbook with a baseline aggression and a set of preferred opening calls. Patient passing, Balanced, Free flow and Runway power teams take progressively earlier chances on average. Teams ordinarily circulate through a few safe exchanges before committing to a set play. A near-side outlet helps a covered carrier move the ball before contact. A far-side swing makes the defense shift when the passing lane is clear. When the runway closes early, a carrier can circle back into a legal quadrant and throw while play continues. Players favor shorter and clearer lanes during buildup, with an exception for a well-supported run. Each call still affects how quickly the passer reads an outlet and how readily a carrier takes an open lane. Mid-possession adjustments can change that appetite for risk. In the last five minutes, a team trailing by five or more attacks sooner and sends a defender to press the ball. In the last two minutes, a team leading by five or more favors short outlets and uses more clock. Long possessions can still develop when a patient team keeps finding outlets. These targets guide randomized match testing. Fans should be able to see how an open outlet, a strong block or a timely stop changed a possession.
 
 ## League and media roadmap
 
@@ -73,7 +73,7 @@ Maintain the project scope in this file as features change. Running `python buil
 
 ## Build record
 
-Built 2026-11-20 22:57 UTC.
+Built 2026-11-21 01:03 UTC.
 
-- match-5868c7c9ab.js
+- match-828788da41.js
 - view-819edac337.js
