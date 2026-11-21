@@ -14,7 +14,7 @@ Heaveball rewards teams that can hold possession long enough to make a defender 
 | Airborne save | A player out of bounds can kick an airborne ball back into play. Either team can catch the saved kick in the blue for 5. If it lands in bounds, contest the recovery and restart from the center of the nearest quadrant. |
 | After scoring 2, 3, or 5 | The opposing team gets possession. The scoring team chooses the restart quadrant. |
 
-Any player can enter the blue on offense or defense. Anchors can cross into the opposite half. Heavers and Runners can each throw from a quadrant, receive, or carry. Their role names describe the skills they typically bring.
+Any player can use the full blue center zone on offense or defense. Only Anchors can enter the opposite half. Any player who spends more than three uninterrupted live seconds in the ring while unblocked gives up a free run lane. Heavers and Runners can each throw from a quadrant, receive, or carry. Their role names describe the skills they typically bring.
 
 ## Coaching styles and lineup packages
 
@@ -82,6 +82,21 @@ The attacking Anchor uses a block to leave a fast Heaver or Runner one-on-one wi
 | **Q4 · Finish** | Time a cut into the blue from the far lower side when the ball moves toward Q1. Stay available in the quadrant if the lane stays covered. |
 
 Flip the assignments when starting from another quadrant. A fast Heaver can sell the keep, a strong second thrower makes the kickout more dangerous, and an instinctive receiver can find the late blue window. The best arrangement depends on those matchups and the angles the defense gives up.
+
+## Matchroom defensive schemes
+
+Each club draws a scheme for the exhibition. You can change either club's scheme in the pregame handbook. Defenders read the carrier, the ring, and all eligible receivers, including Anchors. They use goal-side leverage and shift assignments as the ball and receivers move.
+
+| Scheme | When to use it |
+|---|---|
+| **Balanced** | Keep two defenders inside and cover the most dangerous nearby outlets when the opponent has several ways to attack. |
+| **Ring guard** | Set three defenders just outside the ring when the opponent reaches the blue too easily. Expect deep outlets to have more space. |
+| **Receiver denial** | Tighten coverage on eligible receivers and leave one ring helper when the opponent wins with clean catches. |
+| **Star focus** | Deny the best opposing Runner and Heaver early touches and bracket the more dangerous star near the ball. Expect secondary outlets. |
+| **Passing-lane zone** | Shade toward likely throwing lanes and keep two inside helpers when the opponent relies on throws through the middle. |
+| **Carrier pressure** | Send one defender to hurry the carrier and keep cover behind the press when the opponent needs time to set up. |
+| **Runway contain** | Spread three helpers across the runway approaches and close from the goal side when the opponent runs often. |
+| **Switch coverage** | Exchange assignments quickly when the opponent uses frequent cuts and off-ball blocks. |
 
 ## Defensive play calls
 
