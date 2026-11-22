@@ -2145,7 +2145,7 @@ function drawPlayer(p){
 // Canvas layout: the canvas matches its on-screen size and the field fills it below a thin score bar.
 // Inline, the canvas height follows its width; in full screen it fills the screen.
 function layoutView(){
- const expanded=el('field').classList.contains('expanded'),dpr=Math.min(2,window.devicePixelRatio||1),barCss=32;
+ const expanded=el('field').classList.contains('expanded'),dpr=Math.min(2,window.devicePixelRatio||1),barCss=38;
  if(!expanded){const h=Math.round(canvas.clientWidth*36/52.5)+barCss+'px';if(canvas.style.height!==h)canvas.style.height=h}
  else if(canvas.style.height)canvas.style.height='';
  const W=Math.max(1,Math.round(canvas.clientWidth*dpr)),H=Math.max(1,Math.round(canvas.clientHeight*dpr));
@@ -2153,33 +2153,67 @@ function layoutView(){
  const bar=Math.round(barCss*dpr),s=Math.min(W/52.5,(H-bar)/36);
  return {s,ox:(W-50*s)/2,oy:bar+(H-bar-36*s)/2+s,dpr,bar};
 }
+// Score bar: a flat broadcast strip in the Matchroom style (dark card, Bebas Neue, shield crests, mint accent).
+const barFont='"Bebas Neue","Oswald","Arial Narrow",Impact,sans-serif';
+document.fonts?.load?.('20px "Bebas Neue"').catch(()=>{});
+function shield(x,y,w,h,team){
+ ctx.beginPath();ctx.moveTo(x+w/2,y);ctx.lineTo(x+w,y+h*.14);ctx.lineTo(x+w,y+h*.62);ctx.lineTo(x+w/2,y+h);ctx.lineTo(x,y+h*.62);ctx.lineTo(x,y+h*.14);ctx.closePath();
+ const g=ctx.createLinearGradient(x,y,x+w,y+h);
+ if(team){g.addColorStop(0,'#8fd0ff');g.addColorStop(1,'#2f63a3')}else{g.addColorStop(0,'#ff9c7f');g.addColorStop(1,'#b8452e')}
+ ctx.fillStyle=g;ctx.fill();
+ ctx.fillStyle='#fff';ctx.font=Math.round(h*.62)+'px '+barFont;ctx.textAlign='center';ctx.fillText(team?'H':'E',x+w/2,y+h*.5);
+}
 function drawThinBar(v){
- const w=canvas.width/v.dpr,h=v.bar/v.dpr,poss=sim.team,live=!sim.done,narrow=w<640,tiny=w<460,bw=narrow?(tiny?74:96):Math.min(150,w*.2),mid=narrow?8+bw+4:w/2;
- ctx.save();ctx.setTransform(v.dpr,0,0,v.dpr,0,0);
- let g=ctx.createLinearGradient(0,0,0,h);g.addColorStop(0,'#2a2f35');g.addColorStop(1,'#111417');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
- ctx.fillStyle='#0b0d10';ctx.fillRect(0,h-1,w,1);ctx.textBaseline='middle';
- const block=(team,dir)=>{
-   const x=mid+dir*4,c=team?['#0d1d38','#2f63a3']:['#3a120b','#b8452e'],x0=dir<0?x-bw:x;
-   g=ctx.createLinearGradient(x0,0,x0+bw,0);g.addColorStop(dir<0?0:1,c[1]);g.addColorStop(dir<0?1:0,c[0]);
-   ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(x0,3,bw,h-7,4);ctx.fill();
-   const sb=30,sx=dir<0?x-sb-2:x+2;
-   g=ctx.createLinearGradient(0,5,0,h-6);g.addColorStop(0,'#fbfbfa');g.addColorStop(1,'#b3b7ba');ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(sx,5,sb,h-11,3);ctx.fill();
-   ctx.fillStyle='#121416';ctx.font='800 16px system-ui,sans-serif';ctx.textAlign='center';ctx.fillText(sim.score[team],sx+sb/2,h/2-1);
-   const lx=dir<0?x0+13:x0+bw-13;if(!tiny){ctx.beginPath();ctx.arc(lx,h/2-2,8,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.14)';ctx.fill();
-   ctx.setLineDash([2,1.5]);ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);
-   ctx.fillStyle='rgba(255,255,255,.85)';ctx.font='800 9px system-ui,sans-serif';ctx.fillText(team?'H':'E',lx,h/2-1.5)}
-   ctx.fillStyle='#f4f4f0';ctx.font='800 14px system-ui,sans-serif';ctx.textAlign=dir<0?'right':'left';ctx.fillText(team?'HAR':'EMB',dir<0?sx-6:sx+sb+6,h/2-1);
-   if(live&&poss===team){ctx.fillStyle='#f2d21b';ctx.fillRect(x0+2,h-4,bw-4,2)}
+ const w=canvas.width/v.dpr,h=v.bar/v.dpr,poss=sim.team,live=!sim.done,narrow=w<640,tiny=w<440,mid=narrow?null:w/2;
+ const ink='#f2f5f3',muted='#99a49d',mint='#2fe39a',teamInk=['#ff7f5c','#5db4ff'];
+ ctx.save();ctx.setTransform(v.dpr,0,0,v.dpr,0,0);ctx.textBaseline='middle';
+ ctx.fillStyle='#171c19';ctx.fillRect(0,0,w,h);
+ ctx.fillStyle='rgba(255,255,255,.07)';ctx.fillRect(0,h-1,w,1);
+ const cy=h/2+1,big=Math.round(h*.68),label=Math.round(h*.46),pad=narrow?10:16;
+ // Center group: crest, abbreviation, score, divider, score, abbreviation, crest.
+ ctx.font=big+'px '+barFont;
+ const scoreW=Math.max(ctx.measureText(String(sim.score[0])).width,ctx.measureText(String(sim.score[1])).width,ctx.measureText('00').width);
+ ctx.font=label+'px '+barFont;const abbrW=ctx.measureText('HAR').width;
+ const crestW=tiny?0:h*.5,gap=narrow?6:9,bw=scoreW+16,dash=narrow?9:11;
+ const extent=dash+bw+7+abbrW+(tiny?0:gap+crestW);
+ const cx=mid??pad+extent;
+ const lpc=cx-dash-bw/2,rpc=cx+dash+bw/2;
+ const scoreBox=(team,x)=>{
+   const has=live&&poss===team,bx=x-bw/2,by=5,bh=h-11;
+   ctx.beginPath();ctx.roundRect(bx,by,bw,bh,bh/2);ctx.fillStyle=has?'rgba(47,227,154,.16)':'#232926';ctx.fill();
+   if(has){ctx.lineWidth=1.2;ctx.strokeStyle=mint;ctx.stroke()}
+   ctx.fillStyle=ink;ctx.font=big+'px '+barFont;ctx.textAlign='center';ctx.fillText(sim.score[team],x,cy);
  };
- block(0,-1);block(1,1);
+ ctx.fillStyle=muted;ctx.font=label+'px '+barFont;ctx.textAlign='center';ctx.fillText('–',cx,cy);
+ scoreBox(0,lpc);scoreBox(1,rpc);
+ ctx.font=label+'px '+barFont;ctx.fillStyle=ink;
+ ctx.textAlign='right';ctx.fillText('EMB',lpc-bw/2-7,cy);
+ ctx.textAlign='left';ctx.fillText('HAR',rpc+bw/2+7,cy);
+ if(!tiny){
+   const ch=h*.62,cw=crestW;
+   shield(lpc-bw/2-7-abbrW-gap-cw,(h-ch)/2,cw,ch,0);
+   shield(rpc+bw/2+7+abbrW+gap,(h-ch)/2,cw,ch,1);
+ }
+ // Left: possession or ruling.
+ if(!narrow){
+   const status=sim.penaltyPending?'FREE RUN LANE':sim.done?'FINAL':teams[poss].toUpperCase()+' BALL';
+   if(!sim.done&&!sim.penaltyPending){ctx.beginPath();ctx.arc(pad+4,cy-1,4,0,Math.PI*2);ctx.fillStyle=teamInk[poss];ctx.fill()}
+   ctx.font=label+'px '+barFont;ctx.textAlign='left';ctx.fillStyle=sim.penaltyPending?'#ffd47d':ink;
+   ctx.fillText(status,pad+(sim.done||sim.penaltyPending?0:14),cy);
+ }
+ // Right: clock, period and the possession clock pill.
+ let r=w-pad;
+ if(live){
+   const secs=Math.floor(sim.posAge),txt='POSS '+Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0');
+   ctx.font=label+'px '+barFont;const tw=ctx.measureText(txt).width+18,ph=h-11;
+   ctx.beginPath();ctx.roundRect(r-tw,5,tw,ph,ph/2);ctx.fillStyle=mint;ctx.fill();
+   ctx.fillStyle='#04200f';ctx.textAlign='center';ctx.fillText(txt,r-tw/2,cy);r-=tw+(narrow?8:12);
+ }
  const n=sim.overtime?Math.floor(sim.time):Math.ceil(sim.time),clock=sim.done?'0:00':Math.floor(n/60)+':'+String(n%60).padStart(2,'0');
- ctx.font='700 12px system-ui,sans-serif';ctx.textAlign='left';ctx.fillStyle=sim.penaltyPending?'#ffd47d':'#f4f4f0';
- if(!narrow)ctx.fillText(sim.penaltyPending?'FREE RUN LANE':sim.done?'FINAL':teams[poss].toUpperCase()+' BALL',10,h/2-1);
- let rx=w-10;
- if(live){const secs=Math.floor(sim.posAge),txt='POSS '+Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0');ctx.font='800 11px system-ui,sans-serif';
-   const tw=ctx.measureText(txt).width+12;g=ctx.createLinearGradient(0,5,0,h-6);g.addColorStop(0,'#e0482a');g.addColorStop(1,'#9a210f');ctx.fillStyle=g;
-   ctx.beginPath();ctx.roundRect(rx-tw,5,tw,h-11,3);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.fillText(txt,rx-tw/2,h/2-1);rx-=tw+10}
- ctx.font='700 12px system-ui,sans-serif';ctx.textAlign='right';ctx.fillStyle='#f4f4f0';ctx.fillText(clock+'  '+(sim.overtime?'OT':sim.half===1?'1ST':'2ND'),rx,h/2-1);
+ const period=sim.overtime?'OT':sim.half===1?'1ST':'2ND';
+ ctx.font=label+'px '+barFont;ctx.textAlign='right';
+ if(!tiny||!live){ctx.fillStyle=muted;ctx.fillText(period,r,cy);r-=ctx.measureText(period).width+8}
+ ctx.fillStyle=ink;ctx.fillText(clock,r,cy);
  ctx.restore();
 }
 function draw(){const t=selectedField,view=layoutView();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=el('field').classList.contains('mobile-expanded')?'#000':'#121614';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.setTransform(view.s,0,0,view.s,view.ox,view.oy);
@@ -2430,4 +2464,4 @@ el('roster').onchange=scout;fresh();requestAnimationFrame(frame);
 window.heaveballReady=true;
 }
 
-})();</script><script src="match-9abd459a4d.js"></script><script src="view-d92fbca1cf.js"></script></html>
+})();</script><script src="match-9abd459a4d.js"></script><script src="view-6ffcf99cdb.js"></script></html>
