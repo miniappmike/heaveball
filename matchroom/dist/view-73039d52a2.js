@@ -76,6 +76,7 @@ for(const template of fieldTemplates){const option=document.createElement('optio
 try{selectedField=fieldTemplates.find(t=>t.id===localStorage.getItem('heaveball-field'))||selectedField}catch{}
 fieldPicker.value=selectedField.id;
 fieldPicker.addEventListener('change',()=>{selectedField=fieldTemplates.find(t=>t.id===fieldPicker.value)||fieldTemplates[0];try{localStorage.setItem('heaveball-field',selectedField.id)}catch{}});
+for(const template of fieldTemplates){template.image=new Image();template.image.src='fields/'+template.id+'.jpg'}
 const dirtTexture=new Image();
 dirtTexture.src="dirt.png";
 function drawBall(ball){
@@ -129,7 +130,9 @@ function drawPlayer(p){
  ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
  ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
 }
-function draw(){const t=selectedField;ctx.setTransform(20,0,0,20,50,70);rect(-2.5,-3.5,55,41,'#1c2c23');rect(0,0,50,34,t.grass);for(let i=0;i<50;i+=5)rect(i,0,2.5,34,t.stripe);rect(20,0,10,12,t.zone);rect(20,22,10,12,t.zone);if(t.surface==='park'&&dirtTexture.naturalWidth){ctx.save();ctx.globalAlpha=.24;ctx.drawImage(dirtTexture,20,0,10,12);ctx.drawImage(dirtTexture,20,22,10,12);ctx.restore()}rect(0,12,50,10,t.runway);rect(20,12,10,10,t.center);ctx.strokeStyle='#c6d8b8';ctx.lineWidth=.09;for(let x of [0,30])for(let y of [0,22])ctx.strokeRect(x,y,20,12);ctx.strokeRect(0,12,50,10);disc(center.x,center.y,ringRadius,t.center,'#f3f6df');ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
+function draw(){const t=selectedField;ctx.setTransform(20,0,0,20,50,70);rect(-2.5,-3.5,55,41,'#1c2c23');
+if(t.image.complete&&t.image.naturalWidth){ctx.drawImage(t.image,0,0,50,34)}else{rect(0,0,50,34,t.grass)}
+ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
  rect(16.1,-3.02,17.8,2.48,'#0b1510');ctx.strokeStyle='#76877a';ctx.lineWidth=.07;ctx.strokeRect(16.1,-3.02,17.8,2.48);
  ctx.font='700 .70px system-ui,sans-serif';ctx.fillStyle=colors[0];ctx.fillText('EMBER',19.25,-2.20);ctx.fillStyle='#f4f6ed';ctx.fillText(sim.score[0],22.25,-2.20);
  ctx.fillText('–',25,-2.20);ctx.fillText(sim.score[1],27.75,-2.20);ctx.fillStyle=colors[1];ctx.fillText('HARBOR',30.75,-2.20);

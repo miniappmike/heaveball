@@ -103,7 +103,7 @@ Field templates provide park surfaces with clay no-possession zones and all-weat
 
 ## Build record
 
-Built 2026-11-22 08:49 UTC.
+Built 2026-11-22 08:59 UTC.
 
 - match-42e1ba1280.js
-- view-a4724fb56a.js
+- view-73039d52a2.js

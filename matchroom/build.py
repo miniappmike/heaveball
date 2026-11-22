@@ -19,6 +19,10 @@ for prefix in ("match", "view"):
 # Embedded previews may receive the entry HTML without its sibling resources.
 bundle = "\n".join(next(dist.glob(f"{prefix}-*.js")).read_text() for prefix in ("match", "view"))
 texture = base64.b64encode((dist / "dirt.png").read_bytes()).decode()
+import json
+field_images = {p.stem: base64.b64encode(p.read_bytes()).decode() for p in (dist / "fields").glob("*.jpg")}
+bundle = bundle.replace("'fields/'+template.id+'.jpg'", "'data:image/jpeg;base64,'+fieldImages[template.id]")
+bundle = "const fieldImages=" + json.dumps(field_images) + ";\n" + bundle
 bundle = bundle.replace('"dirt.png"', '"data:image/png;base64,' + texture + '"')
 inline = '<script id="embedded-game">(()=>{\n' + bundle + '\n})();</script>'
 html = re.sub(r'<script id="embedded-game">.*?</script>', '', html, flags=re.S)
