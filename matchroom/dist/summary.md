@@ -99,9 +99,11 @@ The sport repository holds the revised rulebook, coaching playbook, player-gener
 
 Maintain the project scope in this file as features change. Running `python build.py` updates the versioned asset references and build record and creates matching Markdown and Word copies for the static build. The Word export requires Pandoc. When publishing a release, sync both copies to the public repository so contributors can review the same snapshot.
 
+Field templates provide park surfaces with clay no-possession zones and all-weather synthetic turf in several colorways. Select a field above the match and the choice is remembered in the browser.
+
 ## Build record
 
-Built 2026-11-22 08:08 UTC.
+Built 2026-11-22 08:49 UTC.
 
 - match-42e1ba1280.js
-- view-94ddafdd67.js
+- view-a4724fb56a.js

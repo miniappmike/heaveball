@@ -1,3 +1,11 @@
+const fieldTemplates=[
+ {id:'park-red',name:'Park · red clay',surface:'park',grass:'#3c7139',stripe:'#447a3e',runway:'#47823f',center:'#36713d',zone:'#9c503a'},
+ {id:'park-tan',name:'Park · tan clay',surface:'park',grass:'#3c6a35',stripe:'#43743a',runway:'#4c8a44',center:'#3b7436',zone:'#c9a96b'},
+ {id:'park-brown',name:'Park · brown clay',surface:'park',grass:'#3d6e33',stripe:'#467a39',runway:'#6b934a',center:'#3b773c',zone:'#987658'},
+ {id:'turf-tan',name:'All-weather · tan',surface:'turf',grass:'#377944',stripe:'#3c8249',runway:'#346d3c',center:'#478c4d',zone:'#a9906d'},
+ {id:'turf-red',name:'All-weather · red',surface:'turf',grass:'#33964d',stripe:'#3a9d51',runway:'#779b48',center:'#85ad40',zone:'#aa5b49'}
+];
+
 if(!window.heaveballReady){
 const el=id=>document.getElementById(id),canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),colors=['#ff805d','#69bafa'];
 const fixedStep=.04,halftimeDuration=15000,scoringDuration=5000,penaltyDuration=3000,stoppageDuration=2000;
@@ -62,6 +70,12 @@ el('start').onclick=()=>{el('pregame').hidden=true;wall=performance.now();playin
 el('pace').onchange=()=>{advance(performance.now());speed=Number(el('pace').value)};
 function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
 function disc(x,y,r,fill,stroke){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=.12;ctx.stroke()}}
+let selectedField=fieldTemplates[0];
+const fieldPicker=el('field-picker');
+for(const template of fieldTemplates){const option=document.createElement('option');option.value=template.id;option.textContent=template.name;fieldPicker.append(option)}
+try{selectedField=fieldTemplates.find(t=>t.id===localStorage.getItem('heaveball-field'))||selectedField}catch{}
+fieldPicker.value=selectedField.id;
+fieldPicker.addEventListener('change',()=>{selectedField=fieldTemplates.find(t=>t.id===fieldPicker.value)||fieldTemplates[0];try{localStorage.setItem('heaveball-field',selectedField.id)}catch{}});
 const dirtTexture=new Image();
 dirtTexture.src="dirt.png";
 function drawBall(ball){
@@ -115,7 +129,7 @@ function drawPlayer(p){
  ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
  ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
 }
-function draw(){ctx.setTransform(20,0,0,20,50,70);rect(-2.5,-3.5,55,41,'#1c2c23');rect(0,0,50,34,'#366944');for(let i=0;i<50;i+=5)rect(i,0,2.5,34,'#396f48');rect(20,0,10,34,'#77573c');if(dirtTexture.naturalWidth){ctx.drawImage(dirtTexture,20,0,10,12);ctx.drawImage(dirtTexture,20,22,10,12)}rect(0,12,50,10,'#b39849');rect(20,12,10,10,'#508596');ctx.strokeStyle='#c6d8b8';ctx.lineWidth=.09;for(let x of [0,30])for(let y of [0,22])ctx.strokeRect(x,y,20,12);ctx.strokeRect(0,12,50,10);disc(center.x,center.y,ringRadius,'#386574','#f3f6df');ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
+function draw(){const t=selectedField;ctx.setTransform(20,0,0,20,50,70);rect(-2.5,-3.5,55,41,'#1c2c23');rect(0,0,50,34,t.grass);for(let i=0;i<50;i+=5)rect(i,0,2.5,34,t.stripe);rect(20,0,10,12,t.zone);rect(20,22,10,12,t.zone);if(t.surface==='park'&&dirtTexture.naturalWidth){ctx.save();ctx.globalAlpha=.24;ctx.drawImage(dirtTexture,20,0,10,12);ctx.drawImage(dirtTexture,20,22,10,12);ctx.restore()}rect(0,12,50,10,t.runway);rect(20,12,10,10,t.center);ctx.strokeStyle='#c6d8b8';ctx.lineWidth=.09;for(let x of [0,30])for(let y of [0,22])ctx.strokeRect(x,y,20,12);ctx.strokeRect(0,12,50,10);disc(center.x,center.y,ringRadius,t.center,'#f3f6df');ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
  rect(16.1,-3.02,17.8,2.48,'#0b1510');ctx.strokeStyle='#76877a';ctx.lineWidth=.07;ctx.strokeRect(16.1,-3.02,17.8,2.48);
  ctx.font='700 .70px system-ui,sans-serif';ctx.fillStyle=colors[0];ctx.fillText('EMBER',19.25,-2.20);ctx.fillStyle='#f4f6ed';ctx.fillText(sim.score[0],22.25,-2.20);
  ctx.fillText('–',25,-2.20);ctx.fillText(sim.score[1],27.75,-2.20);ctx.fillStyle=colors[1];ctx.fillText('HARBOR',30.75,-2.20);
