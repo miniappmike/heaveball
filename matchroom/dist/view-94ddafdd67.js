@@ -99,6 +99,22 @@ function drawBall(ball){
    ctx.stroke();
  }
 }
+function drawPlayer(p){
+ if(p.blocked>0)disc(p.x,p.y,1,"#8a7546","#f5d688");
+ if(p.scramblePose){
+   const dive=p.scramblePose==='dive',fall=p.scramblePose==='fall';
+   ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.scrambleAngle||0);
+   ctx.beginPath();ctx.ellipse(0,0,dive?1.13:fall?.98:.88,dive?.39:fall?.48:.58,0,0,Math.PI*2);
+   ctx.fillStyle=colors[p.team];ctx.fill();ctx.strokeStyle='#12271e';ctx.lineWidth=.12;ctx.stroke();
+   ctx.strokeStyle='#f3dfac';ctx.lineWidth=.13;ctx.lineCap='round';ctx.beginPath();
+   if(dive){ctx.moveTo(.35,-.22);ctx.lineTo(1.18,-.52);ctx.moveTo(.35,.22);ctx.lineTo(1.18,.52)}
+   else if(p.scramblePose==='shove'){ctx.moveTo(.25,-.30);ctx.lineTo(.90,-.72);ctx.moveTo(.25,.30);ctx.lineTo(.90,.72)}
+   else{ctx.moveTo(-.55,-.26);ctx.lineTo(.55,.26)}
+   ctx.stroke();ctx.restore();
+ }else disc(p.x,p.y,.76,colors[p.team],'#12271e');
+ ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+ ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
+}
 function draw(){ctx.setTransform(20,0,0,20,50,70);rect(-2.5,-3.5,55,41,'#1c2c23');rect(0,0,50,34,'#366944');for(let i=0;i<50;i+=5)rect(i,0,2.5,34,'#396f48');rect(20,0,10,34,'#77573c');if(dirtTexture.naturalWidth){ctx.drawImage(dirtTexture,20,0,10,12);ctx.drawImage(dirtTexture,20,22,10,12)}rect(0,12,50,10,'#b39849');rect(20,12,10,10,'#508596');ctx.strokeStyle='#c6d8b8';ctx.lineWidth=.09;for(let x of [0,30])for(let y of [0,22])ctx.strokeRect(x,y,20,12);ctx.strokeRect(0,12,50,10);disc(center.x,center.y,ringRadius,'#386574','#f3f6df');ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
  rect(16.1,-3.02,17.8,2.48,'#0b1510');ctx.strokeStyle='#76877a';ctx.lineWidth=.07;ctx.strokeRect(16.1,-3.02,17.8,2.48);
  ctx.font='700 .70px system-ui,sans-serif';ctx.fillStyle=colors[0];ctx.fillText('EMBER',19.25,-2.20);ctx.fillStyle='#f4f6ed';ctx.fillText(sim.score[0],22.25,-2.20);
@@ -111,11 +127,7 @@ function draw(){ctx.setTransform(20,0,0,20,50,70);rect(-2.5,-3.5,55,41,'#1c2c23'
    ctx.globalAlpha=1;
  }
  if(sim.contact){let {p,d}=sim.contact;disc((p.x+d.x)/2,(p.y+d.y)/2,1.6,"#a58038","#ffe27d")}
- for(let p of sim.players){if(p.sidelined)continue;if(p.blocked>0)disc(p.x,p.y,1,"#8a7546","#f5d688");disc(p.x,p.y,.76,colors[p.team],'#12271e');ctx.save();ctx.translate(p.x,p.y);ctx.scale(.05,.05);
- ctx.font='bold 17px Arial,sans-serif';ctx.textAlign='left';ctx.textBaseline='alphabetic';
- const bounds=ctx.measureText(p.jersey);
- ctx.fillStyle='#101c16';ctx.fillText(p.jersey,(bounds.actualBoundingBoxLeft-bounds.actualBoundingBoxRight)/2,(bounds.actualBoundingBoxAscent-bounds.actualBoundingBoxDescent)/2);
- ctx.restore()}
+ for(let p of sim.players)if(!p.sidelined)drawPlayer(p);
  drawBall(sim.ball());
  const share=(values)=>{let total=values[0]+values[1];return total?Math.round(100*values[0]/total)+'% / '+Math.round(100*values[1]/total)+'%':'—'};
  el('control').textContent='Current possession '+Math.floor(sim.posAge/60)+':'+String(Math.floor(sim.posAge)%60).padStart(2,'0')+' · Ember / Harbor · Possession '+share(sim.possession)+' · Runway ball control '+share(sim.runway);

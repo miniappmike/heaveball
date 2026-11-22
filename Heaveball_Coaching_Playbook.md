@@ -69,7 +69,11 @@ Coaches set the threshold. One might call a set after the first empty trip. Anot
 | **Anchor Leak** | Show the usual lead block, then release the attacking Anchor into the blue as a receiver if defenders commit to the Runner. | The Runner loses a blocker. If the defense follows the Anchor, use another outlet. |
 | **Runway Relay** | The first carrier draws an Anchor and hands off to a trailing player with a better angle. Keep it if the defense widens early. | A pressured exchange can become a live fumble. The trailing player has to see the same opening. |
 | **Drive** | Put the ball in a strong Runner's hands behind an Anchor. Keep a teammate available to take a handoff or recover a fumble while the carrier is still upright and moving. | Prolonged contact gives defenders time to surround the carrier. Extra bodies can also crowd the exchange and leave the offense poorly placed after a turnover. |
-| **Second Ball** | Send nearby support to incompletions and fumbles. A clear pickup can be immediate. In a scrum, proximity, Hands, Reaction, and, on fumbles, Strength help win possession. Be ready to chase a ball that squirts free. | If everyone chases the loose ball, the opponent can recover with open space. |
+| **Second Ball** | Send only realistic nearby support to incompletions and fumbles. Pursuit uses estimated arrival time from proximity, Speed, Reaction, and IQ, with no more than four credible contenders. A clear pickup can be immediate. In a scrum, Hands, Reaction, Strength, and proximity help win possession. | Distant players hold the team shape instead of abandoning assignments for a ball they cannot reach. Poor spacing can still leave the opponent with the best local numbers. |
+
+### Loose-ball scrambles
+
+Scrambles stay on the ground. Nearby credible players dive, fall, push, and shove for a live ball; it may squirt or bobble a short distance before someone secures it. The softball-sized rubber ball can skip on turf, but it rapidly loses vertical energy and should not launch high like a bouncy ball. Players too far away to affect the recovery keep their spacing and assignments.
 
 ## Anchor Iso
 

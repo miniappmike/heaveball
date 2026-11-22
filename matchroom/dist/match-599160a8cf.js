@@ -27,9 +27,10 @@ const defenses=[
 const fieldSecondsPerSecond=.63;
 // Field units are yards. Height is measured from the turf to the ball's center.
 const ballRadius=.31,gravity=10.73;
-const grass={restitution:.53,grip:.26,roll:4.05};
-const runwayTurf={restitution:.64,grip:.21,roll:2.85};
-const dirt={restitution:.45,grip:.30,roll:4.75};
+// A softball-sized rubber ball on turf skips and rebounds, but sheds vertical energy quickly.
+const grass={restitution:.30,grip:.28,roll:4.20};
+const runwayTurf={restitution:.34,grip:.24,roll:3.05};
+const dirt={restitution:.22,grip:.32,roll:4.90};
 function turfAt(x,y){
  if(Math.abs(y-17)<=5)return runwayTurf;
  return Math.abs(x-25)<5?dirt:grass;
@@ -83,7 +84,7 @@ function advanceLooseBall(ball,dt){
    ball.omega=ball.omega*.55+pace/ballRadius*.45;
    ball.z=ballRadius;
    const rebound=-ball.vz*turf.restitution;
-   ball.vz=rebound>.58?rebound:0;
+   ball.vz=rebound>.46?rebound:0;
    if(ball.vz>0&&dt>airTime+1e-8){advanceLooseBall(ball,dt-airTime);return}
  }
  const rollTime=dt-airTime;
@@ -108,7 +109,7 @@ function reboundVelocity(flight,actor,nx,ny,nz,restitution){
  const impulse=-(1+restitution)*toward;
  const outgoingX=(vx+nx*impulse)*.48+actor.vx,outgoingY=(vy+ny*impulse)*.48+actor.vy;
  const limit=Math.min(1,9.4/(Math.hypot(outgoingX,outgoingY)||1));
- return {vx:outgoingX*limit,vy:outgoingY*limit,vz:clamp((vz+nz*impulse)*.62,-9,5.2)};
+ return {vx:outgoingX*limit,vy:outgoingY*limit,vz:clamp((vz+nz*impulse)*.46,-7,3.1)};
 }
 function topSpeed(rating){return 2+rating*.055}
 function acceleration(rating){return 3+rating*.09}
@@ -168,7 +169,8 @@ function player(team,i,name){
  const ratings=traits.map((_,j)=>{let mode=fav.includes(j)?75:60,u=rand();return Math.round(u<(mode-20)/80?20+Math.sqrt(u*80*(mode-20)):100-Math.sqrt((1-u)*80*(100-mode)))});
  let side=i<4?([1,-1,-1,1][i]):(i<6?team*2-1:1-team*2);
  let hx=25+side*(i<4?13:i===4?17:i===5?10:i===6?7:12),hy=i<4?(i<2?7:27)+(team?1.6:-1.6):17+(i%3-1)*2;
- return {energy:1,team,i,name,role,height,weight,ratings,side,hx,hy,x:hx,y:hy,vx:0,vy:0};
+ return {energy:1,team,i,name,role,height,weight,ratings,side,hx,hy,x:hx,y:hy,vx:0,vy:0,
+   scrambleTime:0,scramblePose:null,scrambleAngle:0};
 }
 function match(report){
  let pool=names.slice(),players=Array.from({length:16},(_,i)=>player(i>>3,i%8,pool.splice(Math.floor(rand()*pool.length),1)[0]));
@@ -197,7 +199,7 @@ function match(report){
    }}
  }
  for(const p of players)p.stats={pts:0,att:0,cmp:0,rec:0,tc:0,int:0,tkl:0,fum:0,to:0,pen:0,pbu:0,drp:0,hit:0};
- let s={scoreEvents:0,penaltyEvents:0,stoppageEvents:0,penaltyPending:false,stoppagePending:false,highlights:[],stints:[[],[]],posAge:0,players,score:[0,0],half:1,time:1200,overtime:false,done:false},opening=Math.floor(rand()*2),carrier,pass,age,hold,cutter,run,worth,scoringPassYards=null,scoringThrower=null,cool=0;
+ let s={scoreEvents:0,penaltyEvents:0,stoppageEvents:0,penaltyPending:false,stoppagePending:false,scramblePursuers:[],highlights:[],stints:[[],[]],posAge:0,players,score:[0,0],half:1,time:1200,overtime:false,done:false},opening=Math.floor(rand()*2),carrier,pass,age,hold,cutter,run,worth,scoringPassYards=null,scoringThrower=null,cool=0;
  let retreat=null,nextRead=0,nextOutletRead=0;
  let buildup=0, neutralUntil=0, openingCall=null, plan="", previous=null;
  let cornerReturn=null,anchorLeak=null,relay=null,blueTrap=null,swing=null;
@@ -553,7 +555,7 @@ function match(report){
    const sideways=(rand()-.5)*speed;
    Object.assign(loose,{vx:contact.x*speed-contact.y*sideways+p.vx*.28+(flight?.vx??0)*.12,
      vy:contact.y*speed+contact.x*sideways+p.vy*.28+(flight?.vy??0)*.12,
-     z:spot.z??1.2,vz:1.6+speed*.23+(flight?.vz??0)*.16,spin:flight?.spin??0,omega:sideways*6,wait:.28});
+     z:spot.z??1.2,vz:.75+speed*.11+(flight?.vz??0)*.10,spin:flight?.spin??0,omega:sideways*6,wait:.28});
    showImpact(p,d);
  }
  function tackleCarrier(p,d,active){
@@ -694,6 +696,29 @@ function match(report){
    }
    return {duration:duration*1.08,arcHeight:3.9,endHeight:1.42};
  }
+ function loosePursuers(active){
+   const estimate=p=>{
+     const gap=dist(p,loose),speed=Math.max(2.4,topSpeed(p.ratings[3]));
+     const reactionDelay=(100-p.ratings[6])*.008+(100-p.ratings[8])*.0035;
+     return {p,gap,eta:gap/speed+reactionDelay};
+   };
+   const ranked=players.filter(active).map(estimate).sort((a,b)=>a.eta-b.eta);
+   const chosen=new Set();
+   for(const team of [0,1]){
+     const club=ranked.filter(entry=>entry.p.team===team);
+     const first=club[0];
+     if(first&&first.gap<=11.5)chosen.add(first.p);
+     const second=club[1];
+     if(second&&second.gap<=4.75&&second.eta<first.eta+1.05)chosen.add(second.p);
+   }
+   if(!chosen.size&&ranked[0])chosen.add(ranked[0].p);
+   for(const entry of ranked){
+     if(chosen.size>=4)break;
+     if(entry.gap<=3.25)chosen.add(entry.p);
+   }
+   s.scramblePursuers=[...chosen].map(p=>p.team*8+p.i);
+   return chosen;
+ }
  function settleLooseBall(active){
    const reach=1.2;
    const nearby=[];
@@ -714,14 +739,22 @@ function match(report){
    }
    if(!winner)return null;
    const traffic=clamp(.18+(nearby.length-2)*.065+Math.max(0,2-(best-runnerUp))*.09,0,.58);
+   const bodies=nearby.filter(entry=>entry.gap<1.75);
+   for(const {p} of bodies){
+     const toward=Math.atan2(loose.y-p.y,loose.x-p.x);
+     p.scrambleAngle=toward+(p===winner?0:(rand()-.5)*1.1);
+     p.scramblePose=p===winner?'dive':p.team===winner.team?'shove':rand()<.58?'fall':'shove';
+     p.scrambleTime=.42+rand()*.48;
+     if(p.scramblePose==='fall')p.blocked=Math.max(p.blocked||0,.35+rand()*.42);
+   }
    if(contested&&loose.bobbles<3&&rand()<traffic){
      const reachAngle=Math.atan2(loose.y-winner.y,loose.x-winner.x)+(rand()-.5)*.65;
-     const push=2.2+rand()*1.6;
-     loose.vx=loose.vx*.4+winner.vx*.32+Math.cos(reachAngle)*push;
-     loose.vy=loose.vy*.4+winner.vy*.32+Math.sin(reachAngle)*push;
-     loose.vz=1+push*.3;loose.omega+=(rand()-.5)*14;
-     loose.bobbles++;loose.wait=.3+rand()*.24;loose.last=winner.team;
-     log('Ball squirts free in the scramble');
+     const push=.55+rand()*.9;
+     loose.vx=loose.vx*.16+winner.vx*.12+Math.cos(reachAngle)*push;
+     loose.vy=loose.vy*.16+winner.vy*.12+Math.sin(reachAngle)*push;
+     loose.z=ballRadius;loose.vz=.06+rand()*.20;loose.omega+=(rand()-.5)*8;
+     loose.bobbles++;loose.wait=.22+rand()*.18;loose.last=winner.team;loose.scramble=true;
+     log('The ball is still loose under the scramble');
      return null;
    }
    return {player:winner,contested:contested||loose.bobbles>0};
@@ -787,7 +820,8 @@ function match(report){
        const x=25+side*depth*(blocking||attack?1:-1);
        const y=blocking?[17,14.4,19.6][p.i-5]:p===heaver?19:17;
        Object.assign(p,{sidelined:sidelines,edgeTime:0,ringExit:null,ringTime:0,screened:0,
-         x,y,hx:x,hy:y,vx:0,vy:0,blocked:0,jukeTime:0,jukeWait:0,helpTime:0});
+         x,y,hx:x,hy:y,vx:0,vy:0,blocked:0,jukeTime:0,jukeWait:0,helpTime:0,
+         scrambleTime:0,scramblePose:null,scrambleAngle:0});
      }
    }
    plan='Three-on-three runway';
@@ -797,7 +831,7 @@ function match(report){
    log(teams[team]+' sets up · '+plan);
  }
  function restart(team,side,index){
-   loose=null;s.contact=s.impact=null;pile=null;lane=false;cool=0;
+   loose=null;s.contact=s.impact=null;s.scramblePursuers=[];pile=null;lane=false;cool=0;
    defensiveAssignments.clear();defenseReadAt=0;
    cornerReturn=anchorLeak=relay=blueTrap=swing=null;
    if(s.overtime){restartOvertime(team);return}
@@ -820,7 +854,8 @@ function match(report){
        p.hy=p.i===5?17:p.i===6?14:20;
      }
      Object.assign(p,{x:p.hx,y:p.hy,vx:0,vy:0,edgeTime:0,ringExit:null,ringTime:0,screened:0,
-       blocked:0,helpTime:0,helpTarget:null,route:null,routeTime:0,jukeTime:0,jukeWait:0})
+       blocked:0,helpTime:0,helpTarget:null,route:null,routeTime:0,jukeTime:0,jukeWait:0,
+       scrambleTime:0,scramblePose:null,scrambleAngle:0})
    }
 
    const calls=s.playbooks[team].calls;
@@ -924,13 +959,13 @@ function match(report){
      const gap=dist(motion,actor);
      const nx=gap>.12?(x-actor.x)/gap:-dx,ny=gap>.12?(y-actor.y)/gap:-dy;
      const bounce=reboundVelocity(motion,actor,nx,ny,.23,.55);
-     Object.assign(loose,bounce,{vz:Math.max(.95,bounce.vz),omega:(dx*ny-dy*nx)*speed*1.3});
+     Object.assign(loose,bounce,{vz:Math.max(.55,bounce.vz),omega:(dx*ny-dy*nx)*speed*1.3});
    }else if(mode==='tip'||mode==='bat'){
      const sign=(actor.x-x)*dy-(actor.y-y)*dx<0?-1:1;
      const bat=mode==='bat',normalX=-dx*(bat?.72:.56)-dy*sign*(bat?.23:.78);
      const normalY=-dy*(bat?.72:.56)+dx*sign*(bat?.23:.78);
      const bounce=reboundVelocity(motion,actor,normalX,normalY,bat?-.68:.27,bat?.24:.5);
-     Object.assign(loose,bounce,{vz:bat?Math.min(-2.9,bounce.vz):Math.max(1.5,bounce.vz),
+     Object.assign(loose,bounce,{vz:bat?Math.min(-2.4,bounce.vz):Math.max(.8,bounce.vz),
        omega:sign*(bat?11:19)});
    }else{
      const skip=Math.min(speed*.43,9);
@@ -1052,7 +1087,7 @@ function match(report){
      if(!lane&&rand()<fumbleRate*dt){
        p.stats.fum++;log(p.name+' loses the ball inside the pile · ball loose');
        spill(p,'fumble',p.x,p.y);
-       Object.assign(loose,{vx:(rand()-.5)*6,vy:(rand()-.5)*6,vz:1.4+rand()*1.8,omega:(rand()-.5)*18});return;
+       Object.assign(loose,{vx:(rand()-.5)*6,vy:(rand()-.5)*6,vz:.65+rand()*.75,omega:(rand()-.5)*18});return;
      }
      const freeMate=players.filter(q=>q.team===p.team&&q!==p&&active(q)&&!q.blocked&&q.role!=='Anchor'&&
        dist(q,p)<2.15&&clearance(q,p.team)>2.4).sort((a,b)=>dist(a,p)-dist(b,p))[0];
@@ -1091,8 +1126,10 @@ function match(report){
      return;
    }
  }
-
+ const scramblePursuers=loose?loosePursuers(active):null;
  for(let p of players){
+ p.scrambleTime=Math.max(0,(p.scrambleTime||0)-dt);
+ if(p.scrambleTime===0)p.scramblePose=null;
  if(p.edgeTime>0){
    p.edgeTime=Math.max(0,p.edgeTime-dt);
    if(p.edgeTime===0){
@@ -1105,7 +1142,15 @@ function match(report){
  let tx=p.hx,ty=p.hy;
  p.jukeWait=Math.max(0,p.jukeWait-dt);p.jukeTime=Math.max(0,p.jukeTime-dt);
  if(pile&&p.role==='Anchor'){tx=pile.p.x;ty=pile.p.y}
- else if(loose){tx=loose.x+loose.vx*.27;ty=loose.y+loose.vy*.27}
+ else if(loose&&scramblePursuers.has(p)){
+   tx=loose.x+loose.vx*.18;ty=loose.y+loose.vy*.18;
+   if(dist(p,loose)<1.7&&loose.z<.72&&p.scrambleTime<=0){
+     p.scramblePose=dist(p,loose)<1.05?'dive':'shove';
+     p.scrambleAngle=Math.atan2(loose.y-p.y,loose.x-p.x);
+     p.scrambleTime=.28+.30*(1-judgment(p));
+   }
+ }
+ else if(loose){tx=p.x;ty=p.y}
  else if(p===carrier&&stationary){tx=p.x;ty=p.y;p.vx=0;p.vy=0}
  else if(p===carrier&&retreat){tx=retreat.x;ty=Math.abs(p.x-25)<6.2?clamp(p.y,14,20):retreat.y}
  else if(p===carrier&&p.jukeTime>0){tx=p.jukeX;ty=p.jukeY}
