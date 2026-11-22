@@ -242,6 +242,42 @@ main .grid:has(#field.mobile-expanded){grid-template-columns:minmax(0,1fr)}
 #field.mobile-expanded.expanded .speeds button{min-height:30px;min-width:38px;font-size:15px}
 #field.mobile-expanded.expanded .bar{opacity:.92}
 html:fullscreen:has(#field.mobile-expanded){overflow:auto}
+
+/* Visual rules guide */
+.guide-intro{margin:6px 0 18px}
+.g-lede{font-size:16px;line-height:1.55;color:var(--text);max-width:70ch}
+.g-lede strong{color:var(--mint);font-weight:600}
+.g-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.g-block{background:var(--card-2);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:14px;align-content:start;min-width:0}
+.g-block h4{display:flex;align-items:center;gap:10px;margin:0;font:22px/1 var(--display);letter-spacing:.05em;text-transform:uppercase}
+.g-num{font:14px/1 var(--display);letter-spacing:.1em;color:var(--mint-ink);background:var(--mint);border-radius:999px;padding:5px 8px 4px}
+.g-field{width:100%;height:auto;border-radius:10px;display:block}
+.g-zones{counter-reset:zone;list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.g-zones li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;font-size:13px;color:var(--muted);counter-increment:zone}
+.g-zones b{display:block;color:var(--text);font-weight:600;font-size:14px}
+.g-sw{width:22px;height:22px;border-radius:6px;border:1px solid rgba(255,255,255,.2);position:relative}
+.g-zones li .g-sw::after{content:counter(zone);position:absolute;inset:0;display:grid;place-items:center;font:13px/1 var(--display);color:#fff}
+.g-points,.g-passes,.g-rules{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.g-points li{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.22);font-size:13px;color:var(--muted)}
+.g-points b{display:block;color:var(--text);font-weight:600;font-size:14px;margin-bottom:2px}
+.g-pt{display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:rgba(47,227,154,.14);border:1px solid rgba(47,227,154,.5);color:var(--mint);font:32px/1 var(--display)}
+.g-pt-gold{background:rgba(242,210,27,.12);border-color:rgba(242,210,27,.5);color:var(--gold)}
+.g-passes{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g-passes li{display:grid;gap:4px;padding:12px;border-radius:12px;background:rgba(0,0,0,.22);font-size:13px;color:var(--muted)}
+.g-passes svg{width:60px;height:24px;fill:none;stroke:var(--mint);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;margin-bottom:4px}
+.g-passes b{color:var(--text);font:20px/1 var(--display);letter-spacing:.05em;text-transform:uppercase}
+.g-rules li{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.g-rules li:first-child{border-top:0;padding-top:0}
+.g-rules b{color:var(--text);font-weight:600}
+.g-bad{color:#ff9a7f}
+.g-note{font-size:13px;line-height:1.5;color:var(--muted);margin:0}
+.g-note b{color:var(--text);font-weight:600}
+.g-links{margin-top:16px;font-size:13px;color:var(--muted)}
+.rules .g-links a{color:var(--mint)}
+.rules p.g-note,.rules p.g-lede,.rules p.g-links{margin-bottom:0;max-width:none}
+.rules p.g-lede{color:var(--text);max-width:70ch}
+@media(max-width:760px){.g-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:420px){.g-zones,.g-passes{grid-template-columns:minmax(0,1fr)}.g-rules li{grid-template-columns:minmax(0,1fr);gap:2px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
 </style><main>
@@ -270,7 +306,62 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
   <div class="average-heading"><h3 id="average-heading">Team averages</h3><div class="team-key" aria-hidden="true"><span class="red">Ember</span><span class="blue">Harbor</span></div></div>
   <ul id="averages" aria-labelledby="average-heading"></ul>
  </article>
- <article class="card rules"><details><summary>Field, scoring and restarts</summary><p>Throw from green quadrants. Run or hand off in the yellow runway. Every role can use the entire blue center zone. Only Anchors can enter the opposite half. Airborne passes may cross above the dirt strips. A carried ball, intentional bounce, deflection or loose ball touching dirt is out of bounds, and the opponent takes a quadrant reset. More than three uninterrupted seconds unblocked in the ring gives the opponent a free run lane. The lead Anchor tries to screen the help defender and leave the Runner one-on-one. The first defender can grab and wait for help or try a low-percentage lunge to stop the Runner at the spot.</p><p>The lob is the standard, high-arching pass. Bounce passes are slower and easier to handle but stay on one half. Line drives are fastest and flattest but harder to catch. Nearby unpressured teammates can use a safe low underhand lob or a direct handoff. Low Arm Strength and Accuracy create more short-hops; low Accuracy can also sail a throw over the receiver.</p><p>Carry through the ring for 2, or catch a teammate’s pass in blue and finish for 3. A center interception or fumble recovery earns 1 and possession. Catch a legal airborne save kick in blue for 5. A tie goes to runway-only sudden death. The next score wins.</p><p>A quadrant tackle gives the carrier a stationary throw. A runway tackle turns it over. A center catch stopped short retains possession. Incompletions stay live unless the ball lands or rolls out of bounds. Strength, size and support drive two-to-25-second piles; Tackling and IQ can end them, while carriers may pull out, fumble, sneak a handoff or risk a wild pass. Defenders can also strip the ball using Strength, Hands, Reaction and IQ. Ordinary stoppages hold for two seconds; free-run penalties hold for three before formation.</p><a href="summary.md" target="_blank">Build summary</a> · <a href="summary.docx" download>Word document</a></details></article>
+ <article class="card rules"><details><summary>Field, scoring and restarts</summary>
+<div class="guide-intro"><p class="g-lede">Two teams of eight attack <strong>one shared ring</strong> in the middle of the field. Get the ball into the ring to score. The first time you watch, follow the white ball.</p></div>
+<div class="g-grid">
+ <section class="g-block g-fieldblock" aria-labelledby="g-h-field">
+  <h4 id="g-h-field"><span class="g-num">01</span>The field</h4>
+  <svg class="g-field" viewBox="-1 -1 52 36" role="img" aria-labelledby="g-field-title"><title id="g-field-title">Top-down field: four green quadrants in the corners, a runway across the middle, a center zone with the ring, and dirt strips above and below the center</title>
+<rect x="0" y="0" width="50" height="34" fill="#3f7a3c"/>
+<rect x="0" y="12" width="20" height="10" fill="#5a9447"/><rect x="30" y="12" width="20" height="10" fill="#5a9447"/>
+<rect x="20" y="0" width="10" height="12" fill="#9c503a"/><rect x="20" y="22" width="10" height="12" fill="#9c503a"/>
+<rect x="20" y="12" width="10" height="10" fill="#2f6e4d"/>
+<g fill="none" stroke="#fff" stroke-width=".35" stroke-opacity=".9"><rect x="0" y="0" width="50" height="34"/><path d="M20 0v34M30 0v34M0 12h50M0 22h50"/><circle cx="25" cy="17" r="2"/></g>
+<g transform="translate(10 6)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#9fd88c" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">1</text></g><g transform="translate(40 6)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#9fd88c" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">1</text></g><g transform="translate(10 28)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#9fd88c" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">1</text></g><g transform="translate(40 28)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#9fd88c" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">1</text></g><g transform="translate(10 17)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#cfe8a8" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">2</text></g><g transform="translate(40 17)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#cfe8a8" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">2</text></g><g transform="translate(25 6)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#f0a58a" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">4</text></g><g transform="translate(25 28)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#f0a58a" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">4</text></g><g transform="translate(23.1 20.2)"><circle r="1.6" fill="#0b0e0d" fill-opacity=".55" stroke="#9fe0c0" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">3</text></g></svg>
+  <ol class="g-zones">
+   <li><span class="g-sw" style="background:#3f7a3c"></span><div><b>Quadrants</b>Throw from here.</div></li>
+   <li><span class="g-sw" style="background:#5a9447"></span><div><b>Runway</b>Run or hand off.</div></li>
+   <li><span class="g-sw" style="background:#2f6e4d"></span><div><b>Center zone</b>Anyone can enter. The ring sits inside it.</div></li>
+   <li><span class="g-sw" style="background:#9c503a"></span><div><b>Dirt strips</b>Out of bounds for the ball. Passes can fly over them.</div></li>
+  </ol>
+  <p class="g-note">Only <b>Anchors</b> can cross into the opposite half.</p>
+ </section>
+ <section class="g-block" aria-labelledby="g-h-score">
+  <h4 id="g-h-score"><span class="g-num">02</span>Scoring</h4>
+  <ul class="g-points">
+   <li><span class="g-pt">2</span><div><b>Carry it in</b>Run the ball through the ring.</div></li>
+   <li><span class="g-pt">3</span><div><b>Catch and finish</b>Catch a teammate's pass in the center zone, then finish through the ring.</div></li>
+   <li><span class="g-pt">1</span><div><b>Steal in the center</b>Intercept a pass or recover a fumble in the center zone. You also get the ball.</div></li>
+   <li><span class="g-pt g-pt-gold">5</span><div><b>Save-kick catch</b>Rare. Catch a legal airborne save kick in the center zone.</div></li>
+  </ul>
+  <p class="g-note"><b>Tied at full time?</b> Sudden death in the runway only. Next score wins.</p>
+ </section>
+ <section class="g-block" aria-labelledby="g-h-pass">
+  <h4 id="g-h-pass"><span class="g-num">03</span>Passing</h4>
+  <ul class="g-passes">
+   <li><svg viewBox="0 0 60 24" aria-hidden="true"><path d="M4 20Q30-6 56 20" /></svg><b>Lob</b><span>The standard pass. High and arching.</span></li>
+   <li><svg viewBox="0 0 60 24" aria-hidden="true"><path d="M4 8L30 20L56 8" /></svg><b>Bounce</b><span>Slower and easier to catch. Stays on one half.</span></li>
+   <li><svg viewBox="0 0 60 24" aria-hidden="true"><path d="M4 13H56" /></svg><b>Line drive</b><span>Fastest and flattest, but harder to catch.</span></li>
+   <li><svg viewBox="0 0 60 24" aria-hidden="true"><path d="M14 18Q30 8 46 18" /></svg><b>Underhand</b><span>A safe short toss or handoff to a nearby teammate.</span></li>
+  </ul>
+  <p class="g-note">Weak arms and poor accuracy cause more short-hops, and some throws sail over the receiver.</p>
+ </section>
+ <section class="g-block" aria-labelledby="g-h-contact">
+  <h4 id="g-h-contact"><span class="g-num">04</span>Tackles and restarts</h4>
+  <ul class="g-rules">
+   <li><b>Tackled in a quadrant</b><span>Carrier keeps the ball and gets a standing throw.</span></li>
+   <li><b>Tackled in the runway</b><span class="g-bad">Turnover.</span></li>
+   <li><b>Center catch stopped short</b><span>Your team keeps the ball.</span></li>
+   <li><b>Incomplete pass</b><span>Still live, unless it lands or rolls out of bounds.</span></li>
+   <li><b>Ball touches dirt</b><span class="g-bad">Out of bounds. Opponent restarts in a quadrant.</span></li>
+   <li><b>3+ seconds unblocked in the ring</b><span class="g-bad">Penalty. Opponent gets a free run lane.</span></li>
+  </ul>
+  <p class="g-note"><b>Piles</b> last 2 to 25 seconds. Strength, size and teammates push; Tackling and IQ end them. Carriers can pull out, fumble, sneak a handoff or risk a wild pass. Defenders can also strip the ball.</p>
+  <p class="g-note"><b>Free run lane:</b> the lead Anchor screens the help defender to leave the Runner one-on-one. The first defender can grab and wait for help or try a risky lunge. Ordinary stoppages pause play for two seconds; free-run penalties pause for three.</p>
+ </section>
+</div>
+<p class="g-links"><a href="summary.md" target="_blank">Build summary</a> · <a href="summary.docx" download>Word document</a></p>
+</details></article>
 </section>
 <div class="grid">
  <section id="field" class="card field-card">
