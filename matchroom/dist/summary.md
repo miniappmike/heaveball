@@ -18,9 +18,30 @@ The pregame handbook shows both overall ratings and the projected spread above a
 
 ## Spread forecast
 
-The pregame spread is a fitted model, not the overall-rating difference. Each club's expected points start from a base of about 21 and add weighted contributions from its own 12 trait averages, the opponent's trait averages, its offensive playbook, the opponent's defensive scheme and its own defensive tempo. The spread is the difference in expected points, rounded to the half point. The total is their sum. Win probability treats the final margin as normally distributed around the spread with an 11.6-point standard deviation.
+The pregame spread is a fitted model, not the overall-rating difference. Each club's expected points start from a base of about 26 and add weighted contributions from its own 12 trait averages, the opponent's trait averages, its offensive playbook, the opponent's defensive scheme and its own defense. The spread is the difference in expected points, rounded to the half point. The total is their sum. Win probability treats the final margin as normally distributed around the spread with an 11.2-point standard deviation.
 
-The weights were refitted with ridge regression on 960 headless full matches after the softer short-pass change. On held-out matches the model explained about 54% of the variance in final margin, against about 18% for the overall-rating difference alone. Favorites given 80–90% won 89% of the time and favorites given 90% or more won 96% of the time. Tactics carry much of the signal. Carrier pressure and Receiver denial lower the opponent's expected points the most, Star focus and Ring guard concede the most, and Ring guard also slows its own offense. Throw Accuracy, Agility and Strength are the most predictive traits. Refit the weights in the view JavaScript whenever scoring, tactics or player generation change materially.
+The weights were refitted with ridge regression on 1,000 headless full matches after the ball-handling update and the strategy balance pass. Because no tactic now dominates, results are harder to predict than before: on held-out matches the model explains about 24% of the variance in final margin, against about 14% for the overall-rating difference alone. It stays well calibrated; favorites given 80–90% won 85% of the time. Throw Accuracy and Agility are the most predictive traits. Quick swing and Free flow carry the largest offensive bonus, Patient passing and Runway power the smallest, and Passing-lane zone concedes the most of the defenses. Refit the weights in the view JavaScript whenever scoring, tactics or player generation change materially.
+
+## Strategy balance
+
+Every playbook and defense was tuned against randomized simulations so that none decides a game on its own while each keeps a recognizable style. In the final 1,000-match check, teams scored 26.5 to 32 points a game depending on playbook, and each defense's average scoring margin (its own points minus points allowed) landed within about four points of even.
+
+| Strategy | Signature in simulation |
+|---|---|
+| Patient passing | Longest possessions, about 55% of the clock, fewest possessions and fewest turnovers |
+| Balanced | Even mix of carries, passes and 3-point catches |
+| Runway power | Most two-point ring carries, fewest 3-point catches, most turnovers |
+| Quick swing | Most passes per possession and the highest completion rate |
+| Free flow | Most possessions and the widest mix of scoring plays |
+| Ring guard | Fewest ring carries allowed; gives the opponent more possessions |
+| Receiver denial | Fewest 3-point catches allowed |
+| Star focus | Most passes broken up |
+| Passing-lane zone | Lane-reading defenders get extra reach for tips while keeping their ring-side shade |
+| Carrier pressure | Most tackles and forced turnovers, with a deep, loose back line that concedes when the press is beaten |
+| Runway contain | Funnels runs into tacklers and limits 3-point catches |
+| Switch coverage | Steady marks with fewer opponent possessions |
+
+The engine exposes `pressGap` and `rushRead` for Carrier pressure, and `laneStep`, `laneCut` and `laneReach` for Passing-lane zone, so these identities can be adjusted without rewriting the defensive logic.
 
 ## Player generation
 
@@ -111,7 +132,7 @@ The footer uses accessible GitHub and OpenAI logo links to the production Matchr
 
 ## Build record
 
-Built 2026-11-22 10:11 UTC.
+Built 2026-11-22 10:53 UTC.
 
-- match-d8d6a4994b.js
-- view-ae0b7b4473.js
+- match-4fe2a8d8ae.js
+- view-0cd13bc0d0.js
