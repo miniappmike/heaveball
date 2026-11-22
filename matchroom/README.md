@@ -34,7 +34,7 @@ Run the gameplay checks appropriate to a change before publishing. Every release
 
 ## Deployment and collaboration
 
-The live Matchroom is published from GitHub Pages at <https://miniappmike.github.io/heaveball/>. The workflow in `.github/workflows/pages.yml` deploys `matchroom/dist` whenever it changes on `main`, usually within two minutes. It publishes `dist` exactly as committed and does not run `build.py`. The older chatgpt.site deployment changes only when someone republishes it manually.
+The live Matchroom is published from GitHub Pages at <https://miniappmike.github.io/heaveball/>. The workflow in `.github/workflows/pages.yml` deploys `matchroom/dist` whenever it changes on `main`, usually within two minutes. It publishes `dist` exactly as committed and does not run `build.py`. The [GPT test site](https://heaveball-matchroom.hardyburl128.chatgpt.site/) runs the latest Codex Matchroom PR build for review. When Codex opens or updates a Matchroom PR, publish its built files there and include the test URL in the handoff. The owner can test that build before merging it to GitHub Pages.
 
 Two AI agents work on this repository: ChatGPT/Codex and Claude. Both follow the same rules:
 

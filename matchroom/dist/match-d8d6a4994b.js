@@ -28,6 +28,8 @@ const defenses=[
 ];
 // Calibrated against a ten-yard run from rest with Speed and Agility at 60.
 const fieldSecondsPerSecond=.63;
+const playerSpeedMultiplier=1.02;
+const ballSpeedMultiplier=.98;
 // Field units are yards. Height is measured from the turf to the ball's center.
 const ballRadius=.31,gravity=10.73;
 // A softball-sized rubber ball on turf skips and rebounds, but sheds vertical energy quickly.
@@ -114,8 +116,8 @@ function reboundVelocity(flight,actor,nx,ny,nz,restitution){
  const limit=Math.min(1,9.4/(Math.hypot(outgoingX,outgoingY)||1));
  return {vx:outgoingX*limit,vy:outgoingY*limit,vz:clamp((vz+nz*impulse)*.46,-7,3.1)};
 }
-function topSpeed(rating){return 2+rating*.055}
-function acceleration(rating){return 3+rating*.09}
+function topSpeed(rating){return (2+rating*.055)*playerSpeedMultiplier}
+function acceleration(rating){return (3+rating*.09)*playerSpeedMultiplier}
 function deflectionSkill(p){
  const height=p.height-72,jump=p.ratings[4]-60,reaction=p.ratings[6]-60;
  return height*.006+jump*.0009+reaction*.0019;
@@ -677,7 +679,8 @@ function match(report){
    ];
    let roll=rand()*weights.reduce((sum,[,weight])=>sum+weight,0),type='lob';
    for(const [candidate,weight] of weights){roll-=weight;if(roll<=0){type=candidate;break}}
-   const shortHopChance=clamp(.012+Math.max(0,76-p.ratings[0])*.0017+
+   const longThrow=clamp((gap-16)/12,0,1);
+   const shortHopChance=.0005+longThrow*clamp(.012+Math.max(0,76-p.ratings[0])*.0017+
      Math.max(0,80-p.ratings[1])*.0025+gap*.0012+(pressure?.035:0),.012,.27);
    const overthrowChance=clamp(.01+Math.max(0,82-p.ratings[1])*.0021+
      Math.max(0,p.ratings[0]-p.ratings[1])*.0015+gap*.0008+(pressure?.02:0),.01,.22);
@@ -1290,7 +1293,7 @@ function match(report){
    tx=exit.x;ty=exit.y;
  }
  tx=legalX(p,tx);
- let dx=tx-p.x,dy=ty-p.y,d=Math.hypot(dx,dy),v=Math.min(topSpeed(p.ratings[3]),d*2),a=acceleration(p.ratings[10])*dt;
+ let dx=tx-p.x,dy=ty-p.y,d=Math.hypot(dx,dy),v=Math.min(topSpeed(p.ratings[3]),d*2*playerSpeedMultiplier),a=acceleration(p.ratings[10])*dt;
  const effort=Math.hypot(p.vx,p.vy)/topSpeed(p.ratings[3]);
  p.energy=clamp(p.energy+dt*(effort>.45?-.018*effort:.024),0,1);
  if(p===carrier){v*=.28+.72*p.energy;if(p.energy<.24&&!stationary)readTime=Math.min(readTime,1)}
@@ -1313,7 +1316,7 @@ function match(report){
  if(pile)return;
  if(loose){
    loose.dirtContact=null;
-   advanceLooseBall(loose,dt);
+   advanceLooseBall(loose,dt*ballSpeedMultiplier);
    loose.wait-=dt;
    if(loose.dirtContact&&deadNoPossession(loose.dirtContact,loose.last,loose.responsible))return;
    if(deadNoPossession(loose,loose.last,loose.responsible))return;
@@ -1336,7 +1339,7 @@ function match(report){
    }
    return
  }
- if(pass){const priorF=pass.elapsed/pass.duration;pass.elapsed+=dt;const f=Math.min(1,pass.elapsed/pass.duration);Object.assign(pass,flightAt(pass,pass.elapsed));
+ if(pass){const priorF=pass.elapsed/pass.duration;pass.elapsed+=dt*ballSpeedMultiplier;const f=Math.min(1,pass.elapsed/pass.duration);Object.assign(pass,flightAt(pass,pass.elapsed));
  if(pass.bounceF&&priorF<pass.bounceF&&f>=pass.bounceF&&
     deadNoPossession({...pass.bouncePoint,z:ballRadius},(pass.kicker||pass.thrower).team,pass.thrower||pass.kicker))return;
  if(f>=1&&pass.wide){
@@ -1391,18 +1394,23 @@ function match(report){
    if(contested){
      q=catchPosition(defender)-contestEdge<catchPosition(receiver)?defender:receiver;
    }
-   const marker=q?.team===off?(contested?defender:opponent):null;
-   const contactRisk=marker&&marker.team!==off
-     ?clamp(.05+.11*judgment(marker)-.07*judgment(q),.02,.15):0;
    const hands=q?.ratings[5]??50;
    let catchChance=.88+(hands-50)*.002;
    if(!save&&q?.team===off){
-     const accuracy=clamp((pass.thrower.ratings[1]-55)/35,-1,1.2);
-     catchChance=.71+.255*accuracy+(hands-70)*.0013-contactRisk;
-     catchChance+=({underhand:.17,bounce:.085,line:-.145,lob:0,shortHop:-.285,overthrow:-.18}[pass.passType]||0);
-     if(blue(q))catchChance-=(1-(defenses[s.defenses[off]].ownCreation??1))*.18;
+     const nearby=players.filter(player=>player!==q&&active(player)&&!player.blocked&&dist(player,pass)<2.4);
+     const defenderNearby=nearby.some(player=>player.team!==off);
+     const traffic=nearby.length>=2;
+     const accuracy=pass.thrower.ratings[1];
+     if(contested||defenderNearby||traffic){
+       const dropRisk=(contested?.18:traffic?.12:.07)+(traffic?.04:0);
+       const difficulty=({underhand:-.04,bounce:-.02,line:.06,shortHop:.13,overthrow:.10}[pass.passType]||0);
+       catchChance=1-clamp(dropRisk+difficulty+(70-hands)*.002+(70-accuracy)*.001,.035,.48);
+     }else{
+       const difficulty=pass.passType==='shortHop'||pass.passType==='overthrow'?.003:0;
+       catchChance=1-clamp(.006+(70-hands)*.00009+(70-accuracy)*.00005+difficulty,.002,.015);
+     }
    }
-   const cleanCatch=clamp(catchChance,.10,.995);
+   const cleanCatch=clamp(catchChance,.10,.998);
    const roll=q?rand():1;
    if(contested){
      const skill=deflectionSkill(defender);
