@@ -172,7 +172,7 @@ function drawThinBar(v){
  ctx.font='700 12px system-ui,sans-serif';ctx.textAlign='right';ctx.fillStyle='#f4f4f0';ctx.fillText(clock+'  '+(sim.overtime?'OT':sim.half===1?'1ST':'2ND'),rx,h/2-1);
  ctx.restore();
 }
-function draw(){const t=selectedField,view=layoutView();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#1c2c23';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.setTransform(view.s,0,0,view.s,view.ox,view.oy);
+function draw(){const t=selectedField,view=layoutView();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=el('field').classList.contains('mobile-expanded')?'#000':'#1c2c23';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.setTransform(view.s,0,0,view.s,view.ox,view.oy);
 if(t.image.complete&&t.image.naturalWidth){ctx.drawImage(t.image,0,0,50,34)}else{rect(0,0,50,34,t.grass)}
 ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
  if(sim.impact){
@@ -363,24 +363,48 @@ document.addEventListener('visibilitychange',()=>{
  scheduleBackground();
 });
 const field=el('field'), expand=el('expand');
-function fieldMode(on){
- field.classList.toggle('expanded',on);expand.textContent=on?'Exit':'Full screen';expand.setAttribute('aria-label',on?'Exit full screen':'Full screen');expand.setAttribute('aria-pressed',String(on));
+const mobileScreen=matchMedia('(pointer: coarse), (max-width: 760px)');
+function fullscreenElement(){
+ return document.fullscreenElement||document.webkitFullscreenElement;
+}
+function fieldMode(on,mobile=false){
+ field.classList.toggle('expanded',on);
+ field.classList.toggle('mobile-expanded',on&&mobile);
+ expand.textContent=on?'Exit':'Full screen';
+ expand.setAttribute('aria-label',on?'Exit full screen':'Full screen');
+ expand.setAttribute('aria-pressed',String(on));
 }
 expand.onclick=async()=>{
  if(field.classList.contains('expanded')){
-   fieldMode(false);
-   if(document.fullscreenElement)await document.exitFullscreen();
-   else if(document.webkitFullscreenElement)document.webkitExitFullscreen();
+   if(fullscreenElement()){
+     if(document.exitFullscreen)await document.exitFullscreen();
+     else document.webkitExitFullscreen?.();
+   }else fieldMode(false);
+   return;
+ }
+ const mobile=mobileScreen.matches;
+ const target=mobile?document.documentElement:field;
+ fieldMode(true,mobile);
+ if(mobile)field.scrollIntoView({block:'start'});
+ try{
+   if(target.requestFullscreen)await target.requestFullscreen();
+   else target.webkitRequestFullscreen?.();
+ }catch{/* The viewport layout also works when native fullscreen is unavailable. */}
+ if(mobile){
+   if(field.classList.contains('mobile-expanded'))field.scrollIntoView({block:'start'});
  }else{
-   fieldMode(true);
-   try{if(field.requestFullscreen)await field.requestFullscreen();else field.webkitRequestFullscreen?.()}catch{/* The viewport layout also works in embedded browsers. */}
-   try{await screen.orientation?.lock?.('landscape')}catch{/* Not every browser allows orientation lock. */}
+   try{await screen.orientation?.lock?.('landscape')}catch{/* Some browsers disallow orientation lock. */}
  }
 };
-function syncFullscreen(){fieldMode(Boolean(document.fullscreenElement||document.webkitFullscreenElement))}
+function syncFullscreen(){
+ if(!fullscreenElement())fieldMode(false);
+ else if(field.classList.contains('mobile-expanded'))field.scrollIntoView({block:'start'});
+}
 document.addEventListener('fullscreenchange',syncFullscreen);
 document.addEventListener('webkitfullscreenchange',syncFullscreen);
-document.addEventListener('keydown',e=>{if(e.key==='Escape')fieldMode(false)});
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape'&&!fullscreenElement())fieldMode(false);
+});
 el('toggle').onclick=()=>{
  const now=performance.now();
  advance(now);

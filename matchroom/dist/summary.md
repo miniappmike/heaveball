@@ -130,9 +130,13 @@ Field templates provide park surfaces with clay no-possession zones and all-weat
 
 The footer uses accessible GitHub and OpenAI logo links to the production Matchroom on GitHub Pages and the GPT test site for Codex Matchroom PR builds.
 
+## Mobile fullscreen
+
+The field fills the mobile viewport with black margins and overlaid playback controls. The match page stays vertically scrollable in native fullscreen and in the viewport fallback.
+
 ## Build record
 
-Built 2026-11-22 10:53 UTC.
+Built 2026-11-22 17:15 UTC.
 
 - match-4fe2a8d8ae.js
-- view-0cd13bc0d0.js
+- view-c3fe54cb6f.js
