@@ -107,11 +107,11 @@ Maintain the project scope in this file as features change. Running `python buil
 
 Field templates provide park surfaces with clay no-possession zones and all-weather synthetic turf in several colorways. Select a field above the match and the choice is remembered in the browser.
 
-The footer links to the production Matchroom on GitHub Pages and the GPT test site for Codex Matchroom PR builds.
+The footer uses accessible GitHub and OpenAI logo links to the production Matchroom on GitHub Pages and the GPT test site for Codex Matchroom PR builds.
 
 ## Build record
 
-Built 2026-11-22 10:07 UTC.
+Built 2026-11-22 10:11 UTC.
 
 - match-d8d6a4994b.js
 - view-ae0b7b4473.js
