@@ -26,8 +26,24 @@ function briefing(){
      '<span class="sr-only">'+teams[team]+' </span>'+row[trait].toFixed(1)+'</span>').join('')+'</dd></dl></li>').join('');
  el('ember-overall').textContent=overall[0].toFixed(1);
  el('harbor-overall').textContent=overall[1].toFixed(1);
- const edge=overall[0]-overall[1],margin=Math.round(Math.abs(edge)*2)/2;
- el('spread').textContent=margin?teams[edge>0?0:1]+' −'+margin:'Even';
+ // Spread model fitted on 880 simulated full matches (see summary.md, "Spread forecast").
+ // Expected team points = base + own trait averages + opponent trait averages + own playbook + opponent defense + own defense tempo.
+ const forecast=()=>{
+   const W={base:21.37,
+     own:[-.069,.458,.124,.043,.013,.034,.01,.042,.014,-.013,.153,-.02],
+     opp:[.03,-.083,-.111,.013,-.054,-.045,.064,-.002,-.064,.016,-.095,-.064],
+     playbook:[0,2.259,.881,3.482,2.966],
+     oppDefense:[0,4.754,-6.631,-3.138,7.729,-12.072,4.313,-2.136],
+     ownDefense:[0,-2.968,-.183,-.054,.198,.196,.504,-.505],sd:11.0};
+   const points=[0,1].map(t=>{const o=1-t;let v=W.base+W.playbook[playbooks.indexOf(sim.playbooks[t])]+W.oppDefense[sim.defenses[o]]+W.ownDefense[sim.defenses[t]];
+     for(let j=0;j<12;j++)v+=W.own[j]*(ratings[t][j]-70)+W.opp[j]*(ratings[o][j]-70);return Math.max(0,v)});
+   const edge=points[0]-points[1],margin=Math.round(Math.abs(edge)*2)/2;
+   const erf=x=>{const t=1/(1+.3275911*Math.abs(x)),y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x);return x<0?-y:y};
+   const win=.5*(1+erf(Math.abs(edge)/(W.sd*Math.SQRT2)));
+   el('spread').textContent=margin?teams[edge>0?0:1]+' −'+margin:'Pick’em';
+   el('spread-detail').textContent=(margin?teams[edge>0?0:1]+' win '+Math.round(win*100)+'%':'50/50')+' · Total '+(Math.round((points[0]+points[1])*2)/2);
+ };
+ forecast();
  const options=teams.map((name,team)=>{
    const fieldset=document.createElement('fieldset'),legend=document.createElement('legend');
    fieldset.className='tactic-team';
@@ -56,6 +72,7 @@ function briefing(){
          sim.setPlaybook(team,choice);
        }
        describe();
+       forecast();
      };
      fieldset.append(label,select,description);
    }
