@@ -221,9 +221,11 @@ function drawCallout(){
    ctx.beginPath();ctx.roundRect(-w/2,-h/2,w,h,h/2);ctx.fillStyle=bg;ctx.fill();
    ctx.shadowColor='transparent';ctx.fillStyle=fg;ctx.fillText(txt,0,.35);
    if(callSub){
-     let size=1.15;ctx.font='600 '+size+'px Inter,system-ui,sans-serif';
-     const tw=ctx.measureText(callSub).width;if(tw>44){size*=44/tw;ctx.font='600 '+size+'px Inter,system-ui,sans-serif'}
-     ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=.6;ctx.fillStyle='#fff';ctx.fillText(callSub,0,h/2+1.5);
+     let size=1.5;ctx.font='600 '+size+'px Inter,system-ui,sans-serif';
+     let tw=ctx.measureText(callSub).width;if(tw>42){size*=42/tw;ctx.font='600 '+size+'px Inter,system-ui,sans-serif';tw=42}
+     const by=h/2+2.1,bh=size*1.9;
+     ctx.beginPath();ctx.roundRect(-tw/2-1.1,by-bh/2,tw+2.2,bh,bh/2);ctx.fillStyle='rgba(10,14,12,.82)';ctx.fill();
+     ctx.fillStyle='#fff';ctx.fillText(callSub,0,by+size*.06);
    }
  }
  ctx.restore();
