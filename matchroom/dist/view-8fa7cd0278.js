@@ -151,96 +151,39 @@ function drawPlayer(p){
  ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
  ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
 }
-function rr(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r)}
-// Broadcast score bug in the top apron, fully outside the playing surface.
-function drawScoreboard(){
- const x0=18.4,w=13.2,rh=1.9,gap=.34,y0=-6.95,ink='#f4f4f0';
- const rows=[[0,'EMB','E','#3a120b','#b8452e'],[1,'HAR','H','#0d1d38','#2f63a3']];
- const live=!sim.done,poss=sim.team;
- ctx.save();ctx.textBaseline='middle';
- rows.forEach(([team,abbr,ini,dark,bright],i)=>{
-   const y=y0+i*(rh+gap);
-   ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=14;ctx.shadowOffsetY=3;
-   rr(x0-.12,y-.12,w+.24,rh+.42,.3);ctx.fillStyle='#0b0d10';ctx.fill();
-   ctx.shadowColor='transparent';
-   let g=ctx.createLinearGradient(x0,0,x0+w,0);g.addColorStop(0,bright);g.addColorStop(.5,dark);g.addColorStop(1,'#101215');
-   rr(x0,y,w,rh,.22);ctx.fillStyle=g;ctx.fill();
-   g=ctx.createLinearGradient(0,y,0,y+rh);g.addColorStop(0,'rgba(255,255,255,.30)');g.addColorStop(.46,'rgba(255,255,255,.05)');g.addColorStop(.5,'rgba(0,0,0,.10)');g.addColorStop(1,'rgba(0,0,0,.38)');
-   ctx.fillStyle=g;ctx.fill();
-   // Logo placeholder until club marks exist.
-   ctx.beginPath();ctx.arc(x0+1.3,y+rh/2,.7,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.13)';ctx.fill();
-   ctx.setLineDash([.17,.12]);ctx.lineWidth=.07;ctx.strokeStyle='rgba(255,255,255,.6)';ctx.stroke();ctx.setLineDash([]);
-   ctx.textAlign='center';ctx.font='800 .78px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,.8)';ctx.fillText(ini,x0+1.3,y+rh/2+.04);
-   ctx.textAlign='right';ctx.font='800 1.18px system-ui,sans-serif';ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillText(abbr,x0+w-3.08,y+rh/2+.1);
-   ctx.fillStyle=ink;ctx.fillText(abbr,x0+w-3.12,y+rh/2+.05);
-   const bx=x0+w-2.78,bw=2.6,by=y+.17,bh=rh-.34;
-   g=ctx.createLinearGradient(0,by,0,by+bh);g.addColorStop(0,'#fbfbfa');g.addColorStop(.5,'#dcdfe0');g.addColorStop(.52,'#c9cdcf');g.addColorStop(1,'#a8adb0');
-   rr(bx,by,bw,bh,.12);ctx.fillStyle=g;ctx.fill();ctx.lineWidth=.05;ctx.strokeStyle='#5f6468';ctx.stroke();
-   ctx.textAlign='center';ctx.font='800 1.3px system-ui,sans-serif';ctx.fillStyle='#121416';ctx.fillText(sim.score[team],bx+bw/2,by+bh/2+.07);
-   // Possession lights: lit under the club that has the ball.
-   const lit=live&&poss===team,seg=(w-.4)/3;
-   for(let k=0;k<3;k++){ctx.fillStyle=lit?'#f2d21b':'rgba(242,210,27,.16)';ctx.fillRect(x0+.2+k*seg+.06,y+rh+.08,seg-.12,.15)}
- });
- // Status bar: possession or ruling, game clock, period.
- const by=y0+2*rh+gap+.5,bh=1.18;
- rr(x0-.12,by-.1,w+.24,bh+.2,.22);ctx.fillStyle='#0b0d10';ctx.fill();
- let g=ctx.createLinearGradient(0,by,0,by+bh);g.addColorStop(0,'#363b42');g.addColorStop(1,'#16191d');
- rr(x0,by,w,bh,.16);ctx.fillStyle=g;ctx.fill();
- const c1=x0+w*.46,c2=x0+w*.76;ctx.fillStyle='#0b0d10';ctx.fillRect(c1-.04,by,.08,bh);ctx.fillRect(c2-.04,by,.08,bh);
- const n=sim.overtime?Math.floor(sim.time):Math.ceil(sim.time),clock=Math.floor(n/60)+':'+String(n%60).padStart(2,'0');
- const status=sim.penaltyPending?'FREE RUN LANE':sim.done?'FINAL':teams[poss].toUpperCase()+' BALL';
- ctx.font='700 .66px system-ui,sans-serif';ctx.textAlign='center';
- ctx.fillStyle=sim.penaltyPending?'#ffd47d':ink;ctx.fillText(status,(x0+c1)/2,by+bh/2+.03);
- ctx.fillStyle=ink;ctx.fillText(sim.done?'0:00':clock,(c1+c2)/2,by+bh/2+.03);
- ctx.fillText(sim.overtime?'OT':sim.half===1?'1ST':'2ND',(c2+x0+w)/2,by+bh/2+.03);
- // Possession clock tab beside the club with the ball.
- if(live){
-   const y=y0+poss*(rh+gap),tx=x0+w+.2,tw=2.15,secs=Math.floor(sim.posAge);
-   ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=10;ctx.shadowOffsetY=2;
-   rr(tx-.08,y+.02,tw+.16,rh-.04,.24);ctx.fillStyle='#0b0d10';ctx.fill();ctx.shadowColor='transparent';
-   rr(tx,y+.1,tw,rh*.42,[.18,.18,0,0]);ctx.fillStyle='#22262b';ctx.fill();
-   g=ctx.createLinearGradient(0,y+.1+rh*.42,0,y+rh-.1);g.addColorStop(0,'#e0482a');g.addColorStop(1,'#9a210f');
-   rr(tx,y+.1+rh*.42,tw,rh*.58-.2,[0,0,.18,.18]);ctx.fillStyle=g;ctx.fill();
-   ctx.fillStyle=ink;ctx.font='700 .44px system-ui,sans-serif';ctx.fillText('POSS',tx+tw/2,y+.1+rh*.21);
-   ctx.font='800 .62px system-ui,sans-serif';ctx.fillText(Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0'),tx+tw/2,y+.1+rh*.42+(rh*.58-.2)/2+.03);
- }
- ctx.restore();
-}
-// Canvas layout. Inline: fixed 1100×900 with the score bug in the top apron.
-// Full screen: the canvas matches the screen and the field fills it; short (phone landscape) screens get a thin score bar instead.
+// Canvas layout: the canvas matches its on-screen size and the field fills it below a thin score bar.
+// Inline, the canvas height follows its width; in full screen it fills the screen.
 function layoutView(){
- if(!el('field').classList.contains('expanded')){
-   if(canvas.width!==1100||canvas.height!==900){canvas.width=1100;canvas.height=900}
-   return {s:20,ox:50,oy:150,compact:false,dpr:1};
- }
- const dpr=Math.min(2,window.devicePixelRatio||1),W=Math.max(1,Math.round(canvas.clientWidth*dpr)),H=Math.max(1,Math.round(canvas.clientHeight*dpr));
+ const expanded=el('field').classList.contains('expanded'),dpr=Math.min(2,window.devicePixelRatio||1),barCss=32;
+ if(!expanded){const h=Math.round(canvas.clientWidth*36/52.5)+barCss+'px';if(canvas.style.height!==h)canvas.style.height=h}
+ else if(canvas.style.height)canvas.style.height='';
+ const W=Math.max(1,Math.round(canvas.clientWidth*dpr)),H=Math.max(1,Math.round(canvas.clientHeight*dpr));
  if(canvas.width!==W||canvas.height!==H){canvas.width=W;canvas.height=H}
- const compact=canvas.clientHeight<620,bar=compact?Math.round(32*dpr):0,top=compact?1:7.5;
- const s=Math.min(W/52.5,(H-bar)/(34+top+1));
- return {s,ox:(W-50*s)/2,oy:bar+(H-bar-(34+top+1)*s)/2+top*s,compact,dpr,bar};
+ const bar=Math.round(barCss*dpr),s=Math.min(W/52.5,(H-bar)/36);
+ return {s,ox:(W-50*s)/2,oy:bar+(H-bar-36*s)/2+s,dpr,bar};
 }
 function drawThinBar(v){
- const w=canvas.width/v.dpr,h=v.bar/v.dpr,poss=sim.team,live=!sim.done,mid=w/2;
+ const w=canvas.width/v.dpr,h=v.bar/v.dpr,poss=sim.team,live=!sim.done,narrow=w<640,tiny=w<460,bw=narrow?(tiny?74:96):Math.min(150,w*.2),mid=narrow?8+bw+4:w/2;
  ctx.save();ctx.setTransform(v.dpr,0,0,v.dpr,0,0);
  let g=ctx.createLinearGradient(0,0,0,h);g.addColorStop(0,'#2a2f35');g.addColorStop(1,'#111417');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
  ctx.fillStyle='#0b0d10';ctx.fillRect(0,h-1,w,1);ctx.textBaseline='middle';
  const block=(team,dir)=>{
-   const x=mid+dir*4,bw=Math.min(150,w*.2),c=team?['#0d1d38','#2f63a3']:['#3a120b','#b8452e'],x0=dir<0?x-bw:x;
+   const x=mid+dir*4,c=team?['#0d1d38','#2f63a3']:['#3a120b','#b8452e'],x0=dir<0?x-bw:x;
    g=ctx.createLinearGradient(x0,0,x0+bw,0);g.addColorStop(dir<0?0:1,c[1]);g.addColorStop(dir<0?1:0,c[0]);
    ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(x0,3,bw,h-7,4);ctx.fill();
    const sb=30,sx=dir<0?x-sb-2:x+2;
    g=ctx.createLinearGradient(0,5,0,h-6);g.addColorStop(0,'#fbfbfa');g.addColorStop(1,'#b3b7ba');ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(sx,5,sb,h-11,3);ctx.fill();
    ctx.fillStyle='#121416';ctx.font='800 16px system-ui,sans-serif';ctx.textAlign='center';ctx.fillText(sim.score[team],sx+sb/2,h/2-1);
-   const lx=dir<0?x0+13:x0+bw-13;ctx.beginPath();ctx.arc(lx,h/2-2,8,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.14)';ctx.fill();
+   const lx=dir<0?x0+13:x0+bw-13;if(!tiny){ctx.beginPath();ctx.arc(lx,h/2-2,8,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.14)';ctx.fill();
    ctx.setLineDash([2,1.5]);ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);
-   ctx.fillStyle='rgba(255,255,255,.85)';ctx.font='800 9px system-ui,sans-serif';ctx.fillText(team?'H':'E',lx,h/2-1.5);
+   ctx.fillStyle='rgba(255,255,255,.85)';ctx.font='800 9px system-ui,sans-serif';ctx.fillText(team?'H':'E',lx,h/2-1.5)}
    ctx.fillStyle='#f4f4f0';ctx.font='800 14px system-ui,sans-serif';ctx.textAlign=dir<0?'right':'left';ctx.fillText(team?'HAR':'EMB',dir<0?sx-6:sx+sb+6,h/2-1);
    if(live&&poss===team){ctx.fillStyle='#f2d21b';ctx.fillRect(x0+2,h-4,bw-4,2)}
  };
  block(0,-1);block(1,1);
  const n=sim.overtime?Math.floor(sim.time):Math.ceil(sim.time),clock=sim.done?'0:00':Math.floor(n/60)+':'+String(n%60).padStart(2,'0');
  ctx.font='700 12px system-ui,sans-serif';ctx.textAlign='left';ctx.fillStyle=sim.penaltyPending?'#ffd47d':'#f4f4f0';
- ctx.fillText(sim.penaltyPending?'FREE RUN LANE':sim.done?'FINAL':teams[poss].toUpperCase()+' BALL',10,h/2-1);
+ if(!narrow)ctx.fillText(sim.penaltyPending?'FREE RUN LANE':sim.done?'FINAL':teams[poss].toUpperCase()+' BALL',10,h/2-1);
  let rx=w-10;
  if(live){const secs=Math.floor(sim.posAge),txt='POSS '+Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0');ctx.font='800 11px system-ui,sans-serif';
    const tw=ctx.measureText(txt).width+12;g=ctx.createLinearGradient(0,5,0,h-6);g.addColorStop(0,'#e0482a');g.addColorStop(1,'#9a210f');ctx.fillStyle=g;
@@ -251,7 +194,6 @@ function drawThinBar(v){
 function draw(){const t=selectedField,view=layoutView();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#1c2c23';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.setTransform(view.s,0,0,view.s,view.ox,view.oy);
 if(t.image.complete&&t.image.naturalWidth){ctx.drawImage(t.image,0,0,50,34)}else{rect(0,0,50,34,t.grass)}
 ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
- if(!view.compact)drawScoreboard();
  if(sim.impact){
    const {x,y,time}=sim.impact;
    ctx.globalAlpha=Math.min(1,time*4);
@@ -261,7 +203,7 @@ ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace'
  if(sim.contact){let {p,d}=sim.contact;disc((p.x+d.x)/2,(p.y+d.y)/2,1.6,"#a58038","#ffe27d")}
  for(let p of sim.players)if(!p.sidelined)drawPlayer(p);
  drawBall(sim.ball());
- if(view.compact)drawThinBar(view);
+ drawThinBar(view);
  const share=(values)=>{let total=values[0]+values[1];return total?Math.round(100*values[0]/total)+'% / '+Math.round(100*values[1]/total)+'%':'—'};
  el('control').textContent='Current possession '+Math.floor(sim.posAge/60)+':'+String(Math.floor(sim.posAge)%60).padStart(2,'0')+' · Ember / Harbor · Possession '+share(sim.possession)+' · Runway ball control '+share(sim.runway);
  el('points').textContent=sim.score.join(' – ');el('clock').textContent=sim.done?'FULL TIME':statsMode==='half'?'HALFTIME':stamp(sim)+' · '+teams[sim.team]+(sim.urgent?' · Hurry-up':sim.conservative?' · Protecting lead':'')+(sim.press?' · '+teams[1-sim.team]+' pressing':'');el('toggle').textContent=sim.done?'Full time':playing?'Pause':'Resume';el('toggle').disabled=sim.done||!el('pregame').hidden;el('bar-toggle').textContent=el('toggle').textContent;el('bar-toggle').disabled=el('toggle').disabled}
