@@ -111,29 +111,11 @@ function drawBall(ball){
  ctx.fillStyle=shadow;ctx.fillRect(shadowX-blur,shadowY-blur,2*blur,2*blur);
  const radius=ballRadius*(1+Math.min(height,5)*.046);
  const light=ctx.createRadialGradient(x-radius*.38,y-radius*.46,radius*.06,x,y,radius*1.02);
- light.addColorStop(0,'#fffce0');
- light.addColorStop(.47,'#f7d978');
- light.addColorStop(.82,'#cf8c32');
- light.addColorStop(1,'#735022');
- disc(x,y,radius,light,'#2f2816');
- const heading=Math.atan2(ball.vy||0,ball.vx||0)+.46;
- const cos=Math.cos(heading),sin=Math.sin(heading),rotation=ball.spin||0;
- ctx.lineWidth=.038;ctx.strokeStyle='#805219';
- for(const offset of [0,Math.PI/2]){
-   ctx.beginPath();
-   let visible=false;
-   for(let i=0;i<=40;i++){
-     const along=i*Math.PI/20,ax=Math.cos(along);
-     const ay=Math.sin(along)*Math.cos(rotation+offset);
-     const towardViewer=Math.sin(along)*Math.sin(rotation+offset);
-     if(towardViewer<.04){visible=false;continue}
-     const sx=x+radius*(ax*cos-ay*sin),sy=y+radius*(ax*sin+ay*cos);
-     if(visible)ctx.lineTo(sx,sy);
-     else ctx.moveTo(sx,sy);
-     visible=true;
-   }
-   ctx.stroke();
- }
+ light.addColorStop(0,'#fff');
+ light.addColorStop(.52,'#f7f8f8');
+ light.addColorStop(.88,'#d5dcdf');
+ light.addColorStop(1,'#aab7bd');
+ disc(x,y,radius,light,'#223039');
 }
 function drawPlayer(p){
  if(p.blocked>0)disc(p.x,p.y,1,"#8a7546","#f5d688");
