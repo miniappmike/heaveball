@@ -667,8 +667,7 @@ function match(report){
    const intendedBounce={x:p.x+(target.x-p.x)*.55,y:p.y+(target.y-p.y)*.55};
    const bounceSafe=!crossHalf&&!pathCrossesNoPossession(p,target)&&!noPossession(intendedBounce)&&gap>=5&&gap<=18;
    const pressure=players.some(q=>q.team!==p.team&&active(q)&&!q.blocked&&dist(p,q)<3.2);
-   const targetPressure=players.some(q=>q.team!==p.team&&active(q)&&!q.blocked&&dist(target,q)<3.2);
-   if(gap<=4&&!pressure&&!targetPressure&&lane>2.4)return {type:'underhand',crossHalf:false,pressure:false};
+   if(gap<=4)return {type:'underhand',crossHalf,pressure};
    const quick=movement==='quick swing'||movement==='quick outlet'||urgent(p.team);
    const weights=[
      ['lob',1+Math.max(0,2.5-lane)*.08+Math.max(0,gap-16)*.008+
@@ -689,7 +688,7 @@ function match(report){
    return {type,crossHalf,pressure};
  }
  function passProfile(type,start,end,duration){
-   if(type==='underhand')return {duration:duration*.80,arcHeight:.82,endHeight:1.08};
+   if(type==='underhand')return {duration:Math.max(.4,dist(start,end)/4.5),arcHeight:clamp(dist(start,end)*.06,.08,.24),endHeight:1.25};
    if(type==='line')return {duration:duration*.72,arcHeight:.52,endHeight:1.32};
    if(type==='lob')return {duration:duration*1.08,arcHeight:3.9,endHeight:1.42};
    if(type==='overthrow')return {duration:duration*1.06,arcHeight:4.15,endHeight:2.55};
