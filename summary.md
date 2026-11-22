@@ -14,7 +14,7 @@ Before releasing, exercise roster generation, the start gate and the affected ma
 
 Ember and Harbor each field eight players. The pregame handbook explains the rules and shows both clubs’ average ratings, overall strength and a predicted spread based on their ratings. Generate new rosters redraws both teams and updates the comparison before kickoff. Each club draws an offensive playbook and a defensive scheme. Both can be changed in the pregame handbook. Play match starts the selected matchup. The numbered overhead view shows the ball, scoreboard, clock, play-by-play, possession share and runway control. The separate Highlights log keeps scoring summaries with game time and running score, plus possession-changing defensive plays in sudden death or in the final five minutes when the score is within five points. Its filter can show scoring plays only. A live box score shows player positions and tracks player and team points, attempts, completions, receptions, Throwing Centers, interceptions, tackles, fumbles, turnovers charged, penalties committed, passes broken up, drops and big hits. The box score also shows team possession averages and a stat legend. Regulation scoring plays hold the field and game clock for five real seconds at all playback speeds. Player scouting connects a jersey to its player, dimensions and skills. Playback opens at 1× and supports pause, 2×, 4× and 8×. The simulation keeps time in a background tab and catches up when browser throttling delays callbacks. Halftime opens with first-half team totals and an optional stat-leaders page. The 15-second halftime countdown can be frozen or skipped. The final box score opens automatically with team totals and a separate page of individual stats, and can be reopened after dismissal.
 
-The handbook appears in the page with expandable team averages. Full screen fits the complete field to the landscape viewport with an exit control and clock. Browsers that restrict native fullscreen use an in-page field view. Jersey labels use measured digit bounds for centering. Narrow layouts stack the field above scouting and play-by-play. The build includes the match engine, renderer and dirt texture in the entry page for embedded previews. Each release should update this contributor guide and regenerate and sync both Markdown and Word copies.
+The pregame handbook shows both overall ratings and the projected spread above a compact grid of all 12 trait averages. Team tactics and the expandable rules sit alongside the grid on wide screens and below it on narrow screens. Full screen fits the complete field to the landscape viewport with an exit control and clock. Browsers that restrict native fullscreen use an in-page field view. Jersey labels use measured digit bounds for centering. Narrow layouts stack the field above scouting and play-by-play. The build includes the match engine, renderer and dirt texture in the entry page for embedded previews. Each release should update this contributor guide and regenerate and sync both Markdown and Word copies.
 
 ## Player generation
 
@@ -89,7 +89,7 @@ Maintain the project scope in this file as features change. Running `python buil
 
 ## Build record
 
-Built 2026-11-22 03:05 UTC.
+Built 2026-11-22 03:15 UTC.
 
 - match-2206184e8f.js
-- view-151c6346a0.js
+- view-4c967fd2b8.js
