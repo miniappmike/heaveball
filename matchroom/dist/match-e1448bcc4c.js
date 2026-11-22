@@ -459,7 +459,9 @@ function match(report){
    loose={x,y,vx:(rand()-.5)*3,vy:(rand()-.5)*3,z:ballRadius,vz:0,spin:0,omega:0,kind,last:p.team,originTeam:p.team,responsible:p.stats?p:pass?.thrower,wait:.18,bobbles:0};
    pass=null;carrier=null;s.contact=null;pile=null;stationary=false;
  }
- let pile=null, lane=null, whistle=0, boundaryRestart=null,pendingLane=null;
+ let pile=null, lane=null, whistle=0, boundaryRestart=null,pendingLane=null,delayedRestart=null;
+const RESTART_PAUSE=2;
+function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side,index,wait:RESTART_PAUSE}}
  function stoppage(){s.stoppageEvents++;s.stoppagePending=true}
  function boundaryContact(p,d){
    const sides=[
@@ -500,7 +502,7 @@ function match(report){
    if(responsible?.team===lastTeam)responsible.stats.to++;
    const awarded=1-lastTeam;
    log('No-possession zone · ball out of bounds · '+teams[awarded]+' quadrant reset');
-   stoppage();restart(awarded,undefined,nearestQuadrant(ball));
+   restartAfterPause(awarded,undefined,nearestQuadrant(ball));
    return true;
  }
  function freeLane(team){
@@ -1084,6 +1086,11 @@ function match(report){
    }
    return;
  }
+ if(delayedRestart){
+   if((delayedRestart.wait-=dt)<=0){const r=delayedRestart;delayedRestart=null;restart(r.team,r.side,r.index)}
+   return;
+ }
+ if(scoringRestart&&scoringRestart.delay>0){scoringRestart.delay-=dt;return}
  if(scoringRestart){restart(scoringRestart.team,undefined,scoringRestart.index);scoringRestart=null;s.scoringSpot=null}
  if(whistle>0){whistle-=dt;return}
  if(s.overtime)s.time+=dt;
@@ -1387,7 +1394,7 @@ function match(report){
    if(loose.x<0||loose.x>50||loose.y<0||loose.y>34){
      const awarded=1-loose.last;
      if(loose.responsible?.team===off&&awarded!==off)loose.responsible.stats.to++;
-     log('Loose ball out · last-touch ruling');stoppage();restart(awarded,undefined,nearestQuadrant(loose));return
+     log('Loose ball out · last-touch ruling');restartAfterPause(awarded,undefined,nearestQuadrant(loose));return
    }
    const recovery=loose.wait<=0&&!(loose.z>1.45)&&settleLooseBall(active);
    if(recovery){
@@ -1399,7 +1406,7 @@ function match(report){
      }
      loose=null;log(q.name+' recovers the '+kind+(contested?' · won the scramble':''));
      if(kind==='drop'||kind==='save'||kind==='deflection'){assign(q,blue(q)?0:2);cool=.6}
-     else {if(kind==='fumble'&&q.team!==originTeam&&blue(spot)&&s.overtime){score(q,1)}else if(kind==='fumble'&&q.team!==originTeam&&blue(spot)){points(q,1,'Recovered a fumble in the center zone');log('Center fumble recovery · 1 point');scoringRestart={team:q.team,index:nearestQuadrant(spot)}}else {stoppage();restart(q.team,undefined,nearestQuadrant(spot))}}
+     else {if(kind==='fumble'&&q.team!==originTeam&&blue(spot)&&s.overtime){score(q,1)}else if(kind==='fumble'&&q.team!==originTeam&&blue(spot)){points(q,1,'Recovered a fumble in the center zone');log('Center fumble recovery · 1 point');scoringRestart={team:q.team,index:nearestQuadrant(spot),delay:RESTART_PAUSE}}else if(kind==='fumble'){restartAfterPause(q.team,undefined,nearestQuadrant(spot))}else {stoppage();restart(q.team,undefined,nearestQuadrant(spot))}}
    }
    return
  }
@@ -1408,7 +1415,7 @@ function match(report){
     deadNoPossession({...pass.bouncePoint,z:ballRadius},(pass.kicker||pass.thrower).team,pass.thrower||pass.kicker))return;
  if(f>=1&&pass.wide){
    if(pass.rescue)rescueKick(off);
-   else{pass.thrower.stats.to++;log('Ball out of bounds');stoppage();restart(1-off,undefined,nearestQuadrant(pass))}
+   else{pass.thrower.stats.to++;log('Ball out of bounds');restartAfterPause(1-off,undefined,nearestQuadrant(pass))}
    return;
  }
  // A defender in the flight path can jump the pass before it reaches the receiver.
