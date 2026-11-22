@@ -73,12 +73,11 @@ main:has(#pregame:not([hidden])) .score{display:none}
 
 /* Pregame bento */
 #pregame[hidden]{display:none}
-.bento{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);grid-template-areas:"matchup tactics" "averages tactics" "rules rules";gap:var(--gap);align-items:start}
+.bento{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);grid-template-areas:"matchup tactics" "averages tactics";gap:var(--gap);align-items:start}
 .matchup{grid-area:matchup;display:grid;gap:18px;background:radial-gradient(520px 260px at 50% 30%,rgba(47,227,154,.13),transparent 70%),linear-gradient(180deg,#1a201c,#121614)}
 .matchup h2{font-size:clamp(40px,5vw,56px);letter-spacing:.03em}
 .tactics-panel{grid-area:tactics}
 .averages{grid-area:averages}
-.rules{grid-area:rules;padding-block:10px}
 .versus{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;padding:18px;border-radius:16px;background:rgba(0,0,0,.25);border:1px solid var(--line)}
 .side{display:grid;justify-items:center;gap:6px;text-align:center}
 .side strong{font:400 46px/.9 var(--display);letter-spacing:.03em;font-variant-numeric:tabular-nums}
@@ -106,8 +105,8 @@ main:has(#pregame:not([hidden])) .score{display:none}
 .tactic-team label{display:block;clear:both;font:600 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:6px}
 .tactic-team select{display:block;width:100%;margin:8px 0}
 .tactic-team small{display:block;font:12.5px/1.45 var(--body);color:var(--muted);margin-bottom:8px}
-.rules p,.guide p{color:var(--muted);margin:0 0 12px;max-width:80ch}
-.rules a{color:var(--mint)}
+.rules-dialog p,.guide p{color:var(--muted);margin:0 0 12px;max-width:80ch}
+.rules-dialog a{color:var(--mint)}
 
 /* Match area */
 .grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:var(--gap);align-items:start}
@@ -185,7 +184,7 @@ canvas{display:block;width:100%;max-width:100%;height:auto;border-radius:14px;ba
 /* Tablet and phone: the same cards and controls, stacked */
 @media(max-width:1000px){
  .grid{grid-template-columns:minmax(0,1fr)}
- .bento{grid-template-columns:minmax(0,1fr);grid-template-areas:"matchup" "averages" "tactics" "rules"}
+ .bento{grid-template-columns:minmax(0,1fr);grid-template-areas:"matchup" "averages" "tactics"}
 }
 @media(max-width:640px){
  :root{--gap:14px}
@@ -243,6 +242,16 @@ main .grid:has(#field.mobile-expanded){grid-template-columns:minmax(0,1fr)}
 #field.mobile-expanded.expanded .bar{opacity:.92}
 html:fullscreen:has(#field.mobile-expanded){overflow:auto}
 
+
+/* How to play overlay */
+.top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rules-open svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;margin-right:8px;vertical-align:-3px}
+#rules-open{min-height:38px;font-size:17px;padding:0 16px}
+.rules-dialog{width:min(1040px,calc(100% - 24px));max-height:calc(100dvh - 24px);overflow:auto;color:var(--text);background:linear-gradient(180deg,#1a1f1c,#121614);border:1px solid var(--line-2);border-radius:24px;padding:clamp(16px,3vw,28px);overscroll-behavior:contain}
+.rules-dialog::backdrop{background:rgba(5,8,7,.78);backdrop-filter:blur(4px)}
+.rules-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
+.rules-head h2{font-size:clamp(32px,4vw,44px);margin-top:6px}
+.rules-close{flex:none;width:44px;height:44px;padding:0;display:grid;place-items:center;font-size:18px}
 /* Visual rules guide */
 .guide-intro{margin:6px 0 18px}
 .g-lede{font-size:16px;line-height:1.55;color:var(--text);max-width:70ch}
@@ -273,9 +282,9 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
 .g-note{font-size:13px;line-height:1.5;color:var(--muted);margin:0}
 .g-note b{color:var(--text);font-weight:600}
 .g-links{margin-top:16px;font-size:13px;color:var(--muted)}
-.rules .g-links a{color:var(--mint)}
-.rules p.g-note,.rules p.g-lede,.rules p.g-links{margin-bottom:0;max-width:none}
-.rules p.g-lede{color:var(--text);max-width:70ch}
+.rules-dialog .g-links a{color:var(--mint)}
+.rules-dialog p.g-note,.rules-dialog p.g-lede,.rules-dialog p.g-links{margin-bottom:0;max-width:none}
+.rules-dialog p.g-lede{color:var(--text);max-width:70ch}
 @media(max-width:760px){.g-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:420px){.g-zones,.g-passes{grid-template-columns:minmax(0,1fr)}.g-rules li{grid-template-columns:minmax(0,1fr);gap:2px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -283,7 +292,7 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
 </style><main>
 <header class="topbar">
  <div class="brand"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="9"/><path d="M6 12h20M6 20h20M12 6v20M20 6v20"/><circle cx="16" cy="16" r="3.2"/></svg><h1>Heaveball</h1><span class="chip">Matchroom</span></div>
- <span class="chip live-chip"><span class="dot" aria-hidden="true"></span><small class="live" id="clock"></small></span>
+ <div class="top-actions"><button type="button" class="btn ghost rules-open" id="rules-open" aria-haspopup="dialog" aria-controls="rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></svg>How to play</button><span class="chip live-chip"><span class="dot" aria-hidden="true"></span><small class="live" id="clock"></small></span></div>
 </header>
 <div class="score card" aria-live="polite">
  <div class="team ember"><span class="crest" aria-hidden="true">E</span><span class="tname">Ember Club</span></div>
@@ -306,7 +315,10 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
   <div class="average-heading"><h3 id="average-heading">Team averages</h3><div class="team-key" aria-hidden="true"><span class="red">Ember</span><span class="blue">Harbor</span></div></div>
   <ul id="averages" aria-labelledby="average-heading"></ul>
  </article>
- <article class="card rules"><details><summary>Field, scoring and restarts</summary>
+</section>
+<dialog id="rules" class="rules-dialog" aria-labelledby="rules-title">
+ <div class="rules-head"><div><p class="eyebrow">New to Heaveball? · <span class="accent">Field guide</span></p><h2 id="rules-title">How to play</h2></div><button type="button" id="rules-close" class="rules-close" aria-label="Close rules">✕</button></div>
+
 <div class="guide-intro"><p class="g-lede">Two teams of eight attack <strong>one shared ring</strong> in the middle of the field. Get the ball into the ring to score. The first time you watch, follow the white ball.</p></div>
 <div class="g-grid">
  <section class="g-block g-fieldblock" aria-labelledby="g-h-field">
@@ -361,8 +373,8 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
  </section>
 </div>
 <p class="g-links"><a href="summary.md" target="_blank">Build summary</a> · <a href="summary.docx" download>Word document</a></p>
-</details></article>
-</section>
+
+</dialog>
 <div class="grid">
  <section id="field" class="card field-card">
   <div class="field-head"><h2>Match field</h2><label class="picker">Field <select id="field-picker" aria-label="Field template"></select></label></div>
@@ -372,7 +384,7 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
    <div id="speeds" class="speeds" role="group" aria-label="Playback speed"><button type="button" data-speed="1">1×</button><button type="button" data-speed="2">2×</button><button type="button" data-speed="4">4×</button><button type="button" data-speed="8">8×</button></div>
    <span class="spacer" aria-hidden="true"></span>
    <button id="final-box" type="button" class="btn ghost" hidden>Final box score</button>
-   <button id="fresh" type="button" class="btn ghost">New match</button>
+   <button type="button" class="btn ghost rules-open" id="rules-open-field" aria-haspopup="dialog" aria-controls="rules">Rules</button><button id="fresh" type="button" class="btn ghost">New match</button>
    <button type="button" id="expand" class="btn ghost" aria-pressed="false">Full screen</button>
   </div>
   <div class="controls" hidden><button id="toggle" type="button">Pause</button><select id="pace" aria-label="Playback speed"><option value="1" selected>1× speed</option><option value="2">2× speed</option><option value="4">4× speed</option><option value="8">8× speed</option></select></div>
@@ -418,21 +430,21 @@ const pileProgressYards=.65;
 const pileLossYards=1.25;
 const handPassSpeed=rating=>1.5*.98*(8+rating*.12);
 const playbooks=[
-   {name:'Patient passing',description:'Pros: protects the ball, controls possession and makes the defense defend repeated reads. Cons: creates fewer chances, can stall against pressure and may run out of time when trailing.',baseline:.45,hold:.88,risk:1.05,runBias:-.07,calls:['Short outlets','Far switch','Block away']},
-   {name:'Balanced',description:'Pros: answers most coverages and mixes passing, blocks and runs without a clear tell. Cons: has no single dominant pressure point and depends heavily on good reads.',baseline:.50,hold:1,risk:1,runBias:0,calls:['Far switch','Drive and kick','Anchor leak','Last-step handoff','Quick swing']},
-   {name:'Runway power',description:'Pros: creates direct ring chances, uses size and blocking, and punishes light fronts. Cons: produces short, physical possessions and more tackle or fumble risk against strong contain.',baseline:.72,hold:.86,risk:1,runBias:.2,calls:['Runway power','Drive and kick','Short outlets','Last-step handoff']},
-   {name:'Quick swing',description:'Pros: releases the ball quickly, stretches all four quadrants and pulls packed defenses away from the ring. Cons: adds catch and deflection chances and can be disrupted by switching coverage.',baseline:.44,hold:.8,risk:.85,runBias:-.02,calls:['Quick swing','Quick swing','Quick swing','Far switch']},
-   {name:'Free flow',description:'Pros: stays unpredictable, lets athletes attack space and can change the point of attack mid-possession. Cons: is volatile, asks for fast shared reads and can create spacing mistakes or turnovers.',baseline:.60,hold:.83,risk:1.05,runBias:.07,calls:['Drive and kick','Quick swing','Anchor leak','Block away','Last-step handoff']}
+   {name:'Patient passing',blurb:'Methodical ball movement that wears a defense down',description:'Pros: protects the ball, controls possession and makes the defense defend repeated reads. Cons: creates fewer chances, can stall against pressure and may run out of time when trailing.',baseline:.45,hold:.88,risk:1.05,runBias:-.07,calls:['Short outlets','Far switch','Block away']},
+   {name:'Balanced',blurb:'Even mix of runs and throws that keeps defenses guessing',description:'Pros: answers most coverages and mixes passing, blocks and runs without a clear tell. Cons: has no single dominant pressure point and depends heavily on good reads.',baseline:.50,hold:1,risk:1,runBias:0,calls:['Far switch','Drive and kick','Anchor leak','Last-step handoff','Quick swing']},
+   {name:'Runway power',blurb:'Downhill runs behind big Anchor blocks',description:'Pros: creates direct ring chances, uses size and blocking, and punishes light fronts. Cons: produces short, physical possessions and more tackle or fumble risk against strong contain.',baseline:.72,hold:.86,risk:1,runBias:.2,calls:['Runway power','Drive and kick','Short outlets','Last-step handoff']},
+   {name:'Quick swing',blurb:'Rapid-fire passes that rotate through every quadrant',description:'Pros: releases the ball quickly, stretches all four quadrants and pulls packed defenses away from the ring. Cons: adds catch and deflection chances and can be disrupted by switching coverage.',baseline:.44,hold:.8,risk:.85,runBias:-.02,calls:['Quick swing','Quick swing','Quick swing','Far switch']},
+   {name:'Free flow',blurb:'Improvised attack that lets athletes hunt open space',description:'Pros: stays unpredictable, lets athletes attack space and can change the point of attack mid-possession. Cons: is volatile, asks for fast shared reads and can create spacing mistakes or turnovers.',baseline:.60,hold:.83,risk:1.05,runBias:.07,calls:['Drive and kick','Quick swing','Anchor leak','Block away','Last-step handoff']}
  ];
 const defenses=[
- {name:'Balanced',description:'Pros: has help at the ring and sound receiver matches with few obvious weaknesses. Cons: does not fully erase elite runners, stars or rapid ball movement.',guards:2,depth:4.6,width:2.7,shade:.38,cushion:1.6,read:1},
- {name:'Ring guard',description:'Pros: makes ring scores extremely difficult and creates defensive points with athletic tacklers. Cons: concedes outlets, lowers its own possession share and makes offensive chances scarce; opponents must patiently dissect it.',guards:3,depth:3.05,width:1.45,shade:.57,cushion:1.95,read:1.1,deflect:.12,tackle:.18,takeaway:.07,swingWeak:.06,ownTempo:.25,ownRisk:1.8,ownRun:-.32,ownCreation:.35},
- {name:'Receiver denial',description:'Pros: smothers eligible receivers, lowers easy completions and forces carriers to hold or run. Cons: leaves only one ring helper and is vulnerable to blocks, handoffs and athletic mismatches.',guards:1,depth:3.4,width:1.6,shade:.12,cushion:1.45,read:.9,deflect:.025,runWeak:.08},
- {name:'Star focus',description:'Pros: keeps the ball away from the best Runner and Heaver and brackets the star nearest the play. Cons: secondary players and far-side outlets get better chances, especially after quick reversals.',guards:1,depth:3.7,width:1.8,shade:.22,cushion:1.6,read:.92,stars:true,swingWeak:.04},
- {name:'Passing-lane zone',description:'Pros: produces tips and interceptions by crowding anticipated throwing lanes. Cons: short outlets, patient overloads and quick swings can open seams between zones.',guards:2,depth:5.9,width:3.3,shade:.49,cushion:1.8,read:.87,lanes:true,deflect:.12,takeaway:.04,swingWeak:.03,laneStep:.05,laneReach:.5},
- {name:'Carrier pressure',description:'Pros: shortens reads, forces hurried throws and can create immediate turnovers. Cons: a clean outlet or handoff beats the press and leaves less help at the ring.',guards:1,depth:6.8,width:2.1,shade:.29,cushion:2.8,read:.95,press:true,rush:.20,runWeak:.06,rushRead:3.2,pressGap:1.9},
- {name:'Runway contain',description:'Pros: funnels runs into tacklers and is strongest against power attacks and direct ring drives. Cons: gives up deeper quadrant outlets and can be stretched by disciplined passing.',guards:3,depth:4.6,width:2.9,shade:.39,cushion:1.5,read:1,contain:true,tackle:.07,deflect:-.02,swingWeak:.04},
- {name:'Switch coverage',description:'Pros: handles cuts, blocks and quick swings without losing assignments. Cons: offers fewer aggressive takeaways and can lose power matchups or break down after a slow read.',guards:2,depth:4.75,width:2.6,shade:.25,cushion:1.55,read:.54,switches:true,deflect:-.015,tackle:-.02,swingWeak:-.09}
+ {name:'Balanced',blurb:'Sound marking with help always waiting at the ring',description:'Pros: has help at the ring and sound receiver matches with few obvious weaknesses. Cons: does not fully erase elite runners, stars or rapid ball movement.',guards:2,depth:4.6,width:2.7,shade:.38,cushion:1.6,read:1},
+ {name:'Ring guard',blurb:'Three defenders wall off the ring',description:'Pros: makes ring scores extremely difficult and creates defensive points with athletic tacklers. Cons: concedes outlets, lowers its own possession share and makes offensive chances scarce; opponents must patiently dissect it.',guards:3,depth:3.05,width:1.45,shade:.57,cushion:1.95,read:1.1,deflect:.12,tackle:.18,takeaway:.07,swingWeak:.06,ownTempo:.25,ownRisk:1.8,ownRun:-.32,ownCreation:.35},
+ {name:'Receiver denial',blurb:'Tight coverage that takes away easy catches',description:'Pros: smothers eligible receivers, lowers easy completions and forces carriers to hold or run. Cons: leaves only one ring helper and is vulnerable to blocks, handoffs and athletic mismatches.',guards:1,depth:3.4,width:1.6,shade:.12,cushion:1.45,read:.9,deflect:.025,runWeak:.08},
+ {name:'Star focus',blurb:'Extra attention on the other side\'s best playmakers',description:'Pros: keeps the ball away from the best Runner and Heaver and brackets the star nearest the play. Cons: secondary players and far-side outlets get better chances, especially after quick reversals.',guards:1,depth:3.7,width:1.8,shade:.22,cushion:1.6,read:.92,stars:true,swingWeak:.04},
+ {name:'Passing-lane zone',blurb:'Defenders read the throw and jump passing lanes',description:'Pros: produces tips and interceptions by crowding anticipated throwing lanes. Cons: short outlets, patient overloads and quick swings can open seams between zones.',guards:2,depth:5.9,width:3.3,shade:.49,cushion:1.8,read:.87,lanes:true,deflect:.12,takeaway:.04,swingWeak:.03,laneStep:.05,laneReach:.5},
+ {name:'Carrier pressure',blurb:'An all-out press on the ball, gambling for turnovers',description:'Pros: shortens reads, forces hurried throws and can create immediate turnovers. Cons: a clean outlet or handoff beats the press and leaves less help at the ring.',guards:1,depth:6.8,width:2.1,shade:.29,cushion:2.8,read:.95,press:true,rush:.20,runWeak:.06,rushRead:3.2,pressGap:1.9},
+ {name:'Runway contain',blurb:'Seals the runway and funnels runners into tacklers',description:'Pros: funnels runs into tacklers and is strongest against power attacks and direct ring drives. Cons: gives up deeper quadrant outlets and can be stretched by disciplined passing.',guards:3,depth:4.6,width:2.9,shade:.39,cushion:1.5,read:1,contain:true,tackle:.07,deflect:-.02,swingWeak:.04},
+ {name:'Switch coverage',blurb:'Defenders trade assignments to stay with every cut',description:'Pros: handles cuts, blocks and quick swings without losing assignments. Cons: offers fewer aggressive takeaways and can lose power matchups or break down after a slow read.',guards:2,depth:4.75,width:2.6,shade:.25,cushion:1.55,read:.54,switches:true,deflect:-.015,tackle:-.02,swingWeak:-.09}
 ];
 // Calibrated against a ten-yard run from rest with Speed and Agility at 60.
 const fieldSecondsPerSecond=.63;
@@ -2171,7 +2183,8 @@ function briefing(){
      select.value=defending?sim.defenses[team]:playbooks.indexOf(sim.playbooks[team]);
      const describe=()=>{
        const scheme=choices[select.value];
-       description.textContent=scheme.description||[...new Set(scheme.calls)].join(' · ');
+       description.textContent=scheme.blurb||scheme.description||[...new Set(scheme.calls)].join(' · ');
+       description.title=scheme.description||'';
      };
      describe();
      select.onchange=()=>{
@@ -2555,4 +2568,9 @@ el('roster').onchange=scout;fresh();requestAnimationFrame(frame);
 window.heaveballReady=true;
 }
 
-})();</script><script src="match-9abd459a4d.js"></script><script src="view-6ffcf99cdb.js"></script></html>
+})();</script><script src="match-e81a8c128c.js"></script><script src="view-dd391b0cae.js"></script><script>(()=>{const d=document.getElementById('rules');if(!d)return;
+const toggle=()=>{if(d.open)d.close();else d.showModal()};
+document.querySelectorAll('.rules-open').forEach(b=>b.addEventListener('click',toggle));
+document.getElementById('rules-close').addEventListener('click',()=>d.close());
+d.addEventListener('click',e=>{if(e.target===d)d.close()});
+d.addEventListener('keydown',e=>{if(e.key==='Escape')e.stopPropagation()});})();</script></html>

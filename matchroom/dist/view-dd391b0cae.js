@@ -61,7 +61,8 @@ function briefing(){
      select.value=defending?sim.defenses[team]:playbooks.indexOf(sim.playbooks[team]);
      const describe=()=>{
        const scheme=choices[select.value];
-       description.textContent=scheme.description||[...new Set(scheme.calls)].join(' · ');
+       description.textContent=scheme.blurb||scheme.description||[...new Set(scheme.calls)].join(' · ');
+       description.title=scheme.description||'';
      };
      describe();
      select.onchange=()=>{
