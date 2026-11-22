@@ -110,7 +110,7 @@ The engine applies these identities to release time, passing risk, run appetite 
 | Runway contain | Spreads three helpers across run lanes, funnels direct attacks toward tacklers and is the best structural answer to Runway power. | Gives up deeper quadrant outlets and can be stretched by disciplined passing or legal center relays. |
 | Switch coverage | Exchanges assignments quickly against cuts, blocks and swing sequences, preventing one screen from freeing a receiver. | Generates fewer aggressive takeaways and can lose physical isolations. A late or low-IQ switch can still expose the ring. |
 
-The play-by-play identifies each club's scheme and the players targeted by Star focus. Free run lanes and sudden death use their dedicated formations. All active players can still use the full center zone in sudden death.
+The play-by-play identifies each club's scheme and the players targeted by Star focus. On a free run lane, the lead Anchor screens the help defender so the Runner can isolate the first tackler. The tackler can grab and slow the Runner until help arrives, or lunge for a difficult stop at the spot. A Runner can slip a grab, break free before help arrives, or stay up through a missed lunge. Sudden death uses its own formation. All active players can still use the full center zone in sudden death.
 
 ## Gameplay targets
 
@@ -130,9 +130,17 @@ Field templates provide park surfaces with clay no-possession zones and all-weat
 
 The footer uses accessible GitHub and OpenAI logo links to the production Matchroom on GitHub Pages and the GPT test site for Codex Matchroom PR builds.
 
+## Mobile fullscreen
+
+The field fills the mobile viewport with black margins and overlaid playback controls. The match page stays vertically scrollable in native fullscreen and in the viewport fallback.
+
+## Player markers
+
+Players keep their numbered circles during loose-ball scrambles.
+
 ## Build record
 
-Built 2026-11-22 10:53 UTC.
+Built 2026-11-22 18:00 UTC.
 
-- match-4fe2a8d8ae.js
-- view-0cd13bc0d0.js
+- match-9abd459a4d.js
+- view-5c2a6e46c4.js
