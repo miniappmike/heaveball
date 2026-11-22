@@ -5,7 +5,7 @@ const teams=['Ember','Harbor'], names=['Reed','Ellis','Cruz','Park','Quinn','Col
 const center={x:25,y:17}, blue=p=>Math.abs(p.x-25)<=5&&Math.abs(p.y-17)<=5;
 const ringRadius=2;
 const ringLimit=3;
-const LAPSE=.06;
+const LAPSE=.058,DIRT_SLIP=.7,RING_CLEAR=1.75,BACK_BLOCK=.0011;
 const pileStallLimit=4.5;
 const pileProgressYards=.65;
 const pileLossYards=1.25;
@@ -571,8 +571,13 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    s.contact=pile=null;
  }
  // Restricted play: a non-Anchor past their own half's edge of the center zone, or a carrier holding the ball on the dirt.
- function restrictedPenalty(active){
+ function restrictedPenalty(active,dt){
    if(lane)return false;
+   // A carrier working the dirt edge can drift a step onto it; low IQ and Discipline make it likelier.
+   if(carrier&&!carrier.sidelined&&!pile&&Math.abs(carrier.x-center.x)<6.5&&Math.abs(carrier.y-center.y)>3.5&&!(Math.abs(carrier.x-center.x)<5&&Math.abs(carrier.y-center.y)<=5&&Math.abs(carrier.y-center.y)<3.5)){
+     const f=(200-carrier.ratings[7]-carrier.ratings[8])/100;
+     if(rand()<dt*DIRT_SLIP*f*f*f){const dy=Math.sign(carrier.y-center.y)||1;movePlayer(carrier,clamp(carrier.x,center.x-4.6,center.x+4.6),center.y+dy*5.4)}
+   }
    for(const p of players){
      if(!active(p)||p.role==='Anchor')continue;
      const limit=p.side<0?p.x-(center.x+5):(center.x-5)-p.x;
@@ -877,7 +882,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  function tryBlock(p,threat,focus){
    if(!threat.ratings||threat.team===p.team||dist(p,threat)>=1.65||dist(threat,focus)>=7||p.blocked||threat.blocked)return false;
    const behind=(p.x-threat.x)*threat.vx+(p.y-threat.y)*threat.vy<-.18;
-   if(!lane&&!s.overtime&&behind&&rand()<(105-p.ratings[7])*.00008){
+   if(!lane&&!s.overtime&&behind&&rand()<(105-p.ratings[7])*BACK_BLOCK){
      penalize(p,'blocks in the back · free run lane');return true
    }
    p.blocked=.9;
@@ -1138,7 +1143,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  if(hold>0){hold=Math.max(0,hold-dt);return}
  let focus=carrier||pass||loose,off=s.team;
  const active=p=>!p.sidelined&&!(p.edgeTime>0)&&(!lane||(p.team===off?(p.i===4||p.i===5):p.i>=6));
- if(ringPenalty(dt,active)||restrictedPenalty(active))return;
+ if(ringPenalty(dt,active)||restrictedPenalty(active,dt))return;
  const gameDt=dt;
  dt*=fieldSecondsPerSecond;age+=dt;cool-=dt;
  if(s.impact&&(s.impact.time-=dt)<=0)s.impact=null;
@@ -1379,7 +1384,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    tx=spot.x;ty=spot.y;
  }
  // Off-ball players clear the circle as the count approaches the limit.
- if(p!==carrier&&p.ringTime>2-.5*judgment(p)){
+ if(p!==carrier&&p.ringTime>RING_CLEAR-.6*judgment(p)){
    const exit=guardPosition(p.x,p.y,p);
    tx=exit.x;ty=exit.y;
  }
