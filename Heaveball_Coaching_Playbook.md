@@ -12,9 +12,20 @@ Heaveball rewards teams that can hold possession long enough to make a defender 
 | Carrier enters the blue from outside | A controlled ball breaking the ring line earns 2. A completed tackle short of the ring on the dive gives the ball away. |
 | Interception or fumble recovery in the blue | The team securing the ball earns 1 and keeps possession. A loose ball in the yellow is still live, and an incomplete pass can be recovered in bounds. |
 | Airborne save | A player out of bounds can kick an airborne ball back into play. Either team can catch the saved kick in the blue for 5. If it lands in bounds, contest the recovery and restart from the center of the nearest quadrant. |
+| Ball above the dirt strip | A legal airborne pass may cross the no-possession zone. The strip is out of bounds only when a carried ball, intentional bounce, deflection, or loose ball touches or rolls onto it. The opponent then receives a quadrant reset. |
 | After scoring 2, 3, or 5 | The opposing team gets possession. The scoring team chooses the restart quadrant. |
 
 Any player can use the full blue center zone on offense or defense. Only Anchors can enter the opposite half. Any player who spends more than three uninterrupted live seconds in the ring while unblocked gives up a free run lane. Heavers and Runners can each throw from a quadrant, receive, or carry. Their role names describe the skills they typically bring.
+
+## Pass selection and errant throws
+
+| Pass | Best use | Risk and limitation |
+|---|---|---|
+| **Lob · standard** | The normal choice. Its high arc clears heads, travels at a manageable pace, and is easier to receive than a line drive. | It gives defenders more flight time to close or establish position. |
+| **Line drive** | The quickest, flattest throw for an urgent window or rapid swing. Arm Strength supports its pace and range. | It is substantially harder to catch, and its low flight path gives nearby defenders a chance to bat or tip it. |
+| **Bounce pass** | A slower, controlled exchange that is easier to handle when the ground path is clean. | Use it only on the same half. A bounce cannot cross the dirt because touching the no-possession zone makes the ball dead. |
+| **Short-hop · errant** | Not a designed pass. A weak or inaccurate throw can die in front of the target and force a difficult low catch. | Low Arm Strength and Throw Accuracy make it more likely, especially at distance or under pressure. A miss remains a live loose ball in bounds. |
+| **Overthrow · errant** | Not a designed pass. The ball sails beyond and above the intended receiver. | Low Throw Accuracy makes it more likely, especially when arm power exceeds control. The target must have enough height and Jump to rescue it; otherwise it can create a scramble or go out. |
 
 ## Coaching styles and lineup packages
 
@@ -23,6 +34,7 @@ Any player can use the full blue center zone on offense or defense. Only Anchors
 | **Patient passing** | Work through multiple quadrants, repeat a look to learn how the defense reacts, then hit the unexpected cut into the blue. | Creates 3-point chances and can retain possession after a catch in the blue. | A defense that stays home and tracks late cutters can deny the window. A forced throw can give up a point and possession. |
 | **Runway power** | Use Anchor blocks, a strong Runner, and an available handoff option. Pick the moment to test an isolated Anchor. | A stronger carrier can stay upright and drive a pile for several seconds. The threat pulls help toward the runway. | Runway contact makes fumbles a recurring risk. A completed tackle can end a long possession, and crowded handoffs can give defenders a recovery chance. |
 | **Balanced** | Show the same setup with a keep, a separate Runner, an outlet, and a switch available as the defense moves. | Can exploit either a pinch or a defense that stays spread. | Needs sharp timing across multiple quadrants. If players read the play differently, the carrier can run out of outlets. |
+| **Quick swing** | Release early and move the ball through open, unvisited quadrants in rapid succession. Airborne lobs and line drives can cross halves; bounce passes cannot. | Stretches packed or slow-shifting defenses and repeatedly changes the angle into the center. | Every exchange adds a catch, tip, or deflection opportunity. Switch coverage can follow the sequence, and hurried players may miss the next read. |
 | **Free Flow** | Give players the freedom to blend quadrant movement, runway threats, Anchor blocks, handoffs, and cuts into the blue as openings develop. | Lets players discover what works against the defense and build on it over successive possessions. | Spacing can break down or possessions can stall if several players make the same read. A targeted call gives the team a clear first action when that happens. |
 
 | Lineup call | Two flexible slots | Use it when |
@@ -51,8 +63,8 @@ Coaches set the threshold. One might call a set after the first empty trip. Anot
 | **Second Cut** | Let the first cutter draw attention and exit toward their own half. Send a second player from another angle when a defender follows the first cut or turns away from the second. | Defenders can hand off coverage and keep the second lane closed. The thrower needs an outlet. |
 | **Shield Dive** | The attacking Anchor blocks for the Runner. Commit when the block opens a route toward the ring. | Entering the runway commits the ball to a run or handoff. A completed tackle in the runway or short on the dive gives up possession. |
 | **Runway Flash** | Show the Runner briefly in the yellow. If a defender steps out, look behind them for a cutter into the blue. If the defender stays deep, take the short catch only if the Runner has a viable carry. | A short catch in the yellow can produce a quick turnover if the Runner is tackled there. |
-| **Quick swing** | Keep a receiver in each quadrant. Move the ball promptly to an open adjacent quadrant and continue to an unvisited one while lanes stay clear. Select the Quick swing playbook in the pregame handbook to call it more often. | If the defense closes the next lane, reset. Cross-field throws still take longer, and weaker arms may need a shorter outlet. |
-| **Far Switch** | Throw to a teammate already on the opposite half. A catch in a quadrant preserves the next pass and changes the angle into the blue. | Longer throws give defenders time to react. A catch in the far runway removes the passing option until the ball reaches a legal release area. |
+| **Quick swing** | Keep a receiver in each quadrant. Move the ball promptly to an open, unvisited quadrant while lanes stay clear. Airborne lobs and line drives may cross above the dirt; use bounce passes only on the same half. Select the Quick swing playbook in the pregame handbook to call it more often. | If the defense closes the next lane, reset. Every fast exchange creates another chance for a difficult catch, tip, or deflection, and weaker arms may need a shorter outlet. |
+| **Far Switch** | Send an airborne pass to a teammate already on the opposite half. A catch in a quadrant preserves the next pass and changes the angle into the blue. | Longer throws give defenders time to react. An overthrow can run out of bounds, and any deflection that touches the dirt is dead. |
 | **Anchor Leak** | Show the usual lead block, then release the attacking Anchor into the blue as a receiver if defenders commit to the Runner. | The Runner loses a blocker. If the defense follows the Anchor, use another outlet. |
 | **Runway Relay** | The first carrier draws an Anchor and hands off to a trailing player with a better angle. Keep it if the defense widens early. | A pressured exchange can become a live fumble. The trailing player has to see the same opening. |
 | **Drive** | Put the ball in a strong Runner's hands behind an Anchor. Keep a teammate available to take a handoff or recover a fumble while the carrier is still upright and moving. | Prolonged contact gives defenders time to surround the carrier. Extra bodies can also crowd the exchange and leave the offense poorly placed after a turnover. |
@@ -88,16 +100,16 @@ Flip the assignments when starting from another quadrant. A fast Heaver can sell
 
 Each club draws a scheme for the exhibition. You can change either club's scheme in the pregame handbook. Defenders read the carrier, the ring, and all eligible receivers, including Anchors. They use goal-side leverage and shift assignments as the ball and receivers move.
 
-| Scheme | When to use it |
-|---|---|
-| **Balanced** | Keep two defenders inside and cover the most dangerous nearby outlets when the opponent has several ways to attack. |
-| **Ring guard** | Set three defenders just outside the ring when the opponent reaches the blue too easily. Expect deep outlets to have more space. |
-| **Receiver denial** | Tighten coverage on eligible receivers and leave one ring helper when the opponent wins with clean catches. |
-| **Star focus** | Deny the best opposing Runner and Heaver early touches and bracket the more dangerous star near the ball. Expect secondary outlets. |
-| **Passing-lane zone** | Shade toward likely throwing lanes and keep two inside helpers when the opponent relies on throws through the middle. |
-| **Carrier pressure** | Send one defender to hurry the carrier and keep cover behind the press when the opponent needs time to set up. |
-| **Runway contain** | Spread three helpers across the runway approaches and close from the goal side when the opponent runs often. |
-| **Switch coverage** | Exchange assignments quickly when the opponent uses frequent cuts and off-ball blocks. |
+| Scheme | Pros | Cons |
+|---|---|---|
+| **Balanced** | Keeps two goal-side helpers, matches dangerous eligible receivers, and has no glaring structural weakness. | Does not fully erase an elite runner, a star receiver, or rapid ball movement. |
+| **Ring guard** | Puts three defenders near the ring, sharply reduces clean ring entries, and creates defensive scoring chances through tackles, tips, and interceptions. It is strongest with athletic players and talented tacklers. | Concedes deep outlets. The defense-first posture produces shorter offensive possessions and fewer clean offensive chances, so much of its scoring comes from defensive plays. Opponents must patiently move and dissect it. |
+| **Receiver denial** | Gives eligible receivers tight goal-side marks, lowers easy completions, and makes the carrier hold or run. | Leaves only one dedicated ring helper. Blocks, handoffs, and individual athletic mismatches can break the coverage. |
+| **Star focus** | Denies the best Runner and Heaver, then brackets the more dangerous star near the ball. | Secondary receivers and the far side receive more room. Quick reversals force the help to travel and can punish the extra attention. |
+| **Passing-lane zone** | Crowds anticipated throwing lanes and raises the likelihood of interceptions, tips, and batted passes. | Short outlets, patient overloads, and quick swings can find seams between zones. It also gives receivers space to settle outside the lane. |
+| **Carrier pressure** | Sends an extra defender to shorten the carrier's read, hurry throws, and create immediate turnovers. | A clean outlet, handoff, or broken first tackle gets behind the pressure and leaves less help at the ring. |
+| **Runway contain** | Spreads three helpers across run lanes, funnels direct attacks toward tacklers, and is the best structural answer to Runway power. | Gives up deeper quadrant outlets and can be stretched by disciplined passing or legal center relays. |
+| **Switch coverage** | Exchanges assignments quickly against cuts, blocks, and swing sequences, preventing one screen from freeing a receiver. | Generates fewer aggressive takeaways and can lose physical isolations. A late or low-IQ switch can still expose the ring. |
 
 ## Defensive play calls
 

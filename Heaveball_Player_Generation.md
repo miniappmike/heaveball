@@ -20,8 +20,8 @@ Use integer ratings from **20 to 100**, with **60** typical on the league-wide s
 
 | Rating | Gameplay effect |
 | --- | --- |
-| Arm Strength | Sets achievable throw speed and range. |
-| Throw Accuracy | Controls how closely a pass follows the intended trajectory. |
+| Arm Strength | Sets achievable throw speed and range. It supports fast line drives; insufficient strength raises the chance of an errant short-hop at distance. |
+| Throw Accuracy | Controls how closely a pass follows the intended trajectory. Low Accuracy raises short-hop and overthrow risk, particularly when arm power exceeds control. |
 | Strength | Governs how much force a player can apply or resist while blocking, standing up a block, tackling, breaking a tackle, or driving a pile. |
 | Speed | Sets top running speed. It affects separation, pursuit, and contact through the speed the player actually reaches. |
 | Agility | Governs acceleration, braking, and how much speed a player can carry through a cut. |
@@ -45,7 +45,8 @@ Add **Stamina** when fatigue and recovery start to affect lineup or substitution
 
 - **Movement and contact.** Use each player's mass and actual velocity to determine momentum. Resolve contact using the angle of impact, footing and bracing, then use Strength to determine how much force each player can apply or resist as contact continues. A running player can carry through glancing contact, and a braced defender can stop a carrier who meets them squarely. Speed already contributes through velocity, so apply its effect once. On a pile drive, use the forces that the engaged players can transmit in the direction of the drive.
 - **Tackles and possession.** Use Tackling alongside Strength and the contact matchup. A failed juke, nearby help or a size advantage can make a solo stop easier. A carrier with enough speed and mass can run through a defender. Heavy, well-aligned hits can jar the ball loose on a carry or break up a catch. Hands helps secure the ball, and a ball knocked loose can bounce into a live recovery.
-- **Contested balls.** Use actual ball trajectory and player positions, with height setting standing reach and Jump adding vertical reach. Reaction determines how soon a player responds. Hands resolves control once a player can reach the ball.
+- **Pass trajectories.** The lob is the standard pass. Line drives trade catchability and a flatter deflection path for speed. Bounce passes are slower and easier to handle but stay on one half because a ground contact in the dirt is out of bounds. Short-hops and overthrows are errant outcomes rather than designed calls.
+- **Contested balls.** Use actual ball trajectory and player positions, with height setting standing reach and Jump adding vertical reach. Reaction determines how soon a player responds, and Speed helps close the path to the ball. Hands resolves control once a player can reach the ball. A high overthrow can sail above a receiver who lacks the reach to rescue it.
 - **Penalties and saves.** Evaluate Discipline only where the rules allow a violation, such as a player nearing a restricted boundary or an offensive blocker approaching from behind. A kick save requires an eligible out-of-bounds player who can reach an airborne ball headed out. Resolve any resulting catch or recovery under the save rules.
 
 ## Playtest checks
