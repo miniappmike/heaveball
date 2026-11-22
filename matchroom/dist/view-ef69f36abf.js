@@ -12,10 +12,10 @@ const fixedStep=.04,halftimeDuration=15000,scoringDuration=3500,penaltyDuration=
 let sim,playing=false,carry=0,wall=performance.now(),speed=1,backgroundTimer=0;
 let statsMode=null,statsPage=0,statsDeadline=0,frozenTime=null,finalStats=null;
 function stamp(s){let n=s.overtime?Math.floor(s.time):Math.ceil(s.time);return (s.overtime?'OT':'H'+s.half)+' · '+Math.floor(n/60)+':'+String(n%60).padStart(2,'0')}
-let boxDirty=true,breakUntil=0,callUntil=0,shownHighlights=-1;
-function report(s,msg){boxDirty=true;let row=document.createElement('p'),t=document.createElement('time');t.textContent=stamp(s)+'  ';row.append(t,msg);el('feed').prepend(row);if(el('feed').children.length>80)el('feed').lastChild.remove()}
+let boxDirty=true,breakUntil=0,callUntil=0,callAge=Infinity,callSub='',stepMsgs=[],lastFrame=performance.now(),shownHighlights=-1;
+function report(s,msg){boxDirty=true;stepMsgs.push(msg);let row=document.createElement('p'),t=document.createElement('time');t.textContent=stamp(s)+'  ';row.append(t,msg);el('feed').prepend(row);if(el('feed').children.length>80)el('feed').lastChild.remove()}
 function scout(){let p=sim.players[+el('roster').value],h=Math.round(p.height);el('build').textContent=p.role+' · '+Math.floor(h/12)+'′'+h%12+'″ · '+Math.round(p.weight)+' lb';el('cards').replaceChildren(...traits.map((name,i)=>{let line=document.createElement('span'),num=document.createElement('b');num.textContent=p.ratings[i];line.append(name,num);return line}))}
-function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;callUntil=0;boxDirty=true;el('feed').replaceChildren();sim=match(report);playing=false;carry=0;el('roster').replaceChildren(...sim.players.map((p,i)=>new Option(teams[p.team]+' #'+p.jersey+' · '+p.name,i)));scout();briefing()}
+function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;callUntil=0;callAge=Infinity;boxDirty=true;el('feed').replaceChildren();sim=match(report);playing=false;carry=0;el('roster').replaceChildren(...sim.players.map((p,i)=>new Option(teams[p.team]+' #'+p.jersey+' · '+p.name,i)));scout();briefing()}
 function briefing(){
  const average=values=>values.reduce((sum,v)=>sum+v,0)/values.length;
  const squads=teams.map((_,i)=>sim.players.filter(p=>p.team===i));
@@ -198,12 +198,33 @@ function drawThinBar(v){
  ctx.font=label+'px '+barFont;ctx.textAlign='right';
  if(!tiny||!live){ctx.fillStyle=muted;ctx.fillText(period,r,cy);r-=ctx.measureText(period).width+8}
  ctx.fillStyle=ink;ctx.fillText(clock,r,cy);r-=ctx.measureText(clock).width;
- // Call badge right of the score group: turnover, penalty or center score.
- if(sim.call&&performance.now()<callUntil){
-   const tones={Turnover:['#ff4d4d','#fff'],Penalty:['#ffd23f','#2a2100'],'Center!':['#2f8cff','#fff']},[bg,fg]=tones[sim.call];
-   ctx.font=label+'px '+barFont;const txt=sim.call.toUpperCase(),tw=ctx.measureText(txt).width+18,ph=h-11,x=narrow?cx+extent+10:pad;
-   if(!narrow){ctx.fillStyle='#171c19';ctx.fillRect(0,0,cx-extent-4,h-1)}
-   if(x+tw<(narrow?r-8:cx-extent-4)){ctx.beginPath();ctx.roundRect(x,5,tw,ph,ph/2);ctx.fillStyle=bg;ctx.fill();ctx.fillStyle=fg;ctx.textAlign='center';ctx.fillText(txt,x+tw/2,cy)}
+ ctx.restore();
+}
+// Shockwave call popup: white rings burst from the center ring, then the call pill pops in and pulses.
+function drawCallout(){
+ if(!sim.call||callAge>=3500)return;
+ const tones={Turnover:['#ff4d4d','#fff','255,77,77'],Penalty:['#ffd23f','#2a2100','255,210,63'],'Center!':['#2f8cff','#fff','47,140,255']},[bg,fg,glow]=tones[sim.call];
+ const t=callAge/1000,cx=25,cy=16.2;
+ ctx.save();
+ for(const delay of [0,.18,.36]){
+   const p=(t-delay)/1.1;if(p<0||p>1)continue;
+   ctx.beginPath();ctx.arc(25,17,2*(1+8*p),0,Math.PI*2);ctx.strokeStyle='rgba(255,255,255,'+(.9*(1-p))+')';ctx.lineWidth=.4;ctx.stroke();
+ }
+ const k=Math.min(1,Math.max(0,(t-.1)/.4)),c1=2.6,scale=k?1+(c1+1)*Math.pow(k-1,3)+c1*Math.pow(k-1,2):0;
+ if(scale>0){
+   const txt=sim.call.toUpperCase();
+   ctx.translate(cx,cy);ctx.scale(scale,scale);
+   ctx.font='5px '+barFont;ctx.textAlign='center';ctx.textBaseline='middle';
+   const w=ctx.measureText(txt).width+5,h=6;
+   if(t>.6){const q=((t-.6)%2.8)/1.4,p=q>1?2-q:q;ctx.beginPath();ctx.roundRect(-w/2-1.8*p,-h/2-1.8*p,w+3.6*p,h+3.6*p,h/2+1.8*p);ctx.fillStyle='rgba('+glow+','+(.7*(1-p))+')';ctx.fill()}
+   ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=2;ctx.shadowOffsetY=.6;
+   ctx.beginPath();ctx.roundRect(-w/2,-h/2,w,h,h/2);ctx.fillStyle=bg;ctx.fill();
+   ctx.shadowColor='transparent';ctx.fillStyle=fg;ctx.fillText(txt,0,.35);
+   if(callSub){
+     let size=1.15;ctx.font='600 '+size+'px Inter,system-ui,sans-serif';
+     const tw=ctx.measureText(callSub).width;if(tw>44){size*=44/tw;ctx.font='600 '+size+'px Inter,system-ui,sans-serif'}
+     ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=.6;ctx.fillStyle='#fff';ctx.fillText(callSub,0,h/2+1.5);
+   }
  }
  ctx.restore();
 }
@@ -219,6 +240,7 @@ ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace'
  if(sim.contact){let {p,d}=sim.contact;disc((p.x+d.x)/2,(p.y+d.y)/2,1.6,"#a58038","#ffe27d")}
  for(let p of sim.players)if(!p.sidelined)drawPlayer(p);
  drawBall(sim.ball());
+ drawCallout();
  drawThinBar(view);
  const share=(values)=>{let total=values[0]+values[1];return total?Math.round(100*values[0]/total)+'% / '+Math.round(100*values[1]/total)+'%':'—'};
  el('control').textContent='Current possession '+Math.floor(sim.posAge/60)+':'+String(Math.floor(sim.posAge)%60).padStart(2,'0')+' · Ember / Harbor · Possession '+share(sim.possession)+' · Runway ball control '+share(sim.runway);
@@ -364,8 +386,8 @@ function advance(now){
    }
    wall+=stepTime;carry=0;steps--;
    const calls=sim.callEvents,scores=sim.scoreEvents,penalties=sim.penaltyEvents,stoppages=sim.stoppageEvents,priorHalftime=sim.halftime;
-   sim.step(fixedStep);
-   if(sim.callEvents!==calls)callUntil=wall+3500;
+   stepMsgs=[];sim.step(fixedStep);
+   if(sim.callEvents!==calls){callUntil=wall+3500;callAge=0;callSub=stepMsgs.find(m=>/Penalty|scores|point|turnover|intercept|out of bounds/i.test(m))||stepMsgs[0]||''}
    if(sim.done){
      finalStats=snapshot();
      el('final-box').hidden=false;
@@ -389,6 +411,8 @@ function scheduleBackground(){
 function frame(){
  if(!document.hidden){
    const now=performance.now();
+   // The popup clock only runs during playback, so a paused game keeps the call on screen.
+   if(playing&&statsMode!=='half')callAge+=now-lastFrame;lastFrame=now;
    advance(now);draw();renderBox();renderHighlights();
    if(now<breakUntil&&!sim.done)el('clock').textContent=stamp(sim)+(sim.penaltyPending?' · Penalty · free run lane pending':sim.stoppagePending?' · Stoppage':' · Scoring break');
  }
