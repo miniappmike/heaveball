@@ -460,8 +460,8 @@ function match(report){
    pass=null;carrier=null;s.contact=null;pile=null;stationary=false;
  }
  let pile=null, lane=null, whistle=0, boundaryRestart=null,pendingLane=null,delayedRestart=null;
-const RESTART_PAUSE=2;
-function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side,index,wait:RESTART_PAUSE}}
+// Flag a stoppage now; the view holds playback (wall-clock, speed-independent) and the next step performs the reset.
+function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side,index}}
  function stoppage(){s.stoppageEvents++;s.stoppagePending=true}
  function boundaryContact(p,d){
    const sides=[
@@ -1082,15 +1082,11 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    const progress=clamp((.85-wait)/.45,0,1);
    movePlayer(player,spot.x+(exit.x-spot.x)*progress,spot.y+(exit.y-spot.y)*progress);
    if(wait<=0){
-     const {team,index}=boundaryRestart;boundaryRestart=null;stoppage();restart(team,undefined,index);
+     const {team,index}=boundaryRestart;boundaryRestart=null;restartAfterPause(team,undefined,index);
    }
    return;
  }
- if(delayedRestart){
-   if((delayedRestart.wait-=dt)<=0){const r=delayedRestart;delayedRestart=null;restart(r.team,r.side,r.index)}
-   return;
- }
- if(scoringRestart&&scoringRestart.delay>0){scoringRestart.delay-=dt;return}
+ if(delayedRestart){const r=delayedRestart;delayedRestart=null;restart(r.team,r.side,r.index);return}
  if(scoringRestart){restart(scoringRestart.team,undefined,scoringRestart.index);scoringRestart=null;s.scoringSpot=null}
  if(whistle>0){whistle-=dt;return}
  if(s.overtime)s.time+=dt;
@@ -1406,7 +1402,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      }
      loose=null;log(q.name+' recovers the '+kind+(contested?' · won the scramble':''));
      if(kind==='drop'||kind==='save'||kind==='deflection'){assign(q,blue(q)?0:2);cool=.6}
-     else {if(kind==='fumble'&&q.team!==originTeam&&blue(spot)&&s.overtime){score(q,1)}else if(kind==='fumble'&&q.team!==originTeam&&blue(spot)){points(q,1,'Recovered a fumble in the center zone');log('Center fumble recovery · 1 point');scoringRestart={team:q.team,index:nearestQuadrant(spot),delay:RESTART_PAUSE}}else if(kind==='fumble'){restartAfterPause(q.team,undefined,nearestQuadrant(spot))}else {stoppage();restart(q.team,undefined,nearestQuadrant(spot))}}
+     else {if(kind==='fumble'&&q.team!==originTeam&&blue(spot)&&s.overtime){score(q,1)}else if(kind==='fumble'&&q.team!==originTeam&&blue(spot)){points(q,1,'Recovered a fumble in the center zone');log('Center fumble recovery · 1 point');scoringRestart={team:q.team,index:nearestQuadrant(spot)}}else if(kind==='fumble'){restartAfterPause(q.team,undefined,nearestQuadrant(spot))}else {stoppage();restart(q.team,undefined,nearestQuadrant(spot))}}
    }
    return
  }
