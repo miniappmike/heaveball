@@ -144,7 +144,7 @@ Players keep their numbered circles during loose-ball scrambles.
 
 ## Build record
 
-Built 2026-11-22 22:28 UTC.
+Built 2026-11-22 22:32 UTC.
 
 - match-5ab0c4f6dc.js
-- view-dd391b0cae.js
+- view-b61230dda7.js
