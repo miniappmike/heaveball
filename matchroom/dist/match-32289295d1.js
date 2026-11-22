@@ -5,6 +5,7 @@ const teams=['Ember','Harbor'], names=['Reed','Ellis','Cruz','Park','Quinn','Col
 const center={x:25,y:17}, blue=p=>Math.abs(p.x-25)<=5&&Math.abs(p.y-17)<=5;
 const ringRadius=2;
 const ringLimit=3;
+const LAPSE=.06;
 const pileStallLimit=4.5;
 const pileProgressYards=.65;
 const pileLossYards=1.25;
@@ -148,7 +149,7 @@ function pathCrossesNoPossession(from,to){
  return false;
 }
 function legalX(p,x){
- if(p.role==='Anchor')return x;
+ if(p.role==='Anchor'||p.lapse>0)return x;
  return p.side<0?Math.min(x,center.x+5):Math.max(x,center.x-5);
 }
 function movePlayer(p,x,y){
@@ -564,15 +565,29 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      log(p.name+' breaks free before help arrives');
    }
  }
+ function penalize(p,why){
+   p.stats.pen++;log('Penalty · '+p.name+' '+why);
+   pendingLane=1-p.team;s.penaltyEvents++;s.penaltyPending=true;s.penalized=p;call('Penalty');
+   s.contact=pile=null;
+ }
+ // Restricted play: a non-Anchor past their own half's edge of the center zone, or a carrier holding the ball on the dirt.
+ function restrictedPenalty(active){
+   if(lane)return false;
+   for(const p of players){
+     if(!active(p)||p.role==='Anchor')continue;
+     const limit=p.side<0?p.x-(center.x+5):(center.x-5)-p.x;
+     if(limit>.3){p.lapse=0;penalize(p,'crosses past their own half · free run lane');return true}
+   }
+   if(carrier&&!carrier.sidelined&&noPossession(carrier)){penalize(carrier,'possesses the ball in the no-possession zone · free run lane');return true}
+   return false;
+ }
  function ringPenalty(dt,active){
    for(const p of players){
      const engaged=p.screened>0||pile&&(p===pile.p||p===pile.d)||lane?.grip&&(p===carrier||p===lane.grip.d);
      p.ringTime=active(p)&&!engaged&&dist(p,center)<=ringRadius?p.ringTime+dt:0;
      p.screened=Math.max(0,p.screened-dt*fieldSecondsPerSecond);
      if(p.ringTime>ringLimit+1e-9){
-       p.stats.pen++;
-       log('Penalty · '+p.name+' stays unblocked in the ring for more than three seconds');
-       pendingLane=1-p.team;s.penaltyEvents++;s.penaltyPending=true;s.penalized=p;call('Penalty');
+       penalize(p,'stays unblocked in the ring for more than three seconds · free run lane');
        return true;
      }
    }
@@ -863,7 +878,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    if(!threat.ratings||threat.team===p.team||dist(p,threat)>=1.65||dist(threat,focus)>=7||p.blocked||threat.blocked)return false;
    const behind=(p.x-threat.x)*threat.vx+(p.y-threat.y)*threat.vy<-.18;
    if(!lane&&!s.overtime&&behind&&rand()<(105-p.ratings[7])*.00008){
-     p.stats.pen++;log('Penalty · '+p.name+' blocks in the back');pendingLane=1-p.team;s.penaltyEvents++;s.penaltyPending=true;s.penalized=p;call('Penalty');return true
+     penalize(p,'blocks in the back · free run lane');return true
    }
    p.blocked=.9;
    if(rand()<clamp(.52+(p.ratings[2]-threat.ratings[2])*.007,.18,.88)){
@@ -1068,7 +1083,15 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      restart(opening);log(teams[opening]+' opens possession');
    }
  };
- s.step=dt=>{stepInner(dt);for(const p of players)if(p.role!=='Anchor')p.x=legalX(p,p.x)};
+ s.step=dt=>{
+   if(!s.penaltyPending)for(const p of players){
+     if(p.role==='Anchor')continue;
+     if(p.lapse>0){p.lapse-=dt;continue}
+     const focus=(200-p.ratings[7]-p.ratings[8])/100;
+     if(rand()<dt*LAPSE*focus*focus*focus)p.lapse=.5+rand()*.6;
+   }
+   stepInner(dt);
+ };
  const stepInner=dt=>{
  if(s.done)return;
  if(pendingLane!==null){const team=pendingLane;pendingLane=null;freeLane(team);return}
@@ -1115,7 +1138,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  if(hold>0){hold=Math.max(0,hold-dt);return}
  let focus=carrier||pass||loose,off=s.team;
  const active=p=>!p.sidelined&&!(p.edgeTime>0)&&(!lane||(p.team===off?(p.i===4||p.i===5):p.i>=6));
- if(ringPenalty(dt,active))return;
+ if(ringPenalty(dt,active)||restrictedPenalty(active))return;
  const gameDt=dt;
  dt*=fieldSecondsPerSecond;age+=dt;cool-=dt;
  if(s.impact&&(s.impact.time-=dt)<=0)s.impact=null;
