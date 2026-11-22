@@ -197,7 +197,7 @@ function match(report){
    }}
  }
  for(const p of players)p.stats={pts:0,att:0,cmp:0,rec:0,tc:0,int:0,tkl:0,fum:0,to:0,pen:0,pbu:0,drp:0,hit:0};
- let s={scoreEvents:0,highlights:[],stints:[[],[]],posAge:0,players,score:[0,0],half:1,time:1200,overtime:false,done:false},opening=Math.floor(rand()*2),carrier,pass,age,hold,cutter,run,worth,scoringPassYards=null,scoringThrower=null,cool=0;
+ let s={scoreEvents:0,penaltyEvents:0,stoppageEvents:0,penaltyPending:false,stoppagePending:false,highlights:[],stints:[[],[]],posAge:0,players,score:[0,0],half:1,time:1200,overtime:false,done:false},opening=Math.floor(rand()*2),carrier,pass,age,hold,cutter,run,worth,scoringPassYards=null,scoringThrower=null,cool=0;
  let retreat=null,nextRead=0,nextOutletRead=0;
  let buildup=0, neutralUntil=0, openingCall=null, plan="", previous=null;
  let cornerReturn=null,anchorLeak=null,relay=null,blueTrap=null,swing=null;
@@ -246,8 +246,6 @@ function match(report){
    const selection=s.defenses[1-off];
    if(lastDefense?.off===off&&lastDefense.selection===selection&&s.posAge<defenseReadAt)return;
    if(lastDefense?.off!==off||lastDefense.selection!==selection){
-     const targets=scheme.stars?' · '+stars[off].map(p=>p.role+' #'+p.jersey).join(' / '):'';
-     log(teams[1-off]+' defense · '+scheme.name+targets);
      lastDefense={off,selection};
    }
    defenseReadAt=s.posAge+scheme.read;
@@ -378,7 +376,6 @@ function match(report){
        anchorLeak=plan==='Anchor leak'
          ?{player:players.find(p=>p.team===off&&p.role==='Anchor'&&p!==carrier),released:false}
          :null;
-       log(teams[off]+' switches to '+plan);
      }
      lastGain=s.posAge;bestDepth=depth;
      if(covered)readTime=Math.min(readTime,age+3);
@@ -450,7 +447,8 @@ function match(report){
    loose={x,y,vx:(rand()-.5)*3,vy:(rand()-.5)*3,z:ballRadius,vz:0,spin:0,omega:0,kind,last:p.team,originTeam:p.team,responsible:p.stats?p:pass?.thrower,wait:.18,bobbles:0};
    pass=null;carrier=null;s.contact=null;pile=null;stationary=false;
  }
- let pile=null, lane=false, whistle=0, boundaryRestart=null;
+ let pile=null, lane=false, whistle=0, boundaryRestart=null,pendingLane=null;
+ function stoppage(){s.stoppageEvents++;s.stoppagePending=true}
  function boundaryContact(p,d){
    const sides=[
      {distance:p.x,x:-1,y:0,leverage:d.x-p.x},
@@ -490,10 +488,11 @@ function match(report){
    if(responsible?.team===lastTeam)responsible.stats.to++;
    const awarded=1-lastTeam;
    log('No-possession zone · ball out of bounds · '+teams[awarded]+' quadrant reset');
-   restart(awarded,undefined,nearestQuadrant(ball));
+   stoppage();restart(awarded,undefined,nearestQuadrant(ball));
    return true;
  }
  function freeLane(team){
+   s.penaltyPending=false;
    restart(team);lane=true;
    let runner=players[team*8+4], side=runner.side;
    runner.x=25+side*23;runner.y=17;
@@ -508,7 +507,7 @@ function match(report){
      if(p.ringTime>ringLimit+1e-9){
        p.stats.pen++;
        log('Penalty · '+p.name+' stays unblocked in the ring for more than three seconds');
-       freeLane(1-p.team);
+       pendingLane=1-p.team;s.penaltyEvents++;s.penaltyPending=true;
        return true;
      }
    }
@@ -523,7 +522,7 @@ function match(report){
    }
    if(turnover){p.stats.to++;highlightTurnover(d,'Stopped '+p.name+' and won possession')}
    swing=null;
-   log(stopped+(turnover?' · turnover':' · quadrant restart'));
+   log(stopped+(turnover?' · turnover':' · quadrant restart'));stoppage();
    if(!lane&&Math.abs(p.y-17)>5&&Math.abs(p.x-25)>=5){
      assign(p);stationary=true;run=false;readTime=0;hold=1.5;return
    }
@@ -571,6 +570,14 @@ function match(report){
      log(p.name+' runs through '+d.name);
      return;
    }
+   const carrierControl=p.ratings[2]*.26+p.ratings[5]*.34+p.ratings[6]*.16+p.ratings[8]*.24;
+   const stripSkill=d.ratings[2]*.29+d.ratings[5]*.28+d.ratings[6]*.20+d.ratings[8]*.23;
+   const stripChance=clamp(.003+(stripSkill-carrierControl)*.00034+(supported?.004:0),.001,.038);
+   if(!lane&&rand()<stripChance){
+     p.stats.fum++;
+     log(d.name+' strips '+p.name+' · ball ripped free');
+     jarBall(p,d,{...contact,impact:Math.max(3.2,contact.impact)},ballAt(p),'fumble');return;
+   }
    const leverage=clamp(weight*.0022+height*.012,-.17,.18);
    const technique=(form-60)*.0036;
    const tacklingScheme=defenses[s.defenses[d.team]];
@@ -600,7 +607,15 @@ function match(report){
    }else log(p.name+' breaks the tackle');
  }
  function startPile(p,d){
-   s.contact={p,d};pile={p,d,time:0,limit:1+rand()*1.4};
+   const teamProfile=team=>{
+     const roster=players.filter(q=>q.team===team&&!q.sidelined);
+     return roster.reduce((sum,q)=>sum+q.ratings[2]*.68+q.weight*.10+q.height*.18+
+       q.ratings[8]*.04+(team===d.team?q.ratings[tackling]*.11:0),0)/roster.length;
+   };
+   const attackProfile=teamProfile(p.team),defenseProfile=teamProfile(d.team);
+   const mismatch=Math.min(1,Math.abs(attackProfile-defenseProfile)/45);
+   const limit=clamp(25-23*mismatch,2,25);
+   s.contact={p,d};pile={p,d,time:0,limit,tackleProgress:0,escapeProgress:0};
    log(d.name+' wraps up '+p.name+' · pile drive');
  }
  function clearance(q,team){
@@ -644,6 +659,8 @@ function match(report){
    const intendedBounce={x:p.x+(target.x-p.x)*.55,y:p.y+(target.y-p.y)*.55};
    const bounceSafe=!crossHalf&&!pathCrossesNoPossession(p,target)&&!noPossession(intendedBounce)&&gap>=5&&gap<=18;
    const pressure=players.some(q=>q.team!==p.team&&active(q)&&!q.blocked&&dist(p,q)<3.2);
+   const targetPressure=players.some(q=>q.team!==p.team&&active(q)&&!q.blocked&&dist(target,q)<3.2);
+   if(gap<=4&&!pressure&&!targetPressure&&lane>2.4)return {type:'underhand',crossHalf:false,pressure:false};
    const quick=movement==='quick swing'||movement==='quick outlet'||urgent(p.team);
    const weights=[
      ['lob',1+Math.max(0,2.5-lane)*.08+Math.max(0,gap-16)*.008+
@@ -664,6 +681,7 @@ function match(report){
    return {type,crossHalf,pressure};
  }
  function passProfile(type,start,end,duration){
+   if(type==='underhand')return {duration:duration*.80,arcHeight:.82,endHeight:1.08};
    if(type==='line')return {duration:duration*.72,arcHeight:.52,endHeight:1.32};
    if(type==='lob')return {duration:duration*1.08,arcHeight:3.9,endHeight:1.42};
    if(type==='overthrow')return {duration:duration*1.06,arcHeight:4.15,endHeight:2.55};
@@ -746,11 +764,11 @@ function match(report){
    if(!threat.ratings||threat.team===p.team||dist(p,threat)>=1.65||dist(threat,focus)>=7||p.blocked||threat.blocked)return false;
    const behind=(p.x-threat.x)*threat.vx+(p.y-threat.y)*threat.vy<-.18;
    if(!lane&&!s.overtime&&behind&&rand()<(105-p.ratings[7])*.00008){
-     p.stats.pen++;log('Penalty · '+p.name+' blocks in the back');freeLane(1-p.team);return true
+     p.stats.pen++;log('Penalty · '+p.name+' blocks in the back');pendingLane=1-p.team;s.penaltyEvents++;s.penaltyPending=true;return true
    }
    p.blocked=.9;
    if(rand()<clamp(.52+(p.ratings[2]-threat.ratings[2])*.007,.18,.88)){
-     threat.screened=threat.blocked=1.25;threat.ringTime=0;log(p.name+' blocks '+threat.name);
+     threat.screened=threat.blocked=1.25;threat.ringTime=0;
      if(threat!==carrier)tryBoundaryPush(threat,p,boundaryContact(threat,p),'block');
    }
    return false;
@@ -858,7 +876,7 @@ function match(report){
    if(!reachedEdge||roll>=returnsInBounds){
      if(pass.thrower)pass.thrower.stats.to++;
      log(kicker.name+' misses the airborne save · ball out');
-     restart(1-off,undefined,nearestQuadrant(pass));
+     stoppage();restart(1-off,undefined,nearestQuadrant(pass));
      return;
    }
 
@@ -950,6 +968,8 @@ function match(report){
  };
  s.step=dt=>{
  if(s.done)return;
+ if(pendingLane!==null){const team=pendingLane;pendingLane=null;freeLane(team);return}
+ s.stoppagePending=false;
  if(secondHalfPending){
    secondHalfPending=false;s.half=2;s.time=1200;
    restart(1-opening);log('Second half begins');
@@ -961,7 +981,7 @@ function match(report){
    const progress=clamp((.85-wait)/.45,0,1);
    movePlayer(player,spot.x+(exit.x-spot.x)*progress,spot.y+(exit.y-spot.y)*progress);
    if(wait<=0){
-     const {team,index}=boundaryRestart;boundaryRestart=null;restart(team,undefined,index);
+     const {team,index}=boundaryRestart;boundaryRestart=null;stoppage();restart(team,undefined,index);
    }
    return;
  }
@@ -1010,21 +1030,63 @@ function match(report){
  }
  if(pile){
    let {p,d}=pile;
-   let support=players.filter(q=>q!==p&&q!==d&&active(q)&&dist(q,p)<2.8);
-   const force=q=>q.weight*(.5+q.ratings[2]/100);
-   let push=force(p)-force(d)+support.reduce((sum,q)=>sum+(q.team===p.team?1:-1)*force(q)*.45,0);
-   let step=dt*clamp(.25+push/160,-.65,1.4), gap=dist(p,center)||1;
+   let support=players.filter(q=>q!==p&&q!==d&&active(q)&&dist(q,p)<3.1);
+   const bodyForce=q=>q.weight*(.34+q.ratings[2]/72)*(1+(q.height-72)*.006);
+   const attackForce=bodyForce(p)+support.filter(q=>q.team===p.team).reduce((sum,q)=>sum+bodyForce(q)*.52,0);
+   const defendForce=bodyForce(d)+support.filter(q=>q.team===d.team).reduce((sum,q)=>sum+bodyForce(q)*.52,0);
+   const forceEdge=(attackForce-defendForce)/(attackForce+defendForce||1);
+   let step=dt*clamp(.07+forceEdge*2.15,-.68,1.25), gap=dist(p,center)||1;
    let dx=(25-p.x)/gap*step,dy=(17-p.y)/gap*step;
    movePlayer(p,p.x+dx,p.y+dy);movePlayer(d,d.x+dx,d.y+dy);
    pile.time+=dt;
    if(deadNoPossession(ballAt(p),p.team,p))return;
    if(worth>0&&insideRing(p)){score(p,worth);return}
+   if(pile.time>=2){
+     const defenders=support.filter(q=>q.team===d.team),attackers=support.filter(q=>q.team===p.team);
+     const tackleSkill=(d.ratings[tackling]*.58+d.ratings[8]*.24+d.ratings[2]*.18)+
+       defenders.reduce((sum,q)=>sum+(q.ratings[tackling]*.55+q.ratings[8]*.25+q.ratings[2]*.2)*.18,0);
+     const ballControl=p.ratings[2]*.47+p.ratings[5]*.30+p.ratings[8]*.15+p.ratings[10]*.08+
+       attackers.reduce((sum,q)=>sum+q.ratings[2]*.13,0);
+     pile.tackleProgress+=dt*clamp(.025+(tackleSkill-ballControl)*.0012-forceEdge*.08,.006,.19);
+     const fumbleRate=clamp(.0015+(defendForce-attackForce)*.000012+(72-p.ratings[5])*.00012,.0004,.018);
+     if(!lane&&rand()<fumbleRate*dt){
+       p.stats.fum++;log(p.name+' loses the ball inside the pile · ball loose');
+       spill(p,'fumble',p.x,p.y);
+       Object.assign(loose,{vx:(rand()-.5)*6,vy:(rand()-.5)*6,vz:1.4+rand()*1.8,omega:(rand()-.5)*18});return;
+     }
+     const freeMate=players.filter(q=>q.team===p.team&&q!==p&&active(q)&&!q.blocked&&q.role!=='Anchor'&&
+       dist(q,p)<2.15&&clearance(q,p.team)>2.4).sort((a,b)=>dist(a,p)-dist(b,p))[0];
+     if(freeMate&&rand()<dt*clamp(.0007+(p.ratings[8]+p.ratings[5]-100)*.000012,.0003,.0022)){
+       log(p.name+' slips a hidden handoff to '+freeMate.name);
+       s.contact=pile=null;assign(freeMate);run=true;cool=.35;return;
+     }
+     const losing=forceEdge<-.05||pile.time>8&&Math.abs(forceEdge)<.045;
+     if(losing){
+       pile.escapeProgress+=dt*clamp(.015+(p.ratings[8]+p.ratings[10]-100)*.0009-forceEdge*.08,.006,.12);
+       if(pile.escapeProgress>=1){
+         log(p.name+' pulls out of the pile for a quadrant reset');stoppage();
+         s.contact=pile=null;restart(p.team,undefined,nearestQuadrant(p));return;
+       }
+     }
+     const wildPassRate=clamp(.00045+(p.ratings[8]-60)*.000008+(losing ? .00045 : 0),.0002,.0014);
+     if(rand()<dt*wildPassRate){
+       p.stats.att++;log(p.name+' tries to throw out of the pile · wild ball');
+       spill(p,'drop',p.x,p.y);
+       loose.responsible=p;Object.assign(loose,{vx:(25-p.x)*.32+(rand()-.5)*8,vy:(rand()-.5)*9,
+         z:1.15,vz:2+rand()*2.6,omega:(rand()-.5)*24});return;
+     }
+     if(pile.tackleProgress>=1){
+       s.contact=null;pile=null;
+       if(!tryBoundaryPush(p,d,boundaryContact(p,d),'pile'))stopCarrier(p,d);
+       return;
+     }
+   }
    if(dist(d,center)<ringRadius){
      // Contact can carry a defender across the line, but they must keep moving through.
      s.contact=pile=null;cool=.45;
    }else if(pile.time>=pile.limit){
      s.contact=null;pile=null;
-     if(rand()<clamp(.46+push/480-(d.ratings[tackling]-60)*.0034,.09,.85)){cool=.86;log(p.name+' drives free')}
+     if(forceEdge>-.015){cool=.86;log(p.name+' powers free of the pile')}
      else if(!tryBoundaryPush(p,d,boundaryContact(p,d),'pile'))stopCarrier(p,d);
      return;
    }
@@ -1111,7 +1173,6 @@ function match(report){
    if(dist(mark,p)<1.55&&dist(mark,blockFor)<4&&!mark.blocked&&!p.blocked){
      p.blocked=.85;mark.screened=mark.blocked=.55+p.ratings[2]/140;mark.ringTime=0;
      tendency[off].block=Math.min(1,tendency[off].block+.13);
-     log(p.name+' blocks '+mark.name+' for '+blockFor.name);
      if(mark!==carrier)tryBoundaryPush(mark,p,boundaryContact(mark,p),'block');
      const help=players.filter(q=>q.team!==off&&q!==mark&&active(q)&&!q.blocked&&
        defensiveAssignments.get(q)?.shoulder===undefined&&legalX(q,blockFor.x)===blockFor.x)
@@ -1123,7 +1184,6 @@ function match(report){
        const switchChance=switchIsSound?trustRead:1-trustRead;
        if(rand()<clamp(tendency[off].block+(scheme.switches?.48:0),0,1)*switchChance){
        help.helpTarget=blockFor;help.helpTime=2+help.ratings[8]/40;
-       log(help.name+' switches onto '+blockFor.name)
        }
      }
    }
@@ -1197,7 +1257,7 @@ function match(report){
    if(loose.x<0||loose.x>50||loose.y<0||loose.y>34){
      const awarded=1-loose.last;
      if(loose.responsible?.team===off&&awarded!==off)loose.responsible.stats.to++;
-     log('Loose ball out · last-touch ruling');restart(awarded,undefined,nearestQuadrant(loose));return
+     log('Loose ball out · last-touch ruling');stoppage();restart(awarded,undefined,nearestQuadrant(loose));return
    }
    const recovery=loose.wait<=0&&!(loose.z>1.45)&&settleLooseBall(active);
    if(recovery){
@@ -1209,7 +1269,7 @@ function match(report){
      }
      loose=null;log(q.name+' recovers the '+kind+(contested?' · won the scramble':''));
      if(kind==='drop'||kind==='save'||kind==='deflection'){assign(q,blue(q)?0:2);cool=.6}
-     else {if(kind==='fumble'&&blue(spot)&&s.overtime){score(q,1)}else if(kind==='fumble'&&blue(spot)){points(q,1,'Recovered a fumble in the center zone');log('Center fumble recovery · 1 point');scoringRestart={team:q.team,index:nearestQuadrant(spot)}}else restart(q.team,undefined,nearestQuadrant(spot))}
+     else {if(kind==='fumble'&&blue(spot)&&s.overtime){score(q,1)}else if(kind==='fumble'&&blue(spot)){points(q,1,'Recovered a fumble in the center zone');log('Center fumble recovery · 1 point');scoringRestart={team:q.team,index:nearestQuadrant(spot)}}else {stoppage();restart(q.team,undefined,nearestQuadrant(spot))}}
    }
    return
  }
@@ -1218,7 +1278,7 @@ function match(report){
     deadNoPossession({...pass.bouncePoint,z:ballRadius},(pass.kicker||pass.thrower).team,pass.thrower||pass.kicker))return;
  if(f>=1&&pass.wide){
    if(pass.rescue)rescueKick(off);
-   else{pass.thrower.stats.to++;log('Ball out of bounds');restart(1-off,undefined,nearestQuadrant(pass))}
+   else{pass.thrower.stats.to++;log('Ball out of bounds');stoppage();restart(1-off,undefined,nearestQuadrant(pass))}
    return;
  }
  // A defender in the flight path can jump the pass before it reaches the receiver.
@@ -1276,7 +1336,7 @@ function match(report){
    if(!save&&q?.team===off){
      const accuracy=clamp((pass.thrower.ratings[1]-55)/35,-1,1.2);
      catchChance=.71+.255*accuracy+(hands-70)*.0013-contactRisk;
-     catchChance+=({bounce:.085,line:-.145,lob:0,shortHop:-.285,overthrow:-.18}[pass.passType]||0);
+     catchChance+=({underhand:.17,bounce:.085,line:-.145,lob:0,shortHop:-.285,overthrow:-.18}[pass.passType]||0);
      if(blue(q))catchChance-=(1-(defenses[s.defenses[off]].ownCreation??1))*.18;
    }
    const cleanCatch=clamp(catchChance,.10,.995);
@@ -1337,7 +1397,7 @@ function match(report){
    assign(q,scoringCatch?3:2,scoringCatch?Math.round(dist(pass.start,pass)):null,ringCatch?pass.thrower:null);cool=.6;
    if(swing){run=false;readTime=.39+(1-judgment(q))*.48}
    if(returnPass){cornerReturn.phase='return';run=false;readTime=1.1}
-   log(q.name+(save?' catches the airborne save':q.team!==off?' intercepts':contested?' makes a contested catch':' makes the catch'));
+   log(q.name+(save?' catches the airborne save':q.team!==off?' intercepts':contested?' secures it through contact':' takes the pass'));
    if(swingFinished)log(teams[q.team]+' swings the ball through all four quadrants');
    if(save&&inside)score(q,5);
    else if(inside&&insideRing(q))score(q,worth)
@@ -1415,9 +1475,15 @@ function match(report){
    anchorLeak=null;
  }
  stationary=false;previous=p;
+ const closeSafe=dist(p,target)<=4&&players.every(q=>q.team===off||!active(q)||q.blocked||
+   dist(q,p)>=3.2&&dist(q,target)>=3.2);
+ if(closeSafe&&dist(p,target)<=1.65&&rand()<.58){
+   log(p.name+' gives safely to '+target.name);
+   assign(target);run=false;cool=.24;return;
+ }
  let passType=choosePassType(p,target,active,movement,scheme).type;
  const accuracyGap=100-p.ratings[1];
- const errorScale={bounce:.72,line:1.18,lob:.82,shortHop:.94,overthrow:.95}[passType];
+ const errorScale={underhand:.25,bounce:.72,line:1.18,lob:.82,shortHop:.94,overthrow:.95}[passType];
  let end={x:target.x+(rand()-.5)*accuracyGap*.07*errorScale,
    y:target.y+(rand()-.5)*accuracyGap*.07*errorScale};
  if(circulating&&Math.abs(target.y-17)>5){
@@ -1452,17 +1518,13 @@ function match(report){
    laneRoll:rand(),start,end,x:p.x,y:p.y,target,elapsed:0,...profile,
    duration:Math.max(profile.duration,rescue?dist(target,end)/(topSpeed(target.ratings[3])*.75)+.55:0)};
  Object.assign(pass,flightAt(pass,0));carrier=null;
- const passLabel={bounce:'bounce pass',line:'line drive',lob:'lob',shortHop:'short-hop',overthrow:'overthrow'}[passType];
- if(!wide&&movement==='quick swing')log(p.name+' swings quickly to '+target.name+' in Q'+(nearestQuadrant(target)+1)+' · '+passLabel);
- else if(!wide&&movement==='quick outlet')log(p.name+' finds a quick outlet to '+target.name+' · '+passLabel);
- else if(!wide&&movement==='swing')log(p.name+' swings play across to '+target.name+' · '+passLabel);
- else if(!wide&&movement==='reset')log(p.name+' resets through '+target.name+' · '+passLabel);
- else if(passType==='bounce')log(p.name+' bounces a pass to '+target.name);
- else if(passType==='line')log(p.name+' fires a line drive to '+target.name);
- else if(passType==='lob')log(p.name+' lobs to '+target.name);
- else if(passType==='shortHop')log(p.name+' short-hops an errant throw toward '+target.name);
- else if(passType==='overthrow')log(p.name+' sails an errant throw over '+target.name);
- else log(p.name+' lobs to '+target.name);
+ if(!wide&&movement==='quick swing')log(p.name+' swings quickly to '+target.name+' in Q'+(nearestQuadrant(target)+1));
+ else if(!wide&&movement==='quick outlet')log(p.name+' finds '+target.name+' before the defense can close');
+ else if(!wide&&movement==='swing')log(p.name+' changes the point of attack through '+target.name);
+ else if(!wide&&movement==='reset')log(p.name+' resets through '+target.name);
+ else if(passType==='shortHop')log(p.name+' leaves '+target.name+' a difficult short throw');
+ else if(passType==='overthrow')log(p.name+' sends it beyond '+target.name);
+ else log(p.name+' connects with '+target.name);
  return}
  if(stationary)return;
  const pressure=players.filter(q=>q.team!==off&&active(q)&&!q.blocked&&dist(p,q)<3.5)

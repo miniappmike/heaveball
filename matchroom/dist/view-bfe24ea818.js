@@ -1,6 +1,6 @@
 if(!window.heaveballReady){
 const el=id=>document.getElementById(id),canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),colors=['#ff805d','#69bafa'];
-const fixedStep=.04,halftimeDuration=15000,scoringDuration=5000;
+const fixedStep=.04,halftimeDuration=15000,scoringDuration=5000,penaltyDuration=3000,stoppageDuration=2000;
 let sim,playing=false,carry=0,wall=performance.now(),speed=1,backgroundTimer=0;
 let statsMode=null,statsPage=0,statsDeadline=0,frozenTime=null,finalStats=null;
 function stamp(s){let n=s.overtime?Math.floor(s.time):Math.ceil(s.time);return (s.overtime?'OT':'H'+s.half)+' · '+Math.floor(n/60)+':'+String(n%60).padStart(2,'0')}
@@ -99,7 +99,11 @@ function drawBall(ball){
    ctx.stroke();
  }
 }
-function draw(){ctx.setTransform(20,0,0,20,50,50);rect(-2.5,-2.5,55,39,'#1c2c23');rect(0,0,50,34,'#366944');for(let i=0;i<50;i+=5)rect(i,0,2.5,34,'#396f48');rect(20,0,10,34,'#77573c');if(dirtTexture.naturalWidth){ctx.drawImage(dirtTexture,20,0,10,12);ctx.drawImage(dirtTexture,20,22,10,12)}rect(0,12,50,10,'#b39849');rect(20,12,10,10,'#508596');ctx.strokeStyle='#c6d8b8';ctx.lineWidth=.09;for(let x of [0,30])for(let y of [0,22])ctx.strokeRect(x,y,20,12);ctx.strokeRect(0,12,50,10);disc(center.x,center.y,ringRadius,'#386574','#f3f6df');ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
+function draw(){ctx.setTransform(20,0,0,20,50,70);rect(-2.5,-3.5,55,41,'#1c2c23');rect(0,0,50,34,'#366944');for(let i=0;i<50;i+=5)rect(i,0,2.5,34,'#396f48');rect(20,0,10,34,'#77573c');if(dirtTexture.naturalWidth){ctx.drawImage(dirtTexture,20,0,10,12);ctx.drawImage(dirtTexture,20,22,10,12)}rect(0,12,50,10,'#b39849');rect(20,12,10,10,'#508596');ctx.strokeStyle='#c6d8b8';ctx.lineWidth=.09;for(let x of [0,30])for(let y of [0,22])ctx.strokeRect(x,y,20,12);ctx.strokeRect(0,12,50,10);disc(center.x,center.y,ringRadius,'#386574','#f3f6df');ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
+ rect(16.1,-3.02,17.8,2.48,'#0b1510');ctx.strokeStyle='#76877a';ctx.lineWidth=.07;ctx.strokeRect(16.1,-3.02,17.8,2.48);
+ ctx.font='700 .70px system-ui,sans-serif';ctx.fillStyle=colors[0];ctx.fillText('EMBER',19.25,-2.20);ctx.fillStyle='#f4f6ed';ctx.fillText(sim.score[0],22.25,-2.20);
+ ctx.fillText('–',25,-2.20);ctx.fillText(sim.score[1],27.75,-2.20);ctx.fillStyle=colors[1];ctx.fillText('HARBOR',30.75,-2.20);
+ ctx.font='600 .52px monospace';ctx.fillStyle=sim.penaltyPending?'#ffd47d':'#cfe891';ctx.fillText(sim.penaltyPending?'PENALTY · FREE RUN LANE':sim.done?'FULL TIME':stamp(sim),25,-1.18);
  if(sim.impact){
    const {x,y,time}=sim.impact;
    ctx.globalAlpha=Math.min(1,time*4);
@@ -256,14 +260,16 @@ function advance(now){
      carry+=(now-wall)*speed/1000;wall=now;break;
    }
    wall+=stepTime;carry=0;steps--;
-   const scores=sim.scoreEvents,priorHalftime=sim.halftime;
+   const scores=sim.scoreEvents,penalties=sim.penaltyEvents,stoppages=sim.stoppageEvents,priorHalftime=sim.halftime;
    sim.step(fixedStep);
    if(sim.done){
      finalStats=snapshot();
      el('final-box').hidden=false;
      showStats('final',finalStats,wall);
    }else if(sim.halftime&&!priorHalftime)showStats('half',snapshot(),wall);
+   else if(sim.penaltyEvents!==penalties)breakUntil=wall+penaltyDuration;
    else if(sim.scoreEvents!==scores)breakUntil=wall+scoringDuration;
+   else if(sim.stoppageEvents!==stoppages)breakUntil=wall+stoppageDuration;
  }
 }
 function scheduleBackground(){
@@ -280,7 +286,7 @@ function frame(){
  if(!document.hidden){
    const now=performance.now();
    advance(now);draw();renderBox();renderHighlights();
-   if(now<breakUntil&&!sim.done)el('clock').textContent=stamp(sim)+' · Scoring break';
+   if(now<breakUntil&&!sim.done)el('clock').textContent=stamp(sim)+(sim.penaltyPending?' · Penalty · free run lane pending':sim.stoppagePending?' · Stoppage':' · Scoring break');
  }
  requestAnimationFrame(frame);
 }

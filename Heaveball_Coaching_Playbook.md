@@ -22,6 +22,7 @@ Any player can use the full blue center zone on offense or defense. Only Anchors
 | Pass | Best use | Risk and limitation |
 |---|---|---|
 | **Lob · standard** | The normal choice. Its high arc clears heads, travels at a manageable pace, and is easier to receive than a line drive. | It gives defenders more flight time to close or establish position. |
+| **Underhand low lob** | A very safe exchange when teammates are within four yards and neither player faces an immediate defensive threat. At handoff distance, transfer the ball directly instead. | It is a short maintenance play, not a way to beat pressure or change halves. A nearby defender removes the safe-exchange option. |
 | **Line drive** | The quickest, flattest throw for an urgent window or rapid swing. Arm Strength supports its pace and range. | It is substantially harder to catch, and its low flight path gives nearby defenders a chance to bat or tip it. |
 | **Bounce pass** | A slower, controlled exchange that is easier to handle when the ground path is clean. | Use it only on the same half. A bounce cannot cross the dirt because touching the no-possession zone makes the ball dead. |
 | **Short-hop · errant** | Not a designed pass. A weak or inaccurate throw can die in front of the target and force a difficult low catch. | Low Arm Strength and Throw Accuracy make it more likely, especially at distance or under pressure. A miss remains a live loose ball in bounds. |
@@ -128,6 +129,7 @@ Each club draws a scheme for the exhibition. You can change either club's scheme
 - **“Give Three.”** After scoring 2, 3, or 5, send the opponent to Q3. Use the restart choice to steer possession toward a favorable defensive matchup or away from their best thrower.
 - **“Replace the outlet.”** When a player sees a clean cut into the blue, a teammate fills the passing outlet they left. The Heaver keeps an option if the window closes.
 - **“Find the ball.”** On a runway handoff or pile drive, identify who actually has possession before committing help. Keep someone positioned for the fumble and someone between the ball and the ring.
+- **“Secure first.”** A defender with leverage can try to strip the carrier, but the rip uses Strength, Hands, Reaction, and IQ against the carrier's control. Keep a second defender ready for the live ball instead of assuming the strip succeeds.
 - **“Show it again.”** Repeat a credible block or route to learn who follows it. Once a defender starts anticipating it, use the opening their movement creates. A long possession can change suddenly when a player recognizes the cue.
 - **“Flow again” / “Set.”** Keep the players in Free Flow after a productive possession, or name a targeted play when the coach wants to dictate the first action.
 - **Protecting a lead.** Use controlled quadrant possession and clean blue entries. Make the restart choice count after a score. Use live substitutions on the half away from the ball while your team has possession when the situation allows.
@@ -136,3 +138,13 @@ Each club draws a scheme for the exhibition. You can change either club's scheme
 ## Runway handoff ruling
 
 A run that starts outside the blue continues as the same run if the carrier hands off inside the blue. A controlled ring crossing earns 2, and a completed tackle short of the ring turns it over.
+
+## Pile-drive coaching
+
+Piles keep the same entry frequency and last from two to 25 game-clock seconds. Their movement is continuous rather than a single win-or-lose roll. Strength supplies most of the force, while weight and height contribute moderately. Nearby teammates add force in their team's direction, so a 99-Strength group will ordinarily drive a 50-Strength group steadily.
+
+Defenders use Tackling and IQ to accumulate a finishing opportunity. The carrier uses Strength, Hands, IQ, and Agility to stay upright and protect the ball. The pile can end in a tackle, a ring crossing, a boundary turnover, a fumble, or the carrier pulling out for a quadrant reset. A rare uncovered non-blocker can receive a hidden handoff. A desperate pass out of the pile is usually a wild live ball.
+
+## Broadcast stoppages
+
+Scoring plays hold for five real seconds. Penalties that award a free run lane hold for three real seconds before the formation is set, so viewers can read the call. Other whistles and resets hold for two real seconds. Routine screens, blocks, assignment switches, and pass-type names stay out of the play-by-play unless they materially change the result.

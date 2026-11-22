@@ -1,6 +1,6 @@
 # Heaveball Matchroom
 
-This directory is the source for the live [Heaveball Matchroom](https://heaveball-matchroom.hardyburl128.chatgpt.site/). The checked-in files match Sites Version 41, commit `a9f0c28428fa9d46f1501db8a0733b4c4452934e`.
+This directory is the source for the live [Heaveball Matchroom](https://heaveball-matchroom.hardyburl128.chatgpt.site/). The checked-in files match Sites Version 42, commit `11f05999279cc9a082da67e7afce59ab8a4e7f96`.
 
 ## Source layout
 
