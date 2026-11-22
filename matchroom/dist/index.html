@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Heaveball Matchroom</title><style>
 *{box-sizing:border-box}body{margin:0;background:#101915;color:#edf2e6;font:16px system-ui,sans-serif}main{max-width:1280px;margin:auto;padding:24px}header,.bar,.score,.controls{display:flex;align-items:center;justify-content:space-between;gap:12px}header{border-bottom:1px solid #526057;padding-bottom:16px}h1{font:italic 900 clamp(24px,4vw,44px) system-ui;margin:0;letter-spacing:-2px}small, time{font:13px monospace;color:#bdcaba}.live{color:#d3ef86}.score{justify-content:center;background:#202d24;padding:14px;font-weight:800;font-size:clamp(15px,2.4vw,29px)}.score b{background:#101915;padding:6px 14px;font-variant-numeric:tabular-nums}.red{color:#ff9a78}.blue{color:#89cfff}.grid{display:grid;grid-template-columns:minmax(0,2.5fr) minmax(240px,1fr);gap:20px;margin-top:20px}canvas{width:100%;display:block;background:#192820;border-radius:8px}.controls{flex-wrap:wrap;margin:12px 0}button,select{border:1px solid #647367;border-radius:5px;background:#26382e;color:#f5f7f0;padding:9px 12px;font:inherit;cursor:pointer}#toggle{background:#d6f698;color:#152015;font-weight:750}aside{background:#1c2821;padding:18px;border-radius:8px}h2{font-size:18px;margin:0 0 12px}#feed{height:185px;overflow:auto}#feed p{border-top:1px solid #38463d;padding:7px 0;margin:0;font-size:14px}#cards{display:grid;grid-template-columns:1fr 1fr;gap:5px 15px;margin-top:12px;font:14px monospace}#cards span{display:flex;justify-content:space-between}select{max-width:100%}details{margin:12px 0;color:#bbcabf}summary{cursor:pointer}@media(max-width:760px){main{padding:12px}.grid{grid-template-columns:1fr}.score{gap:6px}}
-section,aside,.grid>*{min-width:0}canvas{max-width:100%;height:auto;aspect-ratio:1100/820}button,select,summary{min-height:44px}summary{padding:10px 0}#cards span{gap:5px}
+section,aside,.grid>*{min-width:0}canvas{max-width:100%;height:auto;aspect-ratio:1100/900}button,select,summary{min-height:44px}summary{padding:10px 0}#cards span{gap:5px}
 @media(max-width:920px){.grid{grid-template-columns:minmax(0,1fr)}main{padding:12px}}
 @media(max-width:480px){main{padding:8px}.controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}.controls>*{padding:7px 2px;font-size:14px}aside{padding:12px}.bar{flex-wrap:wrap}header small{font-size:11px}#cards{column-gap:10px}}
 #field.expanded{position:fixed;inset:0;z-index:100;background:#101915;width:100%;height:100vh;height:100dvh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);display:grid;grid-template-rows:minmax(0,1fr) auto;align-items:center;justify-items:center}
@@ -91,7 +91,7 @@ main:has(#pregame:not([hidden]))>.score{display:none}
      <details><summary>Field, scoring and restarts</summary><p>Throw from green quadrants. Run or hand off in the yellow runway. Every role can use the entire blue center zone. Only Anchors can enter the opposite half. Airborne passes may cross above the dirt strips. A carried ball, intentional bounce, deflection or loose ball touching dirt is out of bounds, and the opponent takes a quadrant reset. More than three uninterrupted seconds unblocked in the ring gives the opponent a free run lane.</p><p>The lob is the standard, high-arching pass. Bounce passes are slower and easier to handle but stay on one half. Line drives are fastest and flattest but harder to catch. Nearby unpressured teammates can use a safe low underhand lob or a direct handoff. Low Arm Strength and Accuracy create more short-hops; low Accuracy can also sail a throw over the receiver.</p><p>Carry through the ring for 2, or catch a teammate’s pass in blue and finish for 3. A center interception or fumble recovery earns 1 and possession. Catch a legal airborne save kick in blue for 5. A tie goes to runway-only sudden death. The next score wins.</p><p>A quadrant tackle gives the carrier a stationary throw. A runway tackle turns it over. A center catch stopped short retains possession. Incompletions stay live unless the ball lands or rolls out of bounds. Strength, size and support drive two-to-25-second piles; Tackling and IQ can end them, while carriers may pull out, fumble, sneak a handoff or risk a wild pass. Defenders can also strip the ball using Strength, Hands, Reaction and IQ. Ordinary stoppages hold for two seconds; free-run penalties hold for three before formation.</p><a href="summary.md" target="_blank">Build summary</a> · <a href="summary.docx" download>Word document</a></details>
    </section>
  </div>
-</section><div class="grid"><section id="field"><div class="bar"><h2>Match field</h2><label>Field <select id="field-picker" aria-label="Field template"></select></label><button type="button" id="expand" aria-pressed="false">Full screen</button><small class="live" id="clock"></small><button id="final-box" type="button" hidden>Final box score</button></div><canvas width="1100" height="820" aria-label="Top-down field with numbered players and an in-boundary scoreboard"></canvas><div class="controls"><button id="toggle">Pause</button><select id="pace" aria-label="Playback speed"><option value="1" selected>1× speed</option><option value="2">2× speed</option><option value="4">4× speed</option><option value="8">8× speed</option></select><button id="fresh">New match</button></div><details><summary>Field guide</summary><p>Both teams attack the 4-yard ring inside the 10-yard center zone. A tackle short of the ring stops the finish. Watch for Anchors blocking off the ball, slipping toward the ring or drawing a defender away from a cut. Carry in for two or catch in the blue and finish for three. Watch the gold ball and its shadow to read the height of a pass or bounce. Gold outlines show blocks and pile drives. On fumbles, only players with a realistic arrival path pursue; nearby markers dive, fall and shove around a grounded ball while distant players preserve team shape. A center catch directly from an airborne kick save earns five. New match draws two fresh squads.</p></details><dialog id="match-stats" aria-labelledby="stats-title">
+</section><div class="grid"><section id="field"><div class="bar"><h2>Match field</h2><label>Field <select id="field-picker" aria-label="Field template"></select></label><button type="button" id="expand" aria-pressed="false">Full screen</button><small class="live" id="clock"></small><button id="final-box" type="button" hidden>Final box score</button></div><canvas width="1100" height="900" aria-label="Top-down field with numbered players and a broadcast scoreboard above the field"></canvas><div class="controls"><button id="toggle">Pause</button><select id="pace" aria-label="Playback speed"><option value="1" selected>1× speed</option><option value="2">2× speed</option><option value="4">4× speed</option><option value="8">8× speed</option></select><button id="fresh">New match</button></div><details><summary>Field guide</summary><p>Both teams attack the 4-yard ring inside the 10-yard center zone. A tackle short of the ring stops the finish. Watch for Anchors blocking off the ball, slipping toward the ring or drawing a defender away from a cut. Carry in for two or catch in the blue and finish for three. Watch the gold ball and its shadow to read the height of a pass or bounce. Gold outlines show blocks and pile drives. On fumbles, only players with a realistic arrival path pursue; nearby markers dive, fall and shove around a grounded ball while distant players preserve team shape. A center catch directly from an airborne kick save earns five. New match draws two fresh squads.</p></details><dialog id="match-stats" aria-labelledby="stats-title">
  <h2 id="stats-title"></h2>
  <div class="score"><span class="red">Ember</span><b id="stats-score"></b><span class="blue">Harbor</span></div>
  <h3 id="stats-page">Team stats</h3>
@@ -1886,13 +1886,65 @@ function drawPlayer(p){
  ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
  ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
 }
-function draw(){const t=selectedField;ctx.setTransform(20,0,0,20,50,70);rect(-2.5,-3.5,55,41,'#1c2c23');
+function rr(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r)}
+// Broadcast score bug in the top apron, fully outside the playing surface.
+function drawScoreboard(){
+ const x0=18.4,w=13.2,rh=1.9,gap=.34,y0=-6.95,ink='#f4f4f0';
+ const rows=[[0,'EMB','E','#3a120b','#b8452e'],[1,'HAR','H','#0d1d38','#2f63a3']];
+ const live=!sim.done,poss=sim.team;
+ ctx.save();ctx.textBaseline='middle';
+ rows.forEach(([team,abbr,ini,dark,bright],i)=>{
+   const y=y0+i*(rh+gap);
+   ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=14;ctx.shadowOffsetY=3;
+   rr(x0-.12,y-.12,w+.24,rh+.42,.3);ctx.fillStyle='#0b0d10';ctx.fill();
+   ctx.shadowColor='transparent';
+   let g=ctx.createLinearGradient(x0,0,x0+w,0);g.addColorStop(0,bright);g.addColorStop(.5,dark);g.addColorStop(1,'#101215');
+   rr(x0,y,w,rh,.22);ctx.fillStyle=g;ctx.fill();
+   g=ctx.createLinearGradient(0,y,0,y+rh);g.addColorStop(0,'rgba(255,255,255,.30)');g.addColorStop(.46,'rgba(255,255,255,.05)');g.addColorStop(.5,'rgba(0,0,0,.10)');g.addColorStop(1,'rgba(0,0,0,.38)');
+   ctx.fillStyle=g;ctx.fill();
+   // Logo placeholder until club marks exist.
+   ctx.beginPath();ctx.arc(x0+1.3,y+rh/2,.7,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.13)';ctx.fill();
+   ctx.setLineDash([.17,.12]);ctx.lineWidth=.07;ctx.strokeStyle='rgba(255,255,255,.6)';ctx.stroke();ctx.setLineDash([]);
+   ctx.textAlign='center';ctx.font='800 .78px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,.8)';ctx.fillText(ini,x0+1.3,y+rh/2+.04);
+   ctx.textAlign='right';ctx.font='800 1.18px system-ui,sans-serif';ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillText(abbr,x0+w-3.08,y+rh/2+.1);
+   ctx.fillStyle=ink;ctx.fillText(abbr,x0+w-3.12,y+rh/2+.05);
+   const bx=x0+w-2.78,bw=2.6,by=y+.17,bh=rh-.34;
+   g=ctx.createLinearGradient(0,by,0,by+bh);g.addColorStop(0,'#fbfbfa');g.addColorStop(.5,'#dcdfe0');g.addColorStop(.52,'#c9cdcf');g.addColorStop(1,'#a8adb0');
+   rr(bx,by,bw,bh,.12);ctx.fillStyle=g;ctx.fill();ctx.lineWidth=.05;ctx.strokeStyle='#5f6468';ctx.stroke();
+   ctx.textAlign='center';ctx.font='800 1.3px system-ui,sans-serif';ctx.fillStyle='#121416';ctx.fillText(sim.score[team],bx+bw/2,by+bh/2+.07);
+   // Possession lights: lit under the club that has the ball.
+   const lit=live&&poss===team,seg=(w-.4)/3;
+   for(let k=0;k<3;k++){ctx.fillStyle=lit?'#f2d21b':'rgba(242,210,27,.16)';ctx.fillRect(x0+.2+k*seg+.06,y+rh+.08,seg-.12,.15)}
+ });
+ // Status bar: possession or ruling, game clock, period.
+ const by=y0+2*rh+gap+.5,bh=1.18;
+ rr(x0-.12,by-.1,w+.24,bh+.2,.22);ctx.fillStyle='#0b0d10';ctx.fill();
+ let g=ctx.createLinearGradient(0,by,0,by+bh);g.addColorStop(0,'#363b42');g.addColorStop(1,'#16191d');
+ rr(x0,by,w,bh,.16);ctx.fillStyle=g;ctx.fill();
+ const c1=x0+w*.46,c2=x0+w*.76;ctx.fillStyle='#0b0d10';ctx.fillRect(c1-.04,by,.08,bh);ctx.fillRect(c2-.04,by,.08,bh);
+ const n=sim.overtime?Math.floor(sim.time):Math.ceil(sim.time),clock=Math.floor(n/60)+':'+String(n%60).padStart(2,'0');
+ const status=sim.penaltyPending?'FREE RUN LANE':sim.done?'FINAL':teams[poss].toUpperCase()+' BALL';
+ ctx.font='700 .66px system-ui,sans-serif';ctx.textAlign='center';
+ ctx.fillStyle=sim.penaltyPending?'#ffd47d':ink;ctx.fillText(status,(x0+c1)/2,by+bh/2+.03);
+ ctx.fillStyle=ink;ctx.fillText(sim.done?'0:00':clock,(c1+c2)/2,by+bh/2+.03);
+ ctx.fillText(sim.overtime?'OT':sim.half===1?'1ST':'2ND',(c2+x0+w)/2,by+bh/2+.03);
+ // Possession clock tab beside the club with the ball.
+ if(live){
+   const y=y0+poss*(rh+gap),tx=x0+w+.2,tw=2.15,secs=Math.floor(sim.posAge);
+   ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=10;ctx.shadowOffsetY=2;
+   rr(tx-.08,y+.02,tw+.16,rh-.04,.24);ctx.fillStyle='#0b0d10';ctx.fill();ctx.shadowColor='transparent';
+   rr(tx,y+.1,tw,rh*.42,[.18,.18,0,0]);ctx.fillStyle='#22262b';ctx.fill();
+   g=ctx.createLinearGradient(0,y+.1+rh*.42,0,y+rh-.1);g.addColorStop(0,'#e0482a');g.addColorStop(1,'#9a210f');
+   rr(tx,y+.1+rh*.42,tw,rh*.58-.2,[0,0,.18,.18]);ctx.fillStyle=g;ctx.fill();
+   ctx.fillStyle=ink;ctx.font='700 .44px system-ui,sans-serif';ctx.fillText('POSS',tx+tw/2,y+.1+rh*.21);
+   ctx.font='800 .62px system-ui,sans-serif';ctx.fillText(Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0'),tx+tw/2,y+.1+rh*.42+(rh*.58-.2)/2+.03);
+ }
+ ctx.restore();
+}
+function draw(){const t=selectedField;ctx.setTransform(20,0,0,20,50,150);rect(-2.5,-7.5,55,45,'#1c2c23');
 if(t.image.complete&&t.image.naturalWidth){ctx.drawImage(t.image,0,0,50,34)}else{rect(0,0,50,34,t.grass)}
 ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
- rect(16.1,-3.02,17.8,2.48,'#0b1510');ctx.strokeStyle='#76877a';ctx.lineWidth=.07;ctx.strokeRect(16.1,-3.02,17.8,2.48);
- ctx.font='700 .70px system-ui,sans-serif';ctx.fillStyle=colors[0];ctx.fillText('EMBER',19.25,-2.20);ctx.fillStyle='#f4f6ed';ctx.fillText(sim.score[0],22.25,-2.20);
- ctx.fillText('–',25,-2.20);ctx.fillText(sim.score[1],27.75,-2.20);ctx.fillStyle=colors[1];ctx.fillText('HARBOR',30.75,-2.20);
- ctx.font='600 .52px monospace';ctx.fillStyle=sim.penaltyPending?'#ffd47d':'#cfe891';ctx.fillText(sim.penaltyPending?'PENALTY · FREE RUN LANE':sim.done?'FULL TIME':stamp(sim),25,-1.18);
+ drawScoreboard();
  if(sim.impact){
    const {x,y,time}=sim.impact;
    ctx.globalAlpha=Math.min(1,time*4);
@@ -2112,4 +2164,4 @@ el('roster').onchange=scout;fresh();requestAnimationFrame(frame);
 window.heaveballReady=true;
 }
 
-})();</script><script src="match-42e1ba1280.js"></script><script src="view-09a4cf949e.js"></script></html>
+})();</script><script src="match-42e1ba1280.js"></script><script src="view-45eaa9d34a.js"></script></html>
