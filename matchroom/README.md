@@ -31,3 +31,18 @@ python build.py
 ```
 
 Run the gameplay checks appropriate to a change before publishing. Every release should update `summary.md`, regenerate both guide formats, commit the exact deployed source, and keep the public repository synchronized with the live Matchroom.
+
+## Deployment and collaboration
+
+The live Matchroom is published from GitHub Pages at <https://miniappmike.github.io/heaveball/>. The workflow in `.github/workflows/pages.yml` deploys `matchroom/dist` whenever it changes on `main`, usually within two minutes. It publishes `dist` exactly as committed and does not run `build.py`. The older chatgpt.site deployment changes only when someone republishes it manually.
+
+Two AI agents work on this repository: ChatGPT/Codex and Claude. Both follow the same rules:
+
+1. `main` is the single source of truth. What is on `main` is live.
+2. Start every change from the latest `main`. The other agent may have changed files since you last read them.
+3. Work on your own branch (`codex/...` or `claude/...`), never directly on `main`.
+4. Run `python build.py` before committing, and commit the regenerated `dist` files.
+5. Update `summary.md` with what changed.
+6. Open a pull request into `main`. The owner reviews and merges it, and the merge triggers the deploy.
+
+Merge one agent's pull request at a time. If both branches touch the same files, especially `dist/index.html` or the `match-*.js` and `view-*.js` bundles, rebase the second branch on the latest `main` and rebuild before merging. Note any renamed or restructured files in `summary.md`.
