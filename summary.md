@@ -6,9 +6,9 @@ Heaveball is a spectator-first fictional sports league built around a physical s
 
 The current release is a browser-local exhibition between Ember and Harbor. Open the [live Matchroom](https://heaveball-matchroom.hardyburl128.chatgpt.site) to generate squads and watch a match. Reloading starts a fresh session. The public GitHub repository contains the rules, playbook, player-generation spec, history and visual references. Matchroom’s simulation, renderer and release script live in its separate Sites source repository.
 
-For gameplay changes, inspect the match JavaScript in the Site’s dist directory. The view JavaScript draws the field and players and handles the handbook and controls. The HTML provides layout and styles. The two textured dirt strips above and below the blue center square identify the no-possession area. Compare rule changes against the current handbook and this summary, especially the four-yard ring and the free run lane for touching a ball on dirt, which supersede the original draft geometry and strip treatment.
+For gameplay changes, inspect the match JavaScript in the Site’s dist directory. The view JavaScript draws the field and players and handles the handbook and controls. The HTML provides layout and styles. The two textured dirt strips above and below the blue center square identify the no-possession area. Compare rule changes against the current handbook and this summary, especially the four-yard ring and the out-of-bounds ruling when a ball enters a dirt strip.
 
-Before releasing, exercise roster generation, the start gate and the affected match rules. For pacing changes, sample full randomized games and report combined scores and possession duration in game-clock seconds. Keep the roadmap below distinct from shipped features. Current playtesting priorities include recognizing off-ball routes, spotting illegal touches and checking that center-zone tackles and runway control affect results.
+Before releasing, exercise roster generation, the start gate and the affected match rules. For pacing changes, sample full randomized games and report combined scores and possession duration in game-clock seconds. Keep the roadmap below distinct from shipped features. Current playtesting priorities include recognizing off-ball routes, spotting dead balls in the no-possession area and checking that center-zone tackles and runway control affect results.
 
 ## Watching a match
 
@@ -30,7 +30,7 @@ The twelve ratings are Arm Strength, Throw Accuracy, Strength, Speed, Jump, Hand
 
 ## Field and scoring
 
-Two teams play two 20-minute halves on a 50-by-34-yard field. Both attack one four-yard ring in a ten-yard square center zone. Green quadrants permit throwing and running. Yellow runways permit running and handoffs. Every role can traverse the full blue center zone. The central strips belong to neither half. Only Anchors can move beyond them into the opposite half. Off-ball players can cross the dirt. Any ball touch on dirt or more than three consecutive live game-clock seconds unblocked inside the ring awards the opponent a free run lane and charges the player a penalty. Leaving the ring, getting blocked or becoming tied up in a pile resets the count.
+Two teams play two 20-minute halves on a 50-by-34-yard field. Both attack one four-yard ring in a ten-yard square center zone. Green quadrants permit throwing and running. Yellow runways permit running and handoffs. Every role can traverse the full blue center zone. The central strips belong to neither half. Only Anchors can move beyond them into the opposite half. Off-ball players can cross the dirt, but the dirt is out of bounds for the ball. The instant a carried, thrown, deflected or loose ball enters a no-possession strip, it is dead; the opponent receives the ball on a quadrant reset nearest the exit. More than three consecutive live game-clock seconds unblocked inside the ring still awards the opponent a free run lane and charges the player a penalty. Leaving the ring, getting blocked or becoming tied up in a pile resets the count.
 
 | Points | Play |
 | --- | --- |
@@ -50,7 +50,7 @@ Quadrant-center resets pause for 1.5 simulation seconds. Defenders align goal-si
 ## Play calls and sudden death
 
 - **Airborne rescue.** Regulation schedules two or three attempts, spread across the match. Kicking skill influences the chance of returning the ball in bounds, with a target of 30–40% of attempts. Most live returns go to a quadrant receiver. A loose in-bounds kick stays live. A five-point save requires a catch in the blue and has a game-level chance below 2%.
-- **Quick swing.** Four quadrant players provide outlets while the carrier moves the ball through open, unvisited quadrants. Adjacent passes are preferred and each receiver can release promptly after catching. If the next lane closes, the team resets into its usual reads. The Quick swing playbook favors this call and some Balanced and Free flow possessions use it too.
+- **Quick swing.** Four quadrant players provide outlets while the carrier moves the ball through open, unvisited quadrants. Same-half passes are preferred, and an Anchor can provide the legal center-zone bridge when the ball changes halves so that no pass crosses the out-of-bounds dirt. Each receiver can release promptly after catching. If the next lane closes, the team resets into its usual reads. The Quick swing playbook favors this call and some Balanced and Free flow possessions use it too.
 - **Corner boomerang.** Five percent of quadrant setups call for a deep same-half outlet and a return pass to the original passer cutting into the blue. The offense can switch back to its usual reads if either leg closes.
 - **Anchor leak.** An Anchor shows a lead block, then releases into the blue as a receiver. Balanced and Free Flow carry the call, and the offense can also switch to it mid-possession.
 - **Last-step handoff.** Balanced, Runway Power and Free Flow can call a runway attack with a trailing carrier. The exchange comes as the first carrier draws a nearby defender.
@@ -58,24 +58,36 @@ Quadrant-center resets pause for 1.5 simulation seconds. Defenders align goal-si
 - **One-point ambush.** Defensive coaches decide when to show an opening at the edge of the blue and send one Anchor to jump it. Coaches favor the call when chasing a late deficit and hold it back when protecting a late lead.
 - **Restart choices.** Scoring teams favor a quadrant with weaker opposing passing or a favorable defensive matchup and alternate choices. This is part of routine restart strategy.
 
+## Offensive playbooks
+
+| Playbook | Pros | Cons |
+| --- | --- | --- |
+| Patient passing | Protects the ball, sustains possession and makes the defense survive repeated reads. Safer throws and deliberate holds reward disciplined passers. | Creates fewer scoring chances, can stall against carrier pressure and may consume too much clock while trailing. |
+| Balanced | Can answer most coverages by mixing swings, drives, blocks, leaks and handoffs. It has the fewest built-in matchup liabilities. | Does not impose one dominant pressure point. Results rely on the carrier recognizing the right answer and executing it. |
+| Runway power | Creates direct ring opportunities, uses size and blocking, and punishes a light or isolated front. | Produces shorter, more physical possessions with extra tackle and fumble exposure. Runway contain and talented tacklers are difficult matchups. |
+| Quick swing | Uses very short holds and rapid passes through all four quadrants to stretch packed or slow-shifting defenses. | Every exchange creates another catch or deflection opportunity. Switch coverage can follow the sequence, and changing halves requires a legal Anchor bridge through the center. |
+| Free flow | Lets athletes attack the space they see, stays unpredictable and changes calls when a defense overplays the first action. | Its shared reads are demanding. Misread spacing, aggressive throws and improvised decisions make outcomes more volatile. |
+
+The engine applies these identities to release time, passing risk, run appetite and mid-possession choices. They remain situational rather than automatic: ratings, spacing, score, clock and the opposing scheme still decide the play.
+
 ## Defensive schemes
 
-| Scheme | Priorities |
-| --- | --- |
-| Balanced | Keep two goal-side helpers and match the most dangerous nearby eligible receivers. |
-| Ring guard | Set three defenders close to the ring and give deep outlets more space. |
-| Receiver denial | Mark eligible receivers tightly and leave one defender on the ring approach. |
-| Star focus | Deny touches to the strongest opposing Runner and Heaver based on skills for their role. Add help on the more dangerous star near the ball. |
-| Passing-lane zone | Shade toward throwing lanes and use two inside helpers. |
-| Carrier pressure | Send a defender to hurry the ball carrier while teammates cover the ring approach and outlets. |
-| Runway contain | Spread three helpers across the run lanes and close from the goal side. |
-| Switch coverage | Reassign marks quickly as receivers cut and exchange coverage when a block frees a receiver. |
+| Scheme | Pros | Cons |
+| --- | --- | --- |
+| Balanced | Keeps two goal-side helpers, matches dangerous eligible receivers and has no glaring structural weakness. | Does not fully erase an elite runner, a star receiver or rapid ball movement. |
+| Ring guard | Puts three defenders near the ring, sharply reduces clean ring entries and creates defensive scoring chances through tackles, tips and interceptions. It is strongest with athletic players and talented tacklers. | Concedes deep outlets. Its defense-first posture also produces shorter offensive possessions and fewer clean offensive chances, so much of its scoring must come from defensive plays. Opponents must patiently move and dissect it. |
+| Receiver denial | Gives eligible receivers tight goal-side marks, lowers easy completions and makes the carrier hold or run. | Leaves only one dedicated ring helper. Blocks, handoffs and individual athletic mismatches can break the coverage. |
+| Star focus | Denies the best Runner and Heaver, then brackets the more dangerous star near the ball. | Secondary receivers and the far side receive more room. Quick reversals force the help to travel and can punish the extra attention. |
+| Passing-lane zone | Crowds anticipated throwing lanes and raises the likelihood of interceptions, tips and batted passes. | Short outlets, patient overloads and quick swings can find seams between zones. It also gives receivers space to settle outside the lane. |
+| Carrier pressure | Sends an extra defender to shorten the carrier’s read, hurry throws and create immediate turnovers. | A clean outlet, handoff or broken first tackle gets behind the pressure and leaves less help at the ring. |
+| Runway contain | Spreads three helpers across run lanes, funnels direct attacks toward tacklers and is the best structural answer to Runway power. | Gives up deeper quadrant outlets and can be stretched by disciplined passing or legal center relays. |
+| Switch coverage | Exchanges assignments quickly against cuts, blocks and swing sequences, preventing one screen from freeing a receiver. | Generates fewer aggressive takeaways and can lose physical isolations. A late or low-IQ switch can still expose the ring. |
 
 The play-by-play identifies each club's scheme and the players targeted by Star focus. Free run lanes and sudden death use their dedicated formations. All active players can still use the full center zone in sudden death.
 
 ## Gameplay targets
 
-Most games should finish with 30–55 combined points, and scores below 20 or above 75 should be uncommon. IQ and Discipline influence a carrier’s estimate of runway space, a passer’s ability to recognize defenders in the passing lane, and a help defender’s choice to switch or stay with a dangerous cutter. Defensive Anchors shade closer to the ring, contact matters on contested receptions and defenders have a modest advantage finishing a tackle. The scoring values still come directly from the play. Possession length depends on opportunity and coaching style. Each new team draws a playbook with a baseline aggression and a set of preferred opening calls. Patient passing, Balanced, Free flow and Runway power teams take progressively earlier chances on average. Teams ordinarily circulate through a few safe exchanges before committing to a set play. A near-side outlet helps a covered carrier move the ball before contact. A far-side swing makes the defense shift when the passing lane is clear. When the runway closes early, a carrier can circle back into a legal quadrant and throw while play continues. Players favor shorter and clearer lanes during buildup, with an exception for a well-supported run. Each call still affects how quickly the passer reads an outlet and how readily a carrier takes an open lane. Mid-possession adjustments can change that appetite for risk. In the last five minutes, a team trailing by five or more attacks sooner and sends a defender to press the ball. In the last two minutes, a team leading by five or more favors short outlets and uses more clock. Long possessions can still develop when a patient team keeps finding outlets. These targets guide randomized match testing. Fans should be able to see how an open outlet, a strong block or a timely stop changed a possession.
+Regulation game totals can range from 0 to 100 combined points, with most matches targeted between 30 and 60. IQ and Discipline influence a carrier’s estimate of runway space, a passer’s ability to recognize defenders in the passing lane, and a help defender’s choice to switch or stay with a dangerous cutter. Defensive Anchors shade closer to the ring, contact matters on contested receptions and defenders have a modest advantage finishing a tackle. The scoring values still come directly from the play. Possession length depends on opportunity, offensive playbook and defensive identity. Each new team draws a playbook with a baseline aggression and a set of preferred opening calls. Patient passing, Balanced, Free flow and Runway power teams take progressively earlier chances on average, while Quick swing releases the ball fastest. Teams ordinarily circulate through a few safe exchanges before committing to a set play. A near-side outlet helps a covered carrier move the ball before contact. A far-side change of half must travel through a legal center-zone outlet; a ball entering a no-possession strip is immediately out of bounds. When the runway closes early, a carrier can circle back into a legal quadrant and throw while play continues. Players favor shorter and clearer lanes during buildup, with an exception for a well-supported run. Each call still affects how quickly the passer reads an outlet and how readily a carrier takes an open lane. Mid-possession adjustments can change that appetite for risk. In the last five minutes, a team trailing by five or more attacks sooner and sends a defender to press the ball. In the last two minutes, a team leading by five or more favors short outlets and uses more clock. Long possessions can still develop when a patient team keeps finding outlets. These targets guide randomized match testing. Fans should be able to see how an open outlet, a strong block or a timely stop changed a possession.
 
 ## League and media roadmap
 
@@ -89,7 +101,7 @@ Maintain the project scope in this file as features change. Running `python buil
 
 ## Build record
 
-Built 2026-11-22 04:32 UTC.
+Built 2026-11-22 05:03 UTC.
 
-- match-da96abbc61.js
-- view-76d692185b.js
+- match-ab7302090f.js
+- view-e15d39b2b0.js
