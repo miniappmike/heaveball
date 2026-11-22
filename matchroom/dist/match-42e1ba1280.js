@@ -5,6 +5,9 @@ const teams=['Ember','Harbor'], names=['Reed','Ellis','Cruz','Park','Quinn','Col
 const center={x:25,y:17}, blue=p=>Math.abs(p.x-25)<=5&&Math.abs(p.y-17)<=5;
 const ringRadius=2;
 const ringLimit=3;
+const pileStallLimit=4.5;
+const pileProgressYards=.65;
+const pileLossYards=1.25;
 const handPassSpeed=rating=>1.5*.98*(8+rating*.12);
 const playbooks=[
    {name:'Patient passing',description:'Pros: protects the ball, controls possession and makes the defense defend repeated reads. Cons: creates fewer chances, can stall against pressure and may run out of time when trailing.',baseline:.27,hold:1.18,risk:.78,runBias:-.07,calls:['Short outlets','Far switch','Block away']},
@@ -617,7 +620,10 @@ function match(report){
    const attackProfile=teamProfile(p.team),defenseProfile=teamProfile(d.team);
    const mismatch=Math.min(1,Math.abs(attackProfile-defenseProfile)/45);
    const limit=clamp(25-23*mismatch,2,25);
-   s.contact={p,d};pile={p,d,time:0,limit,tackleProgress:0,escapeProgress:0};
+   const distance=dist(p,center);
+   s.contact={p,d};
+   pile={p,d,time:0,limit,tackleProgress:0,escapeProgress:0,
+     progressDistance:distance,closestDistance:distance,stallTime:0};
    log(d.name+' wraps up '+p.name+' · pile drive');
  }
  function clearance(q,team){
@@ -1047,6 +1053,7 @@ function match(report){
  let focus=carrier||pass||loose,off=s.team;
  const active=p=>!p.sidelined&&!(p.edgeTime>0)&&(!lane||(p.team===off?(p.i===4||p.i===5):p.i>=6));
  if(ringPenalty(dt,active))return;
+ const gameDt=dt;
  dt*=fieldSecondsPerSecond;age+=dt;cool-=dt;
  if(s.impact&&(s.impact.time-=dt)<=0)s.impact=null;
  const scheme=defenses[s.defenses[1-off]];
@@ -1070,12 +1077,24 @@ function match(report){
    const attackForce=bodyForce(p)+support.filter(q=>q.team===p.team).reduce((sum,q)=>sum+bodyForce(q)*.52,0);
    const defendForce=bodyForce(d)+support.filter(q=>q.team===d.team).reduce((sum,q)=>sum+bodyForce(q)*.52,0);
    const forceEdge=(attackForce-defendForce)/(attackForce+defendForce||1);
-   let step=dt*clamp(.07+forceEdge*2.15,-.68,1.25), gap=dist(p,center)||1;
+   const shove=.44*Math.sin(pile.time*5)*clamp(1-Math.abs(forceEdge)*5,0,1);
+   const step=dt*clamp(.07+forceEdge*2.15+shove,-.68,1.25);
+   const gap=dist(p,center)||1;
    let dx=(25-p.x)/gap*step,dy=(17-p.y)/gap*step;
    movePlayer(p,p.x+dx,p.y+dy);movePlayer(d,d.x+dx,d.y+dy);
    pile.time+=dt;
    if(deadNoPossession(ballAt(p),p.team,p))return;
    if(worth>0&&insideRing(p)){score(p,worth);return}
+   // Use actual position after movement so rocking or field limits cannot mask a stall.
+   const distance=dist(p,center);
+   pile.closestDistance=Math.min(pile.closestDistance,distance);
+   pile.stallTime+=gameDt;
+   if(pile.progressDistance-distance>=pileProgressYards){
+     pile.progressDistance=distance;
+     pile.stallTime=0;
+   }
+   const stalled=pile.stallTime+1e-9>=pileStallLimit;
+   const drivenBack=distance-pile.closestDistance>=pileLossYards;
    if(pile.time>=2){
      const defenders=support.filter(q=>q.team===d.team),attackers=support.filter(q=>q.team===p.team);
      const tackleSkill=(d.ratings[tackling]*.58+d.ratings[8]*.24+d.ratings[2]*.18)+
@@ -1095,7 +1114,7 @@ function match(report){
        log(p.name+' slips a hidden handoff to '+freeMate.name);
        s.contact=pile=null;assign(freeMate);run=true;cool=.35;return;
      }
-     const losing=forceEdge<-.05||pile.time>8&&Math.abs(forceEdge)<.045;
+     const losing=forceEdge<-.05||stalled||drivenBack;
      if(losing){
        pile.escapeProgress+=dt*clamp(.015+(p.ratings[8]+p.ratings[10]-100)*.0009-forceEdge*.08,.006,.12);
        if(pile.escapeProgress>=1){
@@ -1110,11 +1129,11 @@ function match(report){
        loose.responsible=p;Object.assign(loose,{vx:(25-p.x)*.32+(rand()-.5)*8,vy:(rand()-.5)*9,
          z:1.15,vz:2+rand()*2.6,omega:(rand()-.5)*24});return;
      }
-     if(pile.tackleProgress>=1){
-       s.contact=null;pile=null;
-       if(!tryBoundaryPush(p,d,boundaryContact(p,d),'pile'))stopCarrier(p,d);
-       return;
-     }
+   }
+   if(stalled||drivenBack||pile.tackleProgress>=1){
+     s.contact=pile=null;
+     if(!tryBoundaryPush(p,d,boundaryContact(p,d),'pile'))stopCarrier(p,d);
+     return;
    }
    if(dist(d,center)<ringRadius){
      // Contact can carry a defender across the line, but they must keep moving through.
