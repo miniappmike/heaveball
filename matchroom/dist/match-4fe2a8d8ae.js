@@ -10,20 +10,20 @@ const pileProgressYards=.65;
 const pileLossYards=1.25;
 const handPassSpeed=rating=>1.5*.98*(8+rating*.12);
 const playbooks=[
-   {name:'Patient passing',description:'Pros: protects the ball, controls possession and makes the defense defend repeated reads. Cons: creates fewer chances, can stall against pressure and may run out of time when trailing.',baseline:.27,hold:1.18,risk:.78,runBias:-.07,calls:['Short outlets','Far switch','Block away']},
+   {name:'Patient passing',description:'Pros: protects the ball, controls possession and makes the defense defend repeated reads. Cons: creates fewer chances, can stall against pressure and may run out of time when trailing.',baseline:.45,hold:.88,risk:1.05,runBias:-.07,calls:['Short outlets','Far switch','Block away']},
    {name:'Balanced',description:'Pros: answers most coverages and mixes passing, blocks and runs without a clear tell. Cons: has no single dominant pressure point and depends heavily on good reads.',baseline:.50,hold:1,risk:1,runBias:0,calls:['Far switch','Drive and kick','Anchor leak','Last-step handoff','Quick swing']},
-   {name:'Runway power',description:'Pros: creates direct ring chances, uses size and blocking, and punishes light fronts. Cons: produces short, physical possessions and more tackle or fumble risk against strong contain.',baseline:.72,hold:.86,risk:1.02,runBias:.18,calls:['Runway power','Drive and kick','Short outlets','Last-step handoff']},
-   {name:'Quick swing',description:'Pros: releases the ball quickly, stretches all four quadrants and pulls packed defenses away from the ring. Cons: adds catch and deflection chances and can be disrupted by switching coverage.',baseline:.50,hold:.62,risk:1.09,runBias:-.02,calls:['Quick swing','Quick swing','Quick swing','Far switch']},
-   {name:'Free flow',description:'Pros: stays unpredictable, lets athletes attack space and can change the point of attack mid-possession. Cons: is volatile, asks for fast shared reads and can create spacing mistakes or turnovers.',baseline:.60,hold:.83,risk:1.13,runBias:.07,calls:['Drive and kick','Quick swing','Anchor leak','Block away','Last-step handoff']}
+   {name:'Runway power',description:'Pros: creates direct ring chances, uses size and blocking, and punishes light fronts. Cons: produces short, physical possessions and more tackle or fumble risk against strong contain.',baseline:.72,hold:.86,risk:1,runBias:.2,calls:['Runway power','Drive and kick','Short outlets','Last-step handoff']},
+   {name:'Quick swing',description:'Pros: releases the ball quickly, stretches all four quadrants and pulls packed defenses away from the ring. Cons: adds catch and deflection chances and can be disrupted by switching coverage.',baseline:.44,hold:.8,risk:.85,runBias:-.02,calls:['Quick swing','Quick swing','Quick swing','Far switch']},
+   {name:'Free flow',description:'Pros: stays unpredictable, lets athletes attack space and can change the point of attack mid-possession. Cons: is volatile, asks for fast shared reads and can create spacing mistakes or turnovers.',baseline:.60,hold:.83,risk:1.05,runBias:.07,calls:['Drive and kick','Quick swing','Anchor leak','Block away','Last-step handoff']}
  ];
 const defenses=[
- {name:'Balanced',description:'Pros: has help at the ring and sound receiver matches with few obvious weaknesses. Cons: does not fully erase elite runners, stars or rapid ball movement.',guards:2,depth:4.6,width:2.7,shade:.32,cushion:1.9,read:1},
- {name:'Ring guard',description:'Pros: makes ring scores extremely difficult and creates defensive points with athletic tacklers. Cons: concedes outlets, lowers its own possession share and makes offensive chances scarce; opponents must patiently dissect it.',guards:3,depth:3.05,width:1.45,shade:.57,cushion:2.6,read:1.1,deflect:.12,tackle:.18,takeaway:.07,swingWeak:.11,ownTempo:.45,ownRisk:3.2,ownRun:-.32,ownCreation:.05},
- {name:'Receiver denial',description:'Pros: smothers eligible receivers, lowers easy completions and forces carriers to hold or run. Cons: leaves only one ring helper and is vulnerable to blocks, handoffs and athletic mismatches.',guards:1,depth:3.4,width:1.6,shade:.12,cushion:.95,read:.76,deflect:.025,runWeak:.08},
- {name:'Star focus',description:'Pros: keeps the ball away from the best Runner and Heaver and brackets the star nearest the play. Cons: secondary players and far-side outlets get better chances, especially after quick reversals.',guards:1,depth:3.7,width:1.8,shade:.22,cushion:1.4,read:.84,stars:true,swingWeak:.07},
- {name:'Passing-lane zone',description:'Pros: produces tips and interceptions by crowding anticipated throwing lanes. Cons: short outlets, patient overloads and quick swings can open seams between zones.',guards:2,depth:5.9,width:3.3,shade:.49,cushion:1.8,read:.87,lanes:true,deflect:.07,takeaway:.025,swingWeak:.06},
- {name:'Carrier pressure',description:'Pros: shortens reads, forces hurried throws and can create immediate turnovers. Cons: a clean outlet or handoff beats the press and leaves less help at the ring.',guards:1,depth:4.4,width:2.1,shade:.29,cushion:1.55,read:.65,press:true,rush:.20,runWeak:.06},
- {name:'Runway contain',description:'Pros: funnels runs into tacklers and is strongest against power attacks and direct ring drives. Cons: gives up deeper quadrant outlets and can be stretched by disciplined passing.',guards:3,depth:6.6,width:3.9,shade:.39,cushion:2.15,read:1,contain:true,tackle:.07,deflect:-.02,swingWeak:.08},
+ {name:'Balanced',description:'Pros: has help at the ring and sound receiver matches with few obvious weaknesses. Cons: does not fully erase elite runners, stars or rapid ball movement.',guards:2,depth:4.6,width:2.7,shade:.38,cushion:1.6,read:1},
+ {name:'Ring guard',description:'Pros: makes ring scores extremely difficult and creates defensive points with athletic tacklers. Cons: concedes outlets, lowers its own possession share and makes offensive chances scarce; opponents must patiently dissect it.',guards:3,depth:3.05,width:1.45,shade:.57,cushion:1.95,read:1.1,deflect:.12,tackle:.18,takeaway:.07,swingWeak:.06,ownTempo:.25,ownRisk:1.8,ownRun:-.32,ownCreation:.35},
+ {name:'Receiver denial',description:'Pros: smothers eligible receivers, lowers easy completions and forces carriers to hold or run. Cons: leaves only one ring helper and is vulnerable to blocks, handoffs and athletic mismatches.',guards:1,depth:3.4,width:1.6,shade:.12,cushion:1.45,read:.9,deflect:.025,runWeak:.08},
+ {name:'Star focus',description:'Pros: keeps the ball away from the best Runner and Heaver and brackets the star nearest the play. Cons: secondary players and far-side outlets get better chances, especially after quick reversals.',guards:1,depth:3.7,width:1.8,shade:.22,cushion:1.6,read:.92,stars:true,swingWeak:.04},
+ {name:'Passing-lane zone',description:'Pros: produces tips and interceptions by crowding anticipated throwing lanes. Cons: short outlets, patient overloads and quick swings can open seams between zones.',guards:2,depth:5.9,width:3.3,shade:.49,cushion:1.8,read:.87,lanes:true,deflect:.12,takeaway:.04,swingWeak:.03,laneStep:.05,laneReach:.5},
+ {name:'Carrier pressure',description:'Pros: shortens reads, forces hurried throws and can create immediate turnovers. Cons: a clean outlet or handoff beats the press and leaves less help at the ring.',guards:1,depth:6.8,width:2.1,shade:.29,cushion:2.8,read:.95,press:true,rush:.20,runWeak:.06,rushRead:3.2,pressGap:1.9},
+ {name:'Runway contain',description:'Pros: funnels runs into tacklers and is strongest against power attacks and direct ring drives. Cons: gives up deeper quadrant outlets and can be stretched by disciplined passing.',guards:3,depth:4.6,width:2.9,shade:.39,cushion:1.5,read:1,contain:true,tackle:.07,deflect:-.02,swingWeak:.04},
  {name:'Switch coverage',description:'Pros: handles cuts, blocks and quick swings without losing assignments. Cons: offers fewer aggressive takeaways and can lose power matchups or break down after a slow read.',guards:2,depth:4.75,width:2.6,shade:.25,cushion:1.55,read:.54,switches:true,deflect:-.015,tackle:-.02,swingWeak:-.09}
 ];
 // Calibrated against a ten-yard run from rest with Speed and Agility at 60.
@@ -130,7 +130,7 @@ function laneDeflection(p,pass,ambush,scheme={}){
  // Faster players can close more ground during the time left to react.
  const timeWindow=.019+(p.ratings[6]-20)*.00055;
  const step=Math.min(.32,timeWindow*(topSpeed(p.ratings[3])*.49+closing*.51));
- const reach=.8+p.ratings[4]*.007+(p.height-72)*.012+step+(ambush?.35:0);
+ const reach=.8+p.ratings[4]*.007+(p.height-72)*.012+step+(ambush?.35:0)+(scheme.laneReach||0);
  if(gap>reach)return null;
  const position=(reach-gap)*.42+Math.min(.5,reachHeight-pass.z)*.14;
  const swingEffect=pass.quickSwing?(scheme.swingWeak||0):0;
@@ -307,7 +307,7 @@ function match(report){
    const assignment=defensiveAssignments.get(p);
    const depth=dist(focus,center);
    if(assignment?.press&&carrier&&legalX(p,carrier.x)===carrier.x){
-     return goalSide(carrier,run?.65:1.05);
+     return goalSide(carrier,run?.65:(scheme.press?scheme.pressGap??1.05:1.05));
    }
    const shoulder=assignment?.shoulder;
    const closing=carrier&&(run||blue(carrier))&&depth<13;
@@ -321,13 +321,18 @@ function match(report){
    }
    const star=p.helpTime<=0&&assignment?.star;
    const goal=goalSide(mark,star?1:scheme.cushion+tendency[off].block*.6);
-   if((star&&assignment.bracket)||scheme.lanes){
-     const cut=star?.16:.26;
-     return {x:goal.x+(focus.x-mark.x)*cut,y:goal.y+(focus.y-mark.y)*cut};
+   if(star&&assignment.bracket){
+     return {x:goal.x+(focus.x-mark.x)*.16,y:goal.y+(focus.y-mark.y)*.16};
    }
    const lane=lanePosition(focus,clamp(depth*.68,ringRadius+.8,8),(p.i-3.5)*1.35);
    const shade=star?.07:scheme.shade*clamp((dist(mark,center)-2)/11,0,1);
-   return {x:goal.x+(lane.x-goal.x)*shade,y:goal.y+(lane.y-goal.y)*shade};
+   const spot={x:goal.x+(lane.x-goal.x)*shade,y:goal.y+(lane.y-goal.y)*shade};
+   // Passing-lane zone markers keep their ring-side shade and lean slightly into the throwing lane.
+   if(scheme.lanes){
+     const d=dist(focus,mark)||1,step=Math.min(scheme.laneStep??99,(scheme.laneCut??.26)*d);
+     return {x:spot.x+(focus.x-mark.x)/d*step,y:spot.y+(focus.y-mark.y)/d*step};
+   }
+   return spot;
  }
  const callBias={'Short outlets':-.16,'Quick swing':-.03,'Far switch':-.05,'Block away':.02,'Anchor leak':.09,'Last-step handoff':.15,'Drive and kick':.13,'Runway power':.20};
  // IQ governs recognition. Discipline governs how reliably a player acts on that read.
@@ -1059,7 +1064,7 @@ function match(report){
  dt*=fieldSecondsPerSecond;age+=dt;cool-=dt;
  if(s.impact&&(s.impact.time-=dt)<=0)s.impact=null;
  const scheme=defenses[s.defenses[1-off]];
- if(carrier&&scheme.rush)readTime=Math.min(readTime,age+Math.max(.38,1.45-scheme.rush*3.2));
+ if(carrier&&scheme.rush)readTime=Math.min(readTime,age+(scheme.rushRead??Math.max(.38,1.45-scheme.rush*3.2)));
  if(!lane&&!s.overtime)readDefense(off,focus,active,scheme);
  if(openingCall&&carrier&&!pile&&!lane&&!s.overtime&&!circulate(off)&&!conservative(off)&&
     (!run||openingCall==='Last-step handoff')&&Math.abs(carrier.y-17)>5&&Math.abs(carrier.x-25)>=5){
