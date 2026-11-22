@@ -343,7 +343,7 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
   <ul class="g-points">
    <li><span class="g-pt">2</span><div><b>Carry it in</b>Run the ball through the ring.</div></li>
    <li><span class="g-pt">3</span><div><b>Catch and finish</b>Catch a teammate's pass in the center zone, then finish through the ring.</div></li>
-   <li><span class="g-pt">1</span><div><b>Steal in the center</b>Intercept a pass or recover a fumble in the center zone. You also get the ball.</div></li>
+   <li><span class="g-pt">1</span><div><b>Steal in the center</b>Intercept a pass or recover an opponent’s fumble in the center zone. You also get the ball.</div></li>
    <li><span class="g-pt g-pt-gold">5</span><div><b>Save-kick catch</b>Rare. Catch a legal airborne save kick in the center zone.</div></li>
   </ul>
   <p class="g-note"><b>Tied at full time?</b> Sudden death in the runway only. Next score wins.</p>
@@ -1819,7 +1819,7 @@ function match(report){
      }
      loose=null;log(q.name+' recovers the '+kind+(contested?' · won the scramble':''));
      if(kind==='drop'||kind==='save'||kind==='deflection'){assign(q,blue(q)?0:2);cool=.6}
-     else {if(kind==='fumble'&&blue(spot)&&s.overtime){score(q,1)}else if(kind==='fumble'&&blue(spot)){points(q,1,'Recovered a fumble in the center zone');log('Center fumble recovery · 1 point');scoringRestart={team:q.team,index:nearestQuadrant(spot)}}else {stoppage();restart(q.team,undefined,nearestQuadrant(spot))}}
+     else {if(kind==='fumble'&&q.team!==originTeam&&blue(spot)&&s.overtime){score(q,1)}else if(kind==='fumble'&&q.team!==originTeam&&blue(spot)){points(q,1,'Recovered a fumble in the center zone');log('Center fumble recovery · 1 point');scoringRestart={team:q.team,index:nearestQuadrant(spot)}}else {stoppage();restart(q.team,undefined,nearestQuadrant(spot))}}
    }
    return
  }

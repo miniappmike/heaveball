@@ -63,7 +63,7 @@ Two teams play two 20-minute halves on a 50-by-34-yard field. Both attack one fo
 
 | Points | Play |
 | --- | --- |
-| 1 | Intercept a pass or recover a fumble in the center. Keep possession. |
+| 1 | Intercept a pass or recover an opponent's fumble in the center. Keep possession. |
 | 2 | Carry the ball from outside the center through the ring. |
 | 3 | Catch a teammate’s pass in the center and break the ring line under control. |
 | 5 | Catch an airborne save kick in the center before it lands. Either team can score. |

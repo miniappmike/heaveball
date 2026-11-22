@@ -10,7 +10,7 @@ Heaveball rewards teams that can hold possession long enough to make a defender 
 | Ball in the yellow runway | The carrier can run or hand off. A completed tackle turns it over. Help can close once the pass is gone, but someone still has to account for a second carrier and a loose ball. |
 | Teammate's pass caught in the blue | A controlled ball breaking the ring line earns 3, either on the catch or on the carry that follows. A tackle short of the ring keeps possession and resets at the center of the nearest quadrant. |
 | Carrier enters the blue from outside | A controlled ball breaking the ring line earns 2. A completed tackle short of the ring on the dive gives the ball away. |
-| Interception or fumble recovery in the blue | The team securing the ball earns 1 and keeps possession. A loose ball in the yellow is still live, and an incomplete pass can be recovered in bounds. |
+| Interception or opponent fumble recovery in the blue | The team securing the ball earns 1 and keeps possession. A loose ball in the yellow is still live, and an incomplete pass can be recovered in bounds. |
 | Airborne save | A player out of bounds can kick an airborne ball back into play. Either team can catch the saved kick in the blue for 5. If it lands in bounds, contest the recovery and restart from the center of the nearest quadrant. |
 | Ball above the dirt strip | A legal airborne pass may cross the no-possession zone. The strip is out of bounds only when a carried ball, intentional bounce, deflection, or loose ball touches or rolls onto it. The opponent then receives a quadrant reset. |
 | After scoring 2, 3, or 5 | The opposing team gets possession. The scoring team chooses the restart quadrant. |

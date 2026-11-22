@@ -1399,7 +1399,7 @@ function match(report){
      }
      loose=null;log(q.name+' recovers the '+kind+(contested?' · won the scramble':''));
      if(kind==='drop'||kind==='save'||kind==='deflection'){assign(q,blue(q)?0:2);cool=.6}
-     else {if(kind==='fumble'&&blue(spot)&&s.overtime){score(q,1)}else if(kind==='fumble'&&blue(spot)){points(q,1,'Recovered a fumble in the center zone');log('Center fumble recovery · 1 point');scoringRestart={team:q.team,index:nearestQuadrant(spot)}}else {stoppage();restart(q.team,undefined,nearestQuadrant(spot))}}
+     else {if(kind==='fumble'&&q.team!==originTeam&&blue(spot)&&s.overtime){score(q,1)}else if(kind==='fumble'&&q.team!==originTeam&&blue(spot)){points(q,1,'Recovered a fumble in the center zone');log('Center fumble recovery · 1 point');scoringRestart={team:q.team,index:nearestQuadrant(spot)}}else {stoppage();restart(q.team,undefined,nearestQuadrant(spot))}}
    }
    return
  }
