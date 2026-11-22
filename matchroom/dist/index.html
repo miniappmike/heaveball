@@ -855,7 +855,7 @@ function match(report){
  }
  function points(p,n,summary){
    const prior=s.score[p.team]-s.score[1-p.team];
-   p.stats.pts+=n;s.score[p.team]+=n;if(n!==2)call('Center!');s.scoreEvents++;s.scoringSpot=ballAt(p);
+   p.stats.pts+=n;s.score[p.team]+=n;call('Center!');s.scoreEvents++;s.scoringSpot=ballAt(p);
    if(s.overtime)summary+=' to win in sudden death';
    else if(prior<0&&prior+n===0)summary+=' to tie the game';
    else if(prior<=0&&prior+n>0&&s.score[1-p.team]>0)summary+=' to take the lead';
@@ -2611,7 +2611,7 @@ el('roster').onchange=scout;fresh();requestAnimationFrame(frame);
 window.heaveballReady=true;
 }
 
-})();</script><script src="match-e5bc7479c2.js"></script><script src="view-8d9d3d6eb7.js"></script><script>(()=>{const d=document.getElementById('rules');if(!d)return;
+})();</script><script src="match-57c0fb200d.js"></script><script src="view-8d9d3d6eb7.js"></script><script>(()=>{const d=document.getElementById('rules');if(!d)return;
 const toggle=()=>{if(d.open)d.close();else d.showModal()};
 document.querySelectorAll('.rules-open').forEach(b=>b.addEventListener('click',toggle));
 document.getElementById('rules-close').addEventListener('click',()=>d.close());
