@@ -18,9 +18,9 @@ The pregame handbook shows both overall ratings and the projected spread above a
 
 ## Spread forecast
 
-The pregame spread is a fitted model, not the overall-rating difference. Each club's expected points start from a base of about 21 and add weighted contributions from its own 12 trait averages, the opponent's trait averages, its offensive playbook, the opponent's defensive scheme and its own defensive tempo. The spread is the difference in expected points, rounded to the half point. The total is their sum. Win probability treats the final margin as normally distributed around the spread with an 11-point standard deviation.
+The pregame spread is a fitted model, not the overall-rating difference. Each club's expected points start from a base of about 21 and add weighted contributions from its own 12 trait averages, the opponent's trait averages, its offensive playbook, the opponent's defensive scheme and its own defensive tempo. The spread is the difference in expected points, rounded to the half point. The total is their sum. Win probability treats the final margin as normally distributed around the spread with an 11.6-point standard deviation.
 
-The weights were fitted with ridge regression on 880 headless full matches of the current engine. On held-out matches the model explained about 58% of the variance in final margin, against about 17% for the overall-rating difference alone. Tactics carry much of the signal. Carrier pressure and Receiver denial lower the opponent's expected points the most, Star focus and Ring guard concede the most, and Ring guard also slows its own offense. Throw Accuracy, Agility and Strength are the most predictive traits. Refit the weights in the view JavaScript whenever scoring, tactics or player generation change materially.
+The weights were refitted with ridge regression on 960 headless full matches after the softer short-pass change. On held-out matches the model explained about 54% of the variance in final margin, against about 18% for the overall-rating difference alone. Favorites given 80–90% won 89% of the time and favorites given 90% or more won 96% of the time. Tactics carry much of the signal. Carrier pressure and Receiver denial lower the opponent's expected points the most, Star focus and Ring guard concede the most, and Ring guard also slows its own offense. Throw Accuracy, Agility and Strength are the most predictive traits. Refit the weights in the view JavaScript whenever scoring, tactics or player generation change materially.
 
 ## Player generation
 
@@ -109,7 +109,7 @@ Field templates provide park surfaces with clay no-possession zones and all-weat
 
 ## Build record
 
-Built 2026-11-22 09:33 UTC.
+Built 2026-11-22 09:41 UTC.
 
 - match-7e48bd620c.js
-- view-57b58fd567.js
+- view-1fed10c93e.js
