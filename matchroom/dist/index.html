@@ -855,7 +855,7 @@ function match(report){
  }
  function points(p,n,summary){
    const prior=s.score[p.team]-s.score[1-p.team];
-   p.stats.pts+=n;s.score[p.team]+=n;if(n!==1)call('Center!');s.scoreEvents++;s.scoringSpot=ballAt(p);
+   p.stats.pts+=n;s.score[p.team]+=n;call(n===1?'Takeaway!':'Center!');s.scoreEvents++;s.scoringSpot=ballAt(p);
    if(s.overtime)summary+=' to win in sudden death';
    else if(prior<0&&prior+n===0)summary+=' to tie the game';
    else if(prior<=0&&prior+n>0&&s.score[1-p.team]>0)summary+=' to take the lead';
@@ -2358,7 +2358,7 @@ function drawThinBar(v){
 // Shockwave call popup: white rings burst from the center ring, then the call pill pops in and pulses.
 function drawCallout(){
  if(!sim.call||callAge>=3500)return;
- const tones={Turnover:['#ff4d4d','#fff','255,77,77'],Penalty:['#ffd23f','#2a2100','255,210,63'],'Center!':['#2f8cff','#fff','47,140,255']},[bg,fg,glow]=tones[sim.call];
+ const tones={Turnover:['#ff4d4d','#fff','255,77,77'],Penalty:['#ffd23f','#2a2100','255,210,63'],'Center!':['#2f8cff','#fff','47,140,255'],'Takeaway!':['#ffa31a','#2a1600','255,163,26']},[bg,fg,glow]=tones[sim.call];
  const t=callAge/1000,cx=25,cy=16.2;
  ctx.save();
  for(const delay of [0,.18,.36]){
@@ -2637,7 +2637,7 @@ el('roster').onchange=scout;fresh();requestAnimationFrame(frame);
 window.heaveballReady=true;
 }
 
-})();</script><script src="match-6f3ffbe574.js"></script><script src="view-0217b28114.js"></script><script>(()=>{const d=document.getElementById('rules');if(!d)return;
+})();</script><script src="match-88a554a2a4.js"></script><script src="view-4c8225e033.js"></script><script>(()=>{const d=document.getElementById('rules');if(!d)return;
 const toggle=()=>{if(d.open)d.close();else d.showModal()};
 document.querySelectorAll('.rules-open').forEach(b=>b.addEventListener('click',toggle));
 document.getElementById('rules-close').addEventListener('click',()=>d.close());

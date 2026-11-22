@@ -203,7 +203,7 @@ function drawThinBar(v){
 // Shockwave call popup: white rings burst from the center ring, then the call pill pops in and pulses.
 function drawCallout(){
  if(!sim.call||callAge>=3500)return;
- const tones={Turnover:['#ff4d4d','#fff','255,77,77'],Penalty:['#ffd23f','#2a2100','255,210,63'],'Center!':['#2f8cff','#fff','47,140,255']},[bg,fg,glow]=tones[sim.call];
+ const tones={Turnover:['#ff4d4d','#fff','255,77,77'],Penalty:['#ffd23f','#2a2100','255,210,63'],'Center!':['#2f8cff','#fff','47,140,255'],'Takeaway!':['#ffa31a','#2a1600','255,163,26']},[bg,fg,glow]=tones[sim.call];
  const t=callAge/1000,cx=25,cy=16.2;
  ctx.save();
  for(const delay of [0,.18,.36]){

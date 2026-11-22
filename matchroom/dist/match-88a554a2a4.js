@@ -435,7 +435,7 @@ function match(report){
  }
  function points(p,n,summary){
    const prior=s.score[p.team]-s.score[1-p.team];
-   p.stats.pts+=n;s.score[p.team]+=n;if(n!==1)call('Center!');s.scoreEvents++;s.scoringSpot=ballAt(p);
+   p.stats.pts+=n;s.score[p.team]+=n;call(n===1?'Takeaway!':'Center!');s.scoreEvents++;s.scoringSpot=ballAt(p);
    if(s.overtime)summary+=' to win in sudden death';
    else if(prior<0&&prior+n===0)summary+=' to tie the game';
    else if(prior<=0&&prior+n>0&&s.score[1-p.team]>0)summary+=' to take the lead';
