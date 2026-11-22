@@ -26,8 +26,24 @@ function briefing(){
      '<span class="sr-only">'+teams[team]+' </span>'+row[trait].toFixed(1)+'</span>').join('')+'</dd></dl></li>').join('');
  el('ember-overall').textContent=overall[0].toFixed(1);
  el('harbor-overall').textContent=overall[1].toFixed(1);
- const edge=overall[0]-overall[1],margin=Math.round(Math.abs(edge)*2)/2;
- el('spread').textContent=margin?teams[edge>0?0:1]+' −'+margin:'Even';
+ // Spread model fitted on 880 simulated full matches (see summary.md, "Spread forecast").
+ // Expected team points = base + own trait averages + opponent trait averages + own playbook + opponent defense + own defense tempo.
+ const forecast=()=>{
+   const W={base:21.37,
+     own:[-.069,.458,.124,.043,.013,.034,.01,.042,.014,-.013,.153,-.02],
+     opp:[.03,-.083,-.111,.013,-.054,-.045,.064,-.002,-.064,.016,-.095,-.064],
+     playbook:[0,2.259,.881,3.482,2.966],
+     oppDefense:[0,4.754,-6.631,-3.138,7.729,-12.072,4.313,-2.136],
+     ownDefense:[0,-2.968,-.183,-.054,.198,.196,.504,-.505],sd:11.0};
+   const points=[0,1].map(t=>{const o=1-t;let v=W.base+W.playbook[playbooks.indexOf(sim.playbooks[t])]+W.oppDefense[sim.defenses[o]]+W.ownDefense[sim.defenses[t]];
+     for(let j=0;j<12;j++)v+=W.own[j]*(ratings[t][j]-70)+W.opp[j]*(ratings[o][j]-70);return Math.max(0,v)});
+   const edge=points[0]-points[1],margin=Math.round(Math.abs(edge)*2)/2;
+   const erf=x=>{const t=1/(1+.3275911*Math.abs(x)),y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x);return x<0?-y:y};
+   const win=.5*(1+erf(Math.abs(edge)/(W.sd*Math.SQRT2)));
+   el('spread').textContent=margin?teams[edge>0?0:1]+' −'+margin:'Pick’em';
+   el('spread-detail').textContent=(margin?teams[edge>0?0:1]+' win '+Math.round(win*100)+'%':'50/50')+' · Total '+(Math.round((points[0]+points[1])*2)/2);
+ };
+ forecast();
  const options=teams.map((name,team)=>{
    const fieldset=document.createElement('fieldset'),legend=document.createElement('legend');
    fieldset.className='tactic-team';
@@ -56,6 +72,7 @@ function briefing(){
          sim.setPlaybook(team,choice);
        }
        describe();
+       forecast();
      };
      fieldset.append(label,select,description);
    }
@@ -67,7 +84,11 @@ function briefing(){
 
 el('reroll').onclick=fresh;
 el('start').onclick=()=>{el('pregame').hidden=true;wall=performance.now();playing=true;scheduleBackground()};
-el('pace').onchange=()=>{advance(performance.now());speed=Number(el('pace').value)};
+const syncSpeeds=()=>document.querySelectorAll('#speeds button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.speed===el('pace').value)));
+el('pace').onchange=()=>{advance(performance.now());speed=Number(el('pace').value);syncSpeeds()};
+el('speeds').onclick=e=>{const b=e.target.closest('button[data-speed]');if(!b)return;el('pace').value=b.dataset.speed;el('pace').onchange()};
+el('bar-toggle').onclick=()=>el('toggle').click();
+syncSpeeds();
 function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
 function disc(x,y,r,fill,stroke){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=.12;ctx.stroke()}}
 let selectedField=fieldTemplates[0];
@@ -129,13 +150,49 @@ function drawPlayer(p){
  ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
  ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
 }
-function draw(){const t=selectedField;ctx.setTransform(20,0,0,20,50,70);rect(-2.5,-3.5,55,41,'#1c2c23');
+// Canvas layout: the canvas matches its on-screen size and the field fills it below a thin score bar.
+// Inline, the canvas height follows its width; in full screen it fills the screen.
+function layoutView(){
+ const expanded=el('field').classList.contains('expanded'),dpr=Math.min(2,window.devicePixelRatio||1),barCss=32;
+ if(!expanded){const h=Math.round(canvas.clientWidth*36/52.5)+barCss+'px';if(canvas.style.height!==h)canvas.style.height=h}
+ else if(canvas.style.height)canvas.style.height='';
+ const W=Math.max(1,Math.round(canvas.clientWidth*dpr)),H=Math.max(1,Math.round(canvas.clientHeight*dpr));
+ if(canvas.width!==W||canvas.height!==H){canvas.width=W;canvas.height=H}
+ const bar=Math.round(barCss*dpr),s=Math.min(W/52.5,(H-bar)/36);
+ return {s,ox:(W-50*s)/2,oy:bar+(H-bar-36*s)/2+s,dpr,bar};
+}
+function drawThinBar(v){
+ const w=canvas.width/v.dpr,h=v.bar/v.dpr,poss=sim.team,live=!sim.done,narrow=w<640,tiny=w<460,bw=narrow?(tiny?74:96):Math.min(150,w*.2),mid=narrow?8+bw+4:w/2;
+ ctx.save();ctx.setTransform(v.dpr,0,0,v.dpr,0,0);
+ let g=ctx.createLinearGradient(0,0,0,h);g.addColorStop(0,'#2a2f35');g.addColorStop(1,'#111417');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+ ctx.fillStyle='#0b0d10';ctx.fillRect(0,h-1,w,1);ctx.textBaseline='middle';
+ const block=(team,dir)=>{
+   const x=mid+dir*4,c=team?['#0d1d38','#2f63a3']:['#3a120b','#b8452e'],x0=dir<0?x-bw:x;
+   g=ctx.createLinearGradient(x0,0,x0+bw,0);g.addColorStop(dir<0?0:1,c[1]);g.addColorStop(dir<0?1:0,c[0]);
+   ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(x0,3,bw,h-7,4);ctx.fill();
+   const sb=30,sx=dir<0?x-sb-2:x+2;
+   g=ctx.createLinearGradient(0,5,0,h-6);g.addColorStop(0,'#fbfbfa');g.addColorStop(1,'#b3b7ba');ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(sx,5,sb,h-11,3);ctx.fill();
+   ctx.fillStyle='#121416';ctx.font='800 16px system-ui,sans-serif';ctx.textAlign='center';ctx.fillText(sim.score[team],sx+sb/2,h/2-1);
+   const lx=dir<0?x0+13:x0+bw-13;if(!tiny){ctx.beginPath();ctx.arc(lx,h/2-2,8,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.14)';ctx.fill();
+   ctx.setLineDash([2,1.5]);ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);
+   ctx.fillStyle='rgba(255,255,255,.85)';ctx.font='800 9px system-ui,sans-serif';ctx.fillText(team?'H':'E',lx,h/2-1.5)}
+   ctx.fillStyle='#f4f4f0';ctx.font='800 14px system-ui,sans-serif';ctx.textAlign=dir<0?'right':'left';ctx.fillText(team?'HAR':'EMB',dir<0?sx-6:sx+sb+6,h/2-1);
+   if(live&&poss===team){ctx.fillStyle='#f2d21b';ctx.fillRect(x0+2,h-4,bw-4,2)}
+ };
+ block(0,-1);block(1,1);
+ const n=sim.overtime?Math.floor(sim.time):Math.ceil(sim.time),clock=sim.done?'0:00':Math.floor(n/60)+':'+String(n%60).padStart(2,'0');
+ ctx.font='700 12px system-ui,sans-serif';ctx.textAlign='left';ctx.fillStyle=sim.penaltyPending?'#ffd47d':'#f4f4f0';
+ if(!narrow)ctx.fillText(sim.penaltyPending?'FREE RUN LANE':sim.done?'FINAL':teams[poss].toUpperCase()+' BALL',10,h/2-1);
+ let rx=w-10;
+ if(live){const secs=Math.floor(sim.posAge),txt='POSS '+Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0');ctx.font='800 11px system-ui,sans-serif';
+   const tw=ctx.measureText(txt).width+12;g=ctx.createLinearGradient(0,5,0,h-6);g.addColorStop(0,'#e0482a');g.addColorStop(1,'#9a210f');ctx.fillStyle=g;
+   ctx.beginPath();ctx.roundRect(rx-tw,5,tw,h-11,3);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.fillText(txt,rx-tw/2,h/2-1);rx-=tw+10}
+ ctx.font='700 12px system-ui,sans-serif';ctx.textAlign='right';ctx.fillStyle='#f4f4f0';ctx.fillText(clock+'  '+(sim.overtime?'OT':sim.half===1?'1ST':'2ND'),rx,h/2-1);
+ ctx.restore();
+}
+function draw(){const t=selectedField,view=layoutView();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#1c2c23';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.setTransform(view.s,0,0,view.s,view.ox,view.oy);
 if(t.image.complete&&t.image.naturalWidth){ctx.drawImage(t.image,0,0,50,34)}else{rect(0,0,50,34,t.grass)}
 ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
- rect(16.1,-3.02,17.8,2.48,'#0b1510');ctx.strokeStyle='#76877a';ctx.lineWidth=.07;ctx.strokeRect(16.1,-3.02,17.8,2.48);
- ctx.font='700 .70px system-ui,sans-serif';ctx.fillStyle=colors[0];ctx.fillText('EMBER',19.25,-2.20);ctx.fillStyle='#f4f6ed';ctx.fillText(sim.score[0],22.25,-2.20);
- ctx.fillText('–',25,-2.20);ctx.fillText(sim.score[1],27.75,-2.20);ctx.fillStyle=colors[1];ctx.fillText('HARBOR',30.75,-2.20);
- ctx.font='600 .52px monospace';ctx.fillStyle=sim.penaltyPending?'#ffd47d':'#cfe891';ctx.fillText(sim.penaltyPending?'PENALTY · FREE RUN LANE':sim.done?'FULL TIME':stamp(sim),25,-1.18);
  if(sim.impact){
    const {x,y,time}=sim.impact;
    ctx.globalAlpha=Math.min(1,time*4);
@@ -145,9 +202,10 @@ ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace'
  if(sim.contact){let {p,d}=sim.contact;disc((p.x+d.x)/2,(p.y+d.y)/2,1.6,"#a58038","#ffe27d")}
  for(let p of sim.players)if(!p.sidelined)drawPlayer(p);
  drawBall(sim.ball());
+ drawThinBar(view);
  const share=(values)=>{let total=values[0]+values[1];return total?Math.round(100*values[0]/total)+'% / '+Math.round(100*values[1]/total)+'%':'—'};
  el('control').textContent='Current possession '+Math.floor(sim.posAge/60)+':'+String(Math.floor(sim.posAge)%60).padStart(2,'0')+' · Ember / Harbor · Possession '+share(sim.possession)+' · Runway ball control '+share(sim.runway);
- el('points').textContent=sim.score.join(' – ');el('clock').textContent=sim.done?'FULL TIME':statsMode==='half'?'HALFTIME':stamp(sim)+' · '+teams[sim.team]+(sim.urgent?' · Hurry-up':sim.conservative?' · Protecting lead':'')+(sim.press?' · '+teams[1-sim.team]+' pressing':'');el('toggle').textContent=sim.done?'Full time':playing?'Pause':'Resume';el('toggle').disabled=sim.done||!el('pregame').hidden}
+ el('points').textContent=sim.score.join(' – ');el('clock').textContent=sim.done?'FULL TIME':statsMode==='half'?'HALFTIME':stamp(sim)+' · '+teams[sim.team]+(sim.urgent?' · Hurry-up':sim.conservative?' · Protecting lead':'')+(sim.press?' · '+teams[1-sim.team]+' pressing':'');el('toggle').textContent=sim.done?'Full time':playing?'Pause':'Resume';el('toggle').disabled=sim.done||!el('pregame').hidden;el('bar-toggle').textContent=el('toggle').textContent;el('bar-toggle').disabled=el('toggle').disabled}
 const statKeys=['pts','att','cmp','rec','tc','int','tkl','fum','to','pen','pbu','drp','hit'];
 const statLabels=['Points','Pass attempts','Completions','Receptions','Throwing Centers','Interceptions',
   'Tackles','Fumbles','Turnovers','Penalties','Passes broken up','Drops','Big hits'];
@@ -324,7 +382,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 const field=el('field'), expand=el('expand');
 function fieldMode(on){
- field.classList.toggle('expanded',on);expand.textContent=on?'Exit full screen':'Full screen';expand.setAttribute('aria-pressed',String(on));
+ field.classList.toggle('expanded',on);expand.textContent=on?'Exit':'Full screen';expand.setAttribute('aria-label',on?'Exit full screen':'Full screen');expand.setAttribute('aria-pressed',String(on));
 }
 expand.onclick=async()=>{
  if(field.classList.contains('expanded')){
@@ -334,6 +392,7 @@ expand.onclick=async()=>{
  }else{
    fieldMode(true);
    try{if(field.requestFullscreen)await field.requestFullscreen();else field.webkitRequestFullscreen?.()}catch{/* The viewport layout also works in embedded browsers. */}
+   try{await screen.orientation?.lock?.('landscape')}catch{/* Not every browser allows orientation lock. */}
  }
 };
 function syncFullscreen(){fieldMode(Boolean(document.fullscreenElement||document.webkitFullscreenElement))}
