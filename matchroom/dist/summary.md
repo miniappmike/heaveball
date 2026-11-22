@@ -134,9 +134,13 @@ The footer uses accessible GitHub and OpenAI logo links to the production Matchr
 
 The field fills the mobile viewport with black margins and overlaid playback controls. The match page stays vertically scrollable in native fullscreen and in the viewport fallback.
 
+## Player markers
+
+Players keep their numbered circles during loose-ball scrambles.
+
 ## Build record
 
-Built 2026-11-22 17:15 UTC.
+Built 2026-11-22 17:52 UTC.
 
 - match-4fe2a8d8ae.js
-- view-c3fe54cb6f.js
+- view-5c2a6e46c4.js

@@ -119,16 +119,7 @@ function drawBall(ball){
 }
 function drawPlayer(p){
  if(p.blocked>0)disc(p.x,p.y,1,"#8a7546","#f5d688");
- if(p.scramblePose&&p.scramblePose!=='dive'){
-   const fall=p.scramblePose==='fall';
-   ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.scrambleAngle||0);
-   ctx.beginPath();ctx.ellipse(0,0,fall?.98:.88,fall?.48:.58,0,0,Math.PI*2);
-   ctx.fillStyle=colors[p.team];ctx.fill();ctx.strokeStyle='#12271e';ctx.lineWidth=.12;ctx.stroke();
-   ctx.strokeStyle='#f3dfac';ctx.lineWidth=.13;ctx.lineCap='round';ctx.beginPath();
-   if(p.scramblePose==='shove'){ctx.moveTo(.25,-.30);ctx.lineTo(.90,-.72);ctx.moveTo(.25,.30);ctx.lineTo(.90,.72)}
-   else{ctx.moveTo(-.55,-.26);ctx.lineTo(.55,.26)}
-   ctx.stroke();ctx.restore();
- }else disc(p.x,p.y,.76,colors[p.team],'#12271e');
+ disc(p.x,p.y,.76,colors[p.team],'#12271e');
  ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
  ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
 }
