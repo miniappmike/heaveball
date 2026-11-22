@@ -25,6 +25,7 @@ Use integer ratings from **20 to 100**, with **60** typical on the league-wide s
 | Strength | Governs how much force a player can apply or resist while blocking, standing up a block, tackling, breaking a tackle, or driving a pile. |
 | Speed | Sets top running speed. It affects separation, pursuit, and contact through the speed the player actually reaches. |
 | Agility | Governs acceleration, braking, and how much speed a player can carry through a cut. |
+| Tackling | Helps defenders wrap up and finish a tackle. Size, approach angle, momentum and support also affect the result. |
 | Jump | Adds vertical reach for contested catches and deflections. |
 | Hands | Governs catching, securing handoffs, retaining possession through a tackle or in a pile, and controlling a deflection when the player reaches the ball. |
 | Reaction | Sets the delay between a cue and a player's response to a pass, cut, change of direction, or loose ball. Higher ratings mean shorter delays. |
@@ -36,14 +37,14 @@ Use integer ratings from **20 to 100**, with **60** typical on the league-wide s
 | --- | --- |
 | Heaver | Arm Strength, Throw Accuracy |
 | Runner | Agility, Hands |
-| Anchor | Strength |
+| Anchor | Strength, Tackling |
 
 Add **Stamina** when fatigue and recovery start to affect lineup or substitution decisions.
 
 ## Resolving plays
 
 - **Movement and contact.** Use each player's mass and actual velocity to determine momentum. Resolve contact using the angle of impact, footing and bracing, then use Strength to determine how much force each player can apply or resist as contact continues. A running player can carry through glancing contact, and a braced defender can stop a carrier who meets them squarely. Speed already contributes through velocity, so apply its effect once. On a pile drive, use the forces that the engaged players can transmit in the direction of the drive.
-- **Tackles and possession.** Derive tackle and break-tackle results from the contact. On a tackle, use the severity of the contact and the carrier's Hands to determine whether the ball comes loose. Hands helps a player secure or recover the ball. The contact itself is the source of a forced fumble. Apply the restart or turnover for the zone and type of play.
+- **Tackles and possession.** Use Tackling alongside Strength and the contact matchup. A failed juke, nearby help or a size advantage can make a solo stop easier. A carrier with enough speed and mass can run through a defender. Heavy, well-aligned hits can jar the ball loose on a carry or break up a catch. Hands helps secure the ball, and a ball knocked loose can bounce into a live recovery.
 - **Contested balls.** Use actual ball trajectory and player positions, with height setting standing reach and Jump adding vertical reach. Reaction determines how soon a player responds. Hands resolves control once a player can reach the ball.
 - **Penalties and saves.** Evaluate Discipline only where the rules allow a violation, such as a player nearing a restricted boundary or an offensive blocker approaching from behind. A kick save requires an eligible out-of-bounds player who can reach an airborne ball headed out. Resolve any resulting catch or recovery under the save rules.
 
