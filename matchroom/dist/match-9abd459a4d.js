@@ -459,7 +459,7 @@ function match(report){
    loose={x,y,vx:(rand()-.5)*3,vy:(rand()-.5)*3,z:ballRadius,vz:0,spin:0,omega:0,kind,last:p.team,originTeam:p.team,responsible:p.stats?p:pass?.thrower,wait:.18,bobbles:0};
    pass=null;carrier=null;s.contact=null;pile=null;stationary=false;
  }
- let pile=null, lane=false, whistle=0, boundaryRestart=null,pendingLane=null;
+ let pile=null, lane=null, whistle=0, boundaryRestart=null,pendingLane=null;
  function stoppage(){s.stoppageEvents++;s.stoppagePending=true}
  function boundaryContact(p,d){
    const sides=[
@@ -505,15 +505,66 @@ function match(report){
  }
  function freeLane(team){
    s.penaltyPending=false;
-   restart(team);lane=true;
-   let runner=players[team*8+4], side=runner.side;
-   runner.x=25+side*23;runner.y=17;
+   restart(team);
+   const runner=players[team*8+4],side=runner.side;
+   const anchor=players[team*8+5],primary=players[(1-team)*8+6],help=players[(1-team)*8+7];
+   for(const [p,depth,y] of [[runner,23,17],[anchor,13.5,20],[primary,8,17],[help,11,20]]){
+     p.x=p.hx=center.x+side*depth;p.y=p.hy=y;
+   }
+   lane={anchor,primary,help,blockAttempted:false,challenged:false,grip:null};
    buildup=0;assign(runner);run=true;stationary=false;whistle=hold;hold=0;
-   log(teams[team]+' takes a free run lane');
+   log(teams[team]+' takes a free run lane · '+anchor.name+' leads the block, '+primary.name+' has the one-on-one');
+ }
+ function laneBlock(p,help){
+   if(lane.blockAttempted||dist(p,help)>=1.65)return;
+   lane.blockAttempted=true;
+   const power=p.ratings[2]-help.ratings[2];
+   if(rand()<clamp(.76+power*.006,.40,.94)){
+     help.screened=help.blocked=clamp(3.1+power*.027,2.1,4.1);
+     log(p.name+' blocks '+help.name+' out of the lane');
+   }else log(help.name+' slips '+p.name+'’s block');
+ }
+ function tackleLane(p,d){
+   lane.challenged=true;
+   const {form,strength,drive,impact}=contactMatchup(p,d);
+   const balance=p.ratings[10]-d.ratings[10];
+   const lungeChance=clamp(.43+(form-d.ratings[2])*.005+(impact-3)*.07,.20,.75);
+   if(rand()<lungeChance){
+     log(d.name+' lunges to stop '+p.name+' at the spot');
+     const finish=clamp(.24+(form-65)*.004+strength*.002+drive*.05-balance*.003,.09,.53);
+     if(rand()<finish){showImpact(p,d);stopCarrier(p,d);return}
+     log(p.name+' stays up through the lunge');
+   }else{
+     log(d.name+' grabs for '+p.name+' to wait for help');
+     const holdChance=clamp(.66+(form-65)*.004+strength*.004+drive*.06-balance*.003,.32,.88);
+     if(rand()<holdChance){
+       lane.grip={d,left:clamp(2.2+strength*.027+(form-65)*.018-balance*.02,1,3.8),x:d.x-p.x,y:d.y-p.y};
+       s.contact={p,d};p.jukeTime=0;p.vx*=.22;p.vy*=.22;
+       log(d.name+' holds up '+p.name+' · waiting for help');
+       return;
+     }
+     log(p.name+' slips the grab');
+   }
+   d.blocked=1.15;
+ }
+ function advanceLaneGrip(p,dt){
+   const grip=lane.grip,helper=grip.d===lane.primary?lane.help:lane.primary;
+   movePlayer(grip.d,p.x+grip.x,p.y+grip.y);
+   if(!helper.blocked&&dist(helper,p)<1.55){
+     log(helper.name+' joins '+grip.d.name+' to finish the tackle');
+     stopCarrier(p,grip.d);
+     return;
+   }
+   grip.left-=dt;
+   if(grip.left<=0||dist(grip.d,center)<ringRadius){
+     lane.grip=s.contact=null;
+     grip.d.blocked=1.05;
+     log(p.name+' breaks free before help arrives');
+   }
  }
  function ringPenalty(dt,active){
    for(const p of players){
-     const engaged=p.screened>0||pile&&(p===pile.p||p===pile.d);
+     const engaged=p.screened>0||pile&&(p===pile.p||p===pile.d)||lane?.grip&&(p===carrier||p===lane.grip.d);
      p.ringTime=active(p)&&!engaged&&dist(p,center)<=ringRadius?p.ringTime+dt:0;
      p.screened=Math.max(0,p.screened-dt*fieldSecondsPerSecond);
      if(p.ringTime>ringLimit+1e-9){
@@ -844,7 +895,7 @@ function match(report){
    log(teams[team]+' sets up · '+plan);
  }
  function restart(team,side,index){
-   loose=null;s.contact=s.impact=null;s.scramblePursuers=[];pile=null;lane=false;cool=0;
+   loose=null;s.contact=s.impact=null;s.scramblePursuers=[];pile=null;lane=null;cool=0;
    defensiveAssignments.clear();defenseReadAt=0;
    cornerReturn=anchorLeak=relay=blueTrap=swing=null;
    if(s.overtime){restartOvertime(team);return}
@@ -1050,7 +1101,7 @@ function match(report){
  }
  const hurry=urgent(s.team), safe=conservative(s.team);
  if(carrier&&hurry)readTime=Math.min(readTime,age+.65);
- if(carrier&&safe&&Math.abs(carrier.y-17)>5&&!pile){
+ if(carrier&&safe&&Math.abs(carrier.y-17)>5&&!pile&&!lane){
    if(!s.conservative||s.coachingTeam!==s.team)readTime=Math.max(readTime,age+4);
    run=false;cornerReturn=anchorLeak=relay=openingCall=swing=null;
  }
@@ -1163,7 +1214,7 @@ function match(report){
    }
    continue;
  }
- if(!active(p)||pile&&(p===pile.p||p===pile.d))continue;
+ if(!active(p)||pile&&(p===pile.p||p===pile.d)||p===lane?.grip?.d)continue;
  p.blocked=Math.max(0,(p.blocked||0)-dt);p.helpTime=Math.max(0,(p.helpTime||0)-dt);
  let tx=p.hx,ty=p.hy;
  p.jukeWait=Math.max(0,p.jukeWait-dt);p.jukeTime=Math.max(0,p.jukeTime-dt);
@@ -1186,6 +1237,14 @@ function match(report){
  p.angle=choices.sort((a,b)=>(Math.min(5,clearance(b,off))-.65*dist(b,center))-(Math.min(5,clearance(a,off))-.65*dist(a,center)))[0]
  }tx=p.angle.x;ty=p.angle.y}}
  else if(pass&&p===pass.target){tx=pass.end.x;ty=pass.end.y}
+ else if(lane){
+   if(p===lane.anchor){
+     tx=lane.help.hx;ty=lane.help.hy;
+     laneBlock(p,lane.help);
+   }else if((p===lane.primary&&dist(p,focus)<5)||(lane.challenged&&!p.blocked)){
+     tx=focus.x;ty=focus.y;
+   }
+ }
  else if(s.overtime){
    const side=focus.x<center.x?-1:1;
    const depth=Math.abs(focus.x-center.x);
@@ -1273,8 +1332,7 @@ function match(report){
 
  }
  else if(p.team!==off){
-   const spot=lane?lanePosition(focus,clamp(dist(focus,center)-1.1,ringRadius+.8,8),p.i===6?-.85:.85):
-     defend(p,focus,off,scheme);
+   const spot=defend(p,focus,off,scheme);
    tx=spot.x;ty=spot.y;
  }
  else if(p.role==='Anchor'&&p.team===off){let threat=players.filter(q=>q.team!==off&&active(q)&&!q.blocked).sort((a,b)=>dist(a,focus)-dist(b,focus))[0]||focus;
@@ -1302,6 +1360,7 @@ function match(report){
  const effort=Math.hypot(p.vx,p.vy)/topSpeed(p.ratings[3]);
  p.energy=clamp(p.energy+dt*(effort>.45?-.018*effort:.024),0,1);
  if(p===carrier){v*=.28+.72*p.energy;if(p.energy<.24&&!stationary)readTime=Math.min(readTime,1)}
+ if(p===carrier&&lane?.grip)v*=.22;
  if(p.blocked>0)v*=leavingRing ? .5 : .12;
  const dvx=dx/(d||1)*v-p.vx,dvy=dy/(d||1)*v-p.vy,k=Math.min(1,a/(Math.hypot(dvx,dvy)||1));
  p.vx+=dvx*k;p.vy+=dvy*k;
@@ -1480,6 +1539,7 @@ function match(report){
  }
  return}
  let p=carrier;if(worth===0&&!blue(p))worth=2;if(worth>0&&blue(p)&&insideRing(p)){score(p,worth);return}
+ if(lane?.grip){advanceLaneGrip(p,dt);return}
  const plannedProbe=plan==='Drive and kick';
  if(run&&!stationary&&!lane&&!s.overtime&&!retreat&&worth===2&&age>=nextRead&&(plannedProbe||!relay)){
    nextRead=age+.6;
@@ -1603,7 +1663,7 @@ function match(report){
  else log(p.name+' connects with '+target.name);
  return}
  if(stationary)return;
- const pressure=players.filter(q=>q.team!==off&&active(q)&&!q.blocked&&dist(p,q)<3.5)
+ const pressure=players.filter(q=>q.team!==off&&active(q)&&!q.blocked&&(!lane||lane.challenged||q===lane.primary)&&dist(p,q)<3.5)
    .reduce((nearest,q)=>!nearest||dist(p,q)<dist(p,nearest)?q:nearest,null);
  if(relay&&!relay.used&&relay.player!==p&&run&&pressure&&Math.abs(p.y-17)<=5&&worth===2&&
     dist(p,pressure)<2.6&&dist(p,relay.player)<2.05&&!relay.player.blocked&&!noPossession(relay.player)){
@@ -1619,7 +1679,9 @@ function match(report){
      let dx=25-p.x,dy=17-p.y,gap=Math.hypot(dx,dy)||1;
      let options=[-1,1].map(k=>({x:clamp(p.x+dx/gap-k*dy/gap*3,.8,49.2),y:clamp(p.y+dy/gap+k*dx/gap*3,.8,33.2)}));
      let cut=clearance(options[0],off)>clearance(options[1],off)?options[0]:options[1];
-     p.jukeX=cut.x;p.jukeY=cut.y;p.jukeTime=.8;pressure.blocked=.7;p.missedJuke=null;log(p.name+' jukes past '+pressure.name)
+     p.jukeX=cut.x;p.jukeY=cut.y;p.jukeTime=.8;pressure.blocked=.7;p.missedJuke=null;
+     if(lane)lane.challenged=true;
+     log(p.name+' jukes past '+pressure.name)
    }else p.missedJuke={defender:pressure,until:age+.95};
  }
  if(!lane&&age>1.4&&pressure&&!blue(p)&&Math.abs(p.y-17)<=5){
@@ -1629,7 +1691,8 @@ function match(report){
  }
  if(pressure&&!pressure.blocked&&dist(p,pressure)<1.38&&cool<=0){
    cool=.86;
-   tackleCarrier(p,pressure,active);
+   if(lane)tackleLane(p,pressure);
+   else tackleCarrier(p,pressure,active);
  }
  };
  s.ball=()=>s.scoringSpot?{...s.scoringSpot,z:.82}:carrier?
