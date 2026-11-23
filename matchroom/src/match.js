@@ -23,6 +23,9 @@ const defenseCounter=[5,7,6,7,0];
 // Playbook by the opponent's defense index: Balanced, Ring guard, Receiver denial, Star focus,
 // Passing-lane zone, Carrier pressure, Runway contain, Switch coverage.
 const playbookCounter=[1,0,2,3,3,3,0,2];
+// Overreaction: after the opponent scores, a coach may make a knee-jerk defensive switch. The chance per
+// score is OVERREACT_RATE × (1 − adaptability)², at most four per half, and not within one minute of a change.
+const OVERREACT_RATE=.5915,overreactCooldown=60,overreactPerHalf=4;
 const firstHalfHurry=90,reviewEvery=300,coachMinPossessions=4,leakyDefense=1.05,stalledOffense=.6;
 const center={x:25,y:17}, blue=p=>Math.abs(p.x-25)<=5&&Math.abs(p.y-17)<=5;
 const ringRadius=2;
@@ -1401,6 +1404,28 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  const coachWindow=teams.map(()=>({score:[0,0],poss:[0,0]}));
  let reviewMark=0;
  const stretch=(team,t)=>({pts:s.score[t]-coachWindow[team].score[t],poss:s.stints[t].length-coachWindow[team].poss[t]});
+ const lastChange=[-Infinity,-Infinity],overreactions=[0,0];let seenScore=[0,0],overreactHalf=1;
+ const gameClock=()=>s.overtime?2400+s.time:(s.half-1)*1200+1200-s.time;
+ function noteChange(team){lastChange[team]=gameClock()}
+ function coachOverreact(){
+   if(s.overtime)return;
+   if(s.half!==overreactHalf){overreactHalf=s.half;overreactions[0]=overreactions[1]=0}
+   for(const team of [0,1]){
+     const o=1-team,scored=s.score[o]-seenScore[o];
+     if(scored<2)continue;
+     const c=s.coaches[team],a=c.adaptability/100;
+     if(overreactions[team]>=overreactPerHalf||gameClock()-lastChange[team]<overreactCooldown)continue;
+     if(rand()>=OVERREACT_RATE*(1-a)**2)continue;
+     // A knee-jerk switch is a guess more often than not; the stretch was not actually reviewed.
+     const counter=defenseCounter[playbooks.indexOf(s.playbooks[o])];
+     let pick=rand()<.35?counter:Math.floor(rand()*defenses.length);
+     if(pick===s.defenses[team])pick=(pick+1+Math.floor(rand()*(defenses.length-1)))%defenses.length;
+     s.defenses[team]=pick;c.changes++;c.overreactions=(c.overreactions||0)+1;overreactions[team]++;noteChange(team);
+     coachWindow[team]={score:s.score.slice(),poss:s.stints.map(x=>x.length)};
+     log(teams[team]+' coach '+c.name+' overreacts to the score and switches the defense to '+defenses[pick].name);
+   }
+   seenScore=s.score.slice();
+ }
  function coachReview(halftime){
    for(const team of [0,1]){
      const c=s.coaches[team],o=1-team,a=c.adaptability/100;
@@ -1424,7 +1449,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
          log(teams[team]+' coach '+c.name+' changes the offense to '+playbooks[pick].name+' from the next restart');
        }
      }
-     if(changed)coachWindow[team]={score:s.score.slice(),poss:s.stints.map(x=>x.length)};
+     if(changed){coachWindow[team]={score:s.score.slice(),poss:s.stints.map(x=>x.length)};noteChange(team)}
    }
  }
  // One referee works a dirt strip: the top strip in the first half, the bottom strip after halftime.
@@ -1507,6 +1532,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  else if((s.time-=dt)>0&&(s.half-1)*1200+1200-s.time>=reviewMark+reviewEvery){
    reviewMark+=reviewEvery;coachReview(false);
  }
+ if(s.score[0]!==seenScore[0]||s.score[1]!==seenScore[1])coachOverreact();
  if(!s.overtime&&s.time<=0){
    finishStint();
    for(const athlete of players.concat(bench))athlete.energy=1;
