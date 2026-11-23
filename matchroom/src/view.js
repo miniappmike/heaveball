@@ -8,14 +8,14 @@ const fieldTemplates=[
 
 if(!window.heaveballReady){
 const el=id=>document.getElementById(id),canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),colors=['#ff805d','#69bafa'];
-const fixedStep=.04,halftimeDuration=15000,scoringDuration=5000,penaltyDuration=3000,stoppageDuration=2000;
+const tackleDuration=2000,fixedStep=.04,halftimeDuration=15000,scoringDuration=3500,penaltyDuration=3500,stoppageDuration=3500;
 let sim,playing=false,carry=0,wall=performance.now(),speed=1,backgroundTimer=0;
 let statsMode=null,statsPage=0,statsDeadline=0,frozenTime=null,finalStats=null;
 function stamp(s){let n=s.overtime?Math.floor(s.time):Math.ceil(s.time);return (s.overtime?'OT':'H'+s.half)+' · '+Math.floor(n/60)+':'+String(n%60).padStart(2,'0')}
-let boxDirty=true,breakUntil=0,shownHighlights=-1;
-function report(s,msg){boxDirty=true;let row=document.createElement('p'),t=document.createElement('time');t.textContent=stamp(s)+'  ';row.append(t,msg);el('feed').prepend(row);if(el('feed').children.length>80)el('feed').lastChild.remove()}
+let tackleBreak=false,boxDirty=true,breakUntil=0,callUntil=0,callAge=Infinity,callSub='',stepMsgs=[],lastFrame=performance.now(),shownHighlights=-1;
+function report(s,msg){boxDirty=true;stepMsgs.push(msg);let row=document.createElement('p'),t=document.createElement('time');t.textContent=stamp(s)+'  ';row.append(t,msg);el('feed').prepend(row);if(el('feed').children.length>80)el('feed').lastChild.remove()}
 function scout(){let p=sim.players[+el('roster').value],h=Math.round(p.height);el('build').textContent=p.role+' · '+Math.floor(h/12)+'′'+h%12+'″ · '+Math.round(p.weight)+' lb';el('cards').replaceChildren(...traits.map((name,i)=>{let line=document.createElement('span'),num=document.createElement('b');num.textContent=p.ratings[i];line.append(name,num);return line}))}
-function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;boxDirty=true;el('feed').replaceChildren();sim=match(report);playing=false;carry=0;el('roster').replaceChildren(...sim.players.map((p,i)=>new Option(teams[p.team]+' #'+p.jersey+' · '+p.name,i)));scout();briefing()}
+function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;callUntil=0;callAge=Infinity;boxDirty=true;el('feed').replaceChildren();sim=match(report);playing=false;carry=0;el('roster').replaceChildren(...sim.players.map((p,i)=>new Option(teams[p.team]+' #'+p.jersey+' · '+p.name,i)));scout();briefing()}
 function briefing(){
  const average=values=>values.reduce((sum,v)=>sum+v,0)/values.length;
  const squads=teams.map((_,i)=>sim.players.filter(p=>p.team===i));
@@ -98,9 +98,11 @@ for(const template of fieldTemplates){const option=document.createElement('optio
 try{selectedField=fieldTemplates.find(t=>t.id===localStorage.getItem('heaveball-field'))||selectedField}catch{}
 fieldPicker.value=selectedField.id;
 fieldPicker.addEventListener('change',()=>{selectedField=fieldTemplates.find(t=>t.id===fieldPicker.value)||fieldTemplates[0];try{localStorage.setItem('heaveball-field',selectedField.id)}catch{}});
-for(const template of fieldTemplates){template.image=new Image();template.image.src='fields/'+template.id+'.jpg'}
-const dirtTexture=new Image();
-dirtTexture.src="dirt.png";
+// Field textures load on first use. The build may embed the default one so the page draws without sibling files.
+function fieldImage(template){
+ if(!template.image){template.image=new Image();template.image.src=(typeof fieldImages!=='undefined'&&fieldImages[template.id])||'fields/'+template.id+'.webp'}
+ return template.image;
+}
 function drawBall(ball){
  const height=Math.max(0,(ball.z??ballRadius)-ballRadius);
  const x=ball.x,y=ball.y-height*.67;
@@ -119,10 +121,12 @@ function drawBall(ball){
  disc(x,y,radius,light,'#223039');
 }
 function drawPlayer(p){
- if(p.blocked>0)disc(p.x,p.y,1,"#8a7546","#f5d688");
- disc(p.x,p.y,.76,colors[p.team],'#12271e');
+ const flagged=sim.penaltyPending&&sim.penalized===p;
+ if(flagged)disc(p.x,p.y,1.25,'rgba(255,40,40,.45)','#ff2a2a');
+ else if(p.blocked>0)disc(p.x,p.y,1,"#8a7546","#f5d688");
+ disc(p.x,p.y,.76,flagged?'#ff3b3b':colors[p.team],flagged?'#fff':'#12271e');
  ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
- ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
+ if(sim.tackled===p){ctx.beginPath();ctx.arc(0,0,.6,0,Math.PI*2);ctx.strokeStyle='#000';ctx.lineWidth=.16;ctx.stroke()}ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
 }
 // Canvas layout: the canvas matches its on-screen size and the field fills it below a thin score bar.
 // Inline, the canvas height follows its width; in full screen it fills the screen.
@@ -195,11 +199,55 @@ function drawThinBar(v){
  const period=sim.overtime?'OT':sim.half===1?'1ST':'2ND';
  ctx.font=label+'px '+barFont;ctx.textAlign='right';
  if(!tiny||!live){ctx.fillStyle=muted;ctx.fillText(period,r,cy);r-=ctx.measureText(period).width+8}
- ctx.fillStyle=ink;ctx.fillText(clock,r,cy);
+ ctx.fillStyle=ink;ctx.fillText(clock,r,cy);r-=ctx.measureText(clock).width;
+ ctx.restore();
+}
+// Shockwave call popup: white rings burst from the center ring, then the call pill pops in and pulses.
+function drawCallout(){
+ if(!sim.call||callAge>=3500)return;
+ const tones={Turnover:['#ff4d4d','#fff','255,77,77'],Penalty:['#ffd23f','#2a2100','255,210,63'],'Center!':['#2f8cff','#fff','47,140,255'],'Takeaway!':['#ffa31a','#2a1600','255,163,26'],'Out of bounds':['#eef2f0','#1a201d','238,242,240']},[bg,fg,glow]=tones[sim.call];
+ const t=callAge/1000,cx=25,cy=16.2;
+ ctx.save();
+ for(const delay of [0,.18,.36]){
+   const p=(t-delay)/1.1;if(p<0||p>1)continue;
+   ctx.beginPath();ctx.arc(25,17,2*(1+8*p),0,Math.PI*2);ctx.strokeStyle='rgba(255,255,255,'+(.9*(1-p))+')';ctx.lineWidth=.4;ctx.stroke();
+ }
+ const k=Math.min(1,Math.max(0,(t-.1)/.4)),c1=2.6,scale=k?1+(c1+1)*Math.pow(k-1,3)+c1*Math.pow(k-1,2):0;
+ if(scale>0){
+   const txt=sim.call.toUpperCase();
+   ctx.translate(cx,cy);ctx.scale(scale,scale);
+   ctx.font='5px '+barFont;ctx.textAlign='center';ctx.textBaseline='middle';
+   const w=ctx.measureText(txt).width+5,h=6;
+   if(t>.6){const q=((t-.6)%2.8)/1.4,p=q>1?2-q:q;ctx.beginPath();ctx.roundRect(-w/2-1.8*p,-h/2-1.8*p,w+3.6*p,h+3.6*p,h/2+1.8*p);ctx.fillStyle='rgba('+glow+','+(.7*(1-p))+')';ctx.fill()}
+   ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=2;ctx.shadowOffsetY=.6;
+   ctx.beginPath();ctx.roundRect(-w/2,-h/2,w,h,h/2);ctx.fillStyle=bg;ctx.fill();
+   ctx.shadowColor='transparent';ctx.fillStyle=fg;ctx.fillText(txt,0,.35);
+   if(callSub){
+     let size=1.5;ctx.font='600 '+size+'px Inter,system-ui,sans-serif';
+     let tw=ctx.measureText(callSub).width;if(tw>42){size*=42/tw;ctx.font='600 '+size+'px Inter,system-ui,sans-serif';tw=42}
+     const by=h/2+2.1,bh=size*1.9;
+     ctx.beginPath();ctx.roundRect(-tw/2-1.1,by-bh/2,tw+2.2,bh,bh/2);ctx.fillStyle='rgba(10,14,12,.82)';ctx.fill();
+     ctx.fillStyle='#fff';ctx.fillText(callSub,0,by+size*.06);
+   }
+ }
+ ctx.restore();
+}
+// Field markings are vector paths so they stay sharp at any canvas size.
+function drawFieldLines(){
+ ctx.save();ctx.strokeStyle=ctx.fillStyle='rgba(247,249,245,.95)';ctx.lineCap='butt';
+ const line=(w,pts)=>{ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(pts[0],pts[1]);ctx.lineTo(pts[2],pts[3]);ctx.stroke()};
+ ctx.lineWidth=.2;ctx.strokeRect(.1,.1,49.8,33.8);
+ for(const x of [20,30])line(.2,[x,0,x,34]);
+ for(const y of [12,22])line(.2,[0,y,50,y]);
+ ctx.lineWidth=.25;ctx.beginPath();ctx.arc(25,17,2,0,Math.PI*2);ctx.stroke();
+ for(const [x,y] of [[10,6],[40,6],[10,28],[40,28]]){ctx.beginPath();ctx.arc(x,y,.35,0,Math.PI*2);ctx.fill()}
+ for(const x of [1.9,48.1])line(.22,[x,15.5,x,18.5]);
+ for(const x of [14.9,35.1])for(let i=0;i<4;i++)line(.18,[x,15.5+i*.8,x,15.95+i*.8]);
  ctx.restore();
 }
 function draw(){const t=selectedField,view=layoutView();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=el('field').classList.contains('mobile-expanded')?'#000':'#121614';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.setTransform(view.s,0,0,view.s,view.ox,view.oy);
-if(t.image.complete&&t.image.naturalWidth){ctx.drawImage(t.image,0,0,50,34)}else{rect(0,0,50,34,t.grass)}
+const image=fieldImage(t);if(image.complete&&image.naturalWidth){ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(image,0,0,50,34)}else{rect(0,0,50,34,t.grass)}
+drawFieldLines();
 ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
  if(sim.impact){
    const {x,y,time}=sim.impact;
@@ -209,7 +257,8 @@ ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace'
  }
  if(sim.contact){let {p,d}=sim.contact;disc((p.x+d.x)/2,(p.y+d.y)/2,1.6,"#a58038","#ffe27d")}
  for(let p of sim.players)if(!p.sidelined)drawPlayer(p);
- drawBall(sim.ball());
+ const ball=sim.ball();if(ball)drawBall(ball);
+ drawCallout();
  drawThinBar(view);
  const share=(values)=>{let total=values[0]+values[1];return total?Math.round(100*values[0]/total)+'% / '+Math.round(100*values[1]/total)+'%':'—'};
  el('control').textContent='Current possession '+Math.floor(sim.posAge/60)+':'+String(Math.floor(sim.posAge)%60).padStart(2,'0')+' · Ember / Harbor · Possession '+share(sim.possession)+' · Runway ball control '+share(sim.runway);
@@ -354,8 +403,9 @@ function advance(now){
      carry+=(now-wall)*speed/1000;wall=now;break;
    }
    wall+=stepTime;carry=0;steps--;
-   const scores=sim.scoreEvents,penalties=sim.penaltyEvents,stoppages=sim.stoppageEvents,priorHalftime=sim.halftime;
-   sim.step(fixedStep);
+   const tackles=sim.tackleEvents,calls=sim.callEvents,scores=sim.scoreEvents,penalties=sim.penaltyEvents,stoppages=sim.stoppageEvents,priorHalftime=sim.halftime;
+   stepMsgs=[];tackleBreak=false;sim.step(fixedStep);
+   if(sim.callEvents!==calls){callUntil=wall+3500;callAge=0;callSub=sim.callSub||stepMsgs.find(m=>/Penalty|scores|point|turnover|intercept|out of bounds/i.test(m))||stepMsgs[0]||''}
    if(sim.done){
      finalStats=snapshot();
      el('final-box').hidden=false;
@@ -364,6 +414,7 @@ function advance(now){
    else if(sim.penaltyEvents!==penalties)breakUntil=wall+penaltyDuration;
    else if(sim.scoreEvents!==scores)breakUntil=wall+scoringDuration;
    else if(sim.stoppageEvents!==stoppages)breakUntil=wall+stoppageDuration;
+   else if(sim.tackleEvents!==tackles){breakUntil=wall+tackleDuration;tackleBreak=true}
  }
 }
 function scheduleBackground(){
@@ -376,11 +427,22 @@ function scheduleBackground(){
    },750);
  }
 }
+let lastDrawKey='';
 function frame(){
  if(!document.hidden){
    const now=performance.now();
-   advance(now);draw();renderBox();renderHighlights();
-   if(now<breakUntil&&!sim.done)el('clock').textContent=stamp(sim)+(sim.penaltyPending?' · Penalty · free run lane pending':sim.stoppagePending?' · Stoppage':' · Scoring break');
+   // The popup clock only runs during playback, so a paused game keeps the call on screen.
+   if(playing&&statsMode!=='half')callAge+=now-lastFrame;lastFrame=now;
+   // A drawing error must never stop the animation loop, or the field freezes while the log keeps going.
+   try{
+     advance(now);
+     // While nothing on the field can change (paused, halftime screen, idle pregame), skip the redraw to save battery.
+     const image=fieldImage(selectedField),key=[sim.players.reduce((a,p)=>a+p.x*3.1+p.y,0).toFixed(3),playing,statsMode,frozenTime,sim.time,sim.posAge,sim.done,sim.half,sim.callEvents,selectedField.id,image.complete,
+       canvas.clientWidth,canvas.clientHeight,window.devicePixelRatio,el('field').className,el('pregame').hidden].join('|');
+     if(playing||key!==lastDrawKey){draw();lastDrawKey=key}
+     renderBox();renderHighlights();
+   }catch(e){console.error(e)}
+   if(now<breakUntil&&!sim.done)el('clock').textContent=stamp(sim)+(sim.penaltyPending?' · Penalty · free run lane pending':sim.stoppagePending?' · Stoppage':tackleBreak?' · Tackle':' · Scoring break');
  }
  requestAnimationFrame(frame);
 }

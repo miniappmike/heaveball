@@ -5,6 +5,7 @@ const teams=['Ember','Harbor'], names=['Reed','Ellis','Cruz','Park','Quinn','Col
 const center={x:25,y:17}, blue=p=>Math.abs(p.x-25)<=5&&Math.abs(p.y-17)<=5;
 const ringRadius=2;
 const ringLimit=3;
+const LAPSE=.058,DIRT_SLIP=.7,RING_CLEAR=1.75,BACK_BLOCK=.0011;
 const pileStallLimit=4.5;
 const pileProgressYards=.65;
 const pileLossYards=1.25;
@@ -148,7 +149,7 @@ function pathCrossesNoPossession(from,to){
  return false;
 }
 function legalX(p,x){
- if(p.role==='Anchor')return x;
+ if(p.role==='Anchor'||p.lapse>0)return x;
  return p.side<0?Math.min(x,center.x+5):Math.max(x,center.x-5);
 }
 function movePlayer(p,x,y){
@@ -204,7 +205,7 @@ function match(report){
    }}
  }
  for(const p of players)p.stats={pts:0,att:0,cmp:0,rec:0,tc:0,int:0,tkl:0,fum:0,to:0,pen:0,pbu:0,drp:0,hit:0};
- let s={scoreEvents:0,penaltyEvents:0,stoppageEvents:0,penaltyPending:false,stoppagePending:false,scramblePursuers:[],highlights:[],stints:[[],[]],posAge:0,players,score:[0,0],half:1,time:1200,overtime:false,done:false},opening=Math.floor(rand()*2),carrier,pass,age,hold,cutter,run,worth,scoringPassYards=null,scoringThrower=null,cool=0;
+ let s={tackleEvents:0,tackled:null,callEvents:0,call:null,penalized:null,scoreEvents:0,penaltyEvents:0,stoppageEvents:0,penaltyPending:false,stoppagePending:false,scramblePursuers:[],highlights:[],stints:[[],[]],posAge:0,players,score:[0,0],half:1,time:1200,overtime:false,done:false},opening=Math.floor(rand()*2),carrier,pass,age,hold,cutter,run,worth,scoringPassYards=null,scoringThrower=null,cool=0;
  let retreat=null,nextRead=0,nextOutletRead=0;
  let buildup=0, neutralUntil=0, openingCall=null, plan="", previous=null;
  let cornerReturn=null,anchorLeak=null,relay=null,blueTrap=null,swing=null;
@@ -434,7 +435,7 @@ function match(report){
  }
  function points(p,n,summary){
    const prior=s.score[p.team]-s.score[1-p.team];
-   p.stats.pts+=n;s.score[p.team]+=n;s.scoreEvents++;s.scoringSpot=ballAt(p);
+   p.stats.pts+=n;s.score[p.team]+=n;call(n===1?'Takeaway!':'Center!',n===1?teams[p.team]+' #'+p.jersey+' '+p.name+' · '+(summary||'Center-zone takeaway')+' · 1 point':null);s.scoreEvents++;s.scoringSpot=ballAt(p);
    if(s.overtime)summary+=' to win in sudden death';
    else if(prior<0&&prior+n===0)summary+=' to tie the game';
    else if(prior<=0&&prior+n>0&&s.score[1-p.team]>0)summary+=' to take the lead';
@@ -487,7 +488,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      movePlayer(p,exit.x,exit.y);p.edgeTime=.55;
      log(p.name+' is pushed out of bounds off the ball by '+d.name);
    }else{
-     d.stats.tkl++;p.stats.to++;
+     d.stats.tkl++;p.stats.to++,call('Turnover');
      const contactText=kind==='pile'?' from the pile':'';
      log(p.name+' is pushed out of bounds'+contactText+' by '+d.name+' · turnover');
      highlightTurnover(d,'Forced a turnover by driving '+p.name+' out of bounds');
@@ -499,14 +500,15 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  function deadNoPossession(ball,lastTeam,responsible){
    const grounded=ball.z===undefined||ball.z<=ballRadius+1e-6;
    if(!grounded||!noPossession(ball))return false;
-   if(responsible?.team===lastTeam)responsible.stats.to++;
+   if(responsible?.team===lastTeam)responsible.stats.to++,call('Turnover');
    const awarded=1-lastTeam;
    log('No-possession zone · ball out of bounds · '+teams[awarded]+' quadrant reset');
+   outOfBounds('Ball hits the dirt',awarded);
    restartAfterPause(awarded,undefined,nearestQuadrant(ball));
    return true;
  }
  function freeLane(team){
-   s.penaltyPending=false;
+   s.penaltyPending=false;s.penalized=null;
    restart(team);
    const runner=players[team*8+4],side=runner.side;
    const anchor=players[team*8+5],primary=players[(1-team)*8+6],help=players[(1-team)*8+7];
@@ -564,15 +566,34 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      log(p.name+' breaks free before help arrives');
    }
  }
+ function penalize(p,why){
+   p.stats.pen++;log('Penalty · '+p.name+' '+why);
+   pendingLane=1-p.team;s.penaltyEvents++;s.penaltyPending=true;s.penalized=p;call('Penalty');
+   s.contact=pile=null;
+ }
+ // Restricted play: a non-Anchor past their own half's edge of the center zone, or a carrier holding the ball on the dirt.
+ function restrictedPenalty(active,dt){
+   if(lane)return false;
+   // A carrier working the dirt edge can drift a step onto it; low IQ and Discipline make it likelier.
+   if(carrier&&!carrier.sidelined&&!pile&&Math.abs(carrier.x-center.x)<6.5&&Math.abs(carrier.y-center.y)>3.5&&!(Math.abs(carrier.x-center.x)<5&&Math.abs(carrier.y-center.y)<=5&&Math.abs(carrier.y-center.y)<3.5)){
+     const f=(200-carrier.ratings[7]-carrier.ratings[8])/100;
+     if(rand()<dt*DIRT_SLIP*f*f*f){const dy=Math.sign(carrier.y-center.y)||1;movePlayer(carrier,clamp(carrier.x,center.x-4.6,center.x+4.6),center.y+dy*5.4)}
+   }
+   for(const p of players){
+     if(!active(p)||p.role==='Anchor')continue;
+     const limit=p.side<0?p.x-(center.x+5):(center.x-5)-p.x;
+     if(limit>.3){p.lapse=0;penalize(p,'crosses past their own half · free run lane');return true}
+   }
+   if(carrier&&!carrier.sidelined&&noPossession(carrier)){penalize(carrier,'possesses the ball in the no-possession zone · free run lane');return true}
+   return false;
+ }
  function ringPenalty(dt,active){
    for(const p of players){
      const engaged=p.screened>0||pile&&(p===pile.p||p===pile.d)||lane?.grip&&(p===carrier||p===lane.grip.d);
      p.ringTime=active(p)&&!engaged&&dist(p,center)<=ringRadius?p.ringTime+dt:0;
      p.screened=Math.max(0,p.screened-dt*fieldSecondsPerSecond);
      if(p.ringTime>ringLimit+1e-9){
-       p.stats.pen++;
-       log('Penalty · '+p.name+' stays unblocked in the ring for more than three seconds');
-       pendingLane=1-p.team;s.penaltyEvents++;s.penaltyPending=true;
+       penalize(p,'stays unblocked in the ring for more than three seconds · free run lane');
        return true;
      }
    }
@@ -585,14 +606,15 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    if(!lane&&rand()<.014+(100-p.ratings[5])*.0007){
      log(stopped);p.stats.fum++;log(p.name+' fumbles on contact');spill(p,'fumble',p.x,p.y);return
    }
-   if(turnover){p.stats.to++;highlightTurnover(d,'Stopped '+p.name+' and won possession')}
+   if(turnover){p.stats.to++,call('Turnover');highlightTurnover(d,'Stopped '+p.name+' and won possession')}
    swing=null;
-   log(stopped+(turnover?' · turnover':' · quadrant restart'));stoppage();
+   log(stopped+(turnover?' · turnover':' · quadrant restart'));s.tackled=p;if(turnover)stoppage();else s.tackleEvents++;
    if(!lane&&Math.abs(p.y-17)>5&&Math.abs(p.x-25)>=5){
      assign(p);stationary=true;run=false;readTime=0;hold=1.5;return
    }
    const spot=blue(p)&&turnover?origin:p;
-   restart(turnover?1-p.team:p.team,lane?p.side:undefined,lane?undefined:nearestQuadrant(spot));
+   // Hold the tackle spot through the pause; the next step performs the reset.
+   delayedRestart={team:turnover?1-p.team:p.team,side:lane?p.side:undefined,index:lane?undefined:nearestQuadrant(spot)};
  }
  function contactMatchup(p,d){
    const gap=dist(p,d);
@@ -826,6 +848,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    return {player:winner,contested:contested||loose.bobbles>0};
  }
  function assign(p,points=2,passYards=null,thrower=null){
+   if(s.tackled&&s.tackled!==p)s.tackled=null;
    scoringPassYards=passYards;scoringThrower=thrower;
    if(carrier&&carrier.team===p.team)previous=carrier;
    if(s.team!==p.team||s.posAge===0){
@@ -862,8 +885,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  function tryBlock(p,threat,focus){
    if(!threat.ratings||threat.team===p.team||dist(p,threat)>=1.65||dist(threat,focus)>=7||p.blocked||threat.blocked)return false;
    const behind=(p.x-threat.x)*threat.vx+(p.y-threat.y)*threat.vy<-.18;
-   if(!lane&&!s.overtime&&behind&&rand()<(105-p.ratings[7])*.00008){
-     p.stats.pen++;log('Penalty · '+p.name+' blocks in the back');pendingLane=1-p.team;s.penaltyEvents++;s.penaltyPending=true;return true
+   if(!lane&&!s.overtime&&behind&&rand()<(105-p.ratings[7])*BACK_BLOCK){
+     penalize(p,'blocks in the back · free run lane');return true
    }
    p.blocked=.9;
    if(rand()<clamp(.52+(p.ratings[2]-threat.ratings[2])*.007,.18,.88)){
@@ -897,6 +920,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    log(teams[team]+' sets up · '+plan);
  }
  function restart(team,side,index){
+   s.tackled=null;
    loose=null;s.contact=s.impact=null;s.scramblePursuers=[];pile=null;lane=null;cool=0;
    defensiveAssignments.clear();defenseReadAt=0;
    cornerReturn=anchorLeak=relay=blueTrap=swing=null;
@@ -969,13 +993,16 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    openingCall=null;
  }
  function log(msg){report(s,msg)}
+ function call(text,sub){s.call=text;s.callSub=sub||null;s.callEvents++}
+ // Same team keeps it: OUT OF BOUNDS. Possession flips: that is a turnover.
+ function outOfBounds(why,team){if(team===s.team)call('Out of bounds',why+' · '+teams[team]+' retains possession');else call('Turnover',why+' · '+teams[team]+' gains possession')}
  function rescueKick(off){
    const kicker=pass.target;
    const roll=rand();
    const returnsInBounds=.355+.04*(kicker.ratings[9]-20)/80;
    const reachedEdge=(kicker.y<0||kicker.y>34)&&dist(kicker,pass)<2;
    if(!reachedEdge||roll>=returnsInBounds){
-     if(pass.thrower)pass.thrower.stats.to++;
+     if(pass.thrower)pass.thrower.stats.to++,call('Turnover');
      log(kicker.name+' misses the airborne save · ball out');
      stoppage();restart(1-off,undefined,nearestQuadrant(pass));
      return;
@@ -996,7 +1023,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    Object.assign(pass,flightAt(pass,0));
  }
  function intercept(p,inFlight,contested=false){
-   pass.thrower.stats.to++;p.stats.int++;assign(p);cool=.6;
+   pass.thrower.stats.to++,call('Turnover');p.stats.int++;assign(p);cool=.6;
    log(p.name+(inFlight?' intercepts in the passing lane':contested?' wins a contested interception':' intercepts'));
    if(blue(p)){points(p,1,'Intercepted a pass in the center zone');log('Center interception · 1 point');scoringRestart={team:p.team,index:nearestQuadrant(p)}}
    else highlightTurnover(p,'Intercepted a pass to take possession');
@@ -1068,6 +1095,15 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    }
  };
  s.step=dt=>{
+   if(!s.penaltyPending)for(const p of players){
+     if(p.role==='Anchor')continue;
+     if(p.lapse>0){p.lapse-=dt;continue}
+     const focus=(200-p.ratings[7]-p.ratings[8])/100;
+     if(rand()<dt*LAPSE*focus*focus*focus)p.lapse=.5+rand()*.6;
+   }
+   stepInner(dt);
+ };
+ const stepInner=dt=>{
  if(s.done)return;
  if(pendingLane!==null){const team=pendingLane;pendingLane=null;freeLane(team);return}
  s.stoppagePending=false;
@@ -1113,7 +1149,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  if(hold>0){hold=Math.max(0,hold-dt);return}
  let focus=carrier||pass||loose,off=s.team;
  const active=p=>!p.sidelined&&!(p.edgeTime>0)&&(!lane||(p.team===off?(p.i===4||p.i===5):p.i>=6));
- if(ringPenalty(dt,active))return;
+ if(ringPenalty(dt,active)||restrictedPenalty(active,dt))return;
  const gameDt=dt;
  dt*=fieldSecondsPerSecond;age+=dt;cool-=dt;
  if(s.impact&&(s.impact.time-=dt)<=0)s.impact=null;
@@ -1354,7 +1390,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    tx=spot.x;ty=spot.y;
  }
  // Off-ball players clear the circle as the count approaches the limit.
- if(p!==carrier&&p.ringTime>2-.5*judgment(p)){
+ if(p!==carrier&&p.ringTime>RING_CLEAR-.6*judgment(p)){
    const exit=guardPosition(p.x,p.y,p);
    tx=exit.x;ty=exit.y;
  }
@@ -1389,7 +1425,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    if(deadNoPossession(loose,loose.last,loose.responsible))return;
    if(loose.x<0||loose.x>50||loose.y<0||loose.y>34){
      const awarded=1-loose.last;
-     if(loose.responsible?.team===off&&awarded!==off)loose.responsible.stats.to++;
+     if(loose.responsible?.team===off&&awarded!==off)loose.responsible.stats.to++,call('Turnover');
      log('Loose ball out · last-touch ruling');restartAfterPause(awarded,undefined,nearestQuadrant(loose));return
    }
    const recovery=loose.wait<=0&&!(loose.z>1.45)&&settleLooseBall(active);
@@ -1397,7 +1433,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      const {player:q,contested}=recovery;
      const {kind,originTeam,responsible}=loose,spot=loose;
      if(kind==='fumble'&&q.team!==originTeam){
-       responsible.stats.to++;
+       responsible.stats.to++,call('Turnover');
        if(!blue(spot))highlightTurnover(q,'Recovered an opponent’s fumble to take possession');
      }
      loose=null;log(q.name+' recovers the '+kind+(contested?' · won the scramble':''));
@@ -1411,7 +1447,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
     deadNoPossession({...pass.bouncePoint,z:ballRadius},(pass.kicker||pass.thrower).team,pass.thrower||pass.kicker))return;
  if(f>=1&&pass.wide){
    if(pass.rescue)rescueKick(off);
-   else{pass.thrower.stats.to++;log('Ball out of bounds');restartAfterPause(1-off,undefined,nearestQuadrant(pass))}
+   else{pass.thrower.stats.to++,call('Turnover');log('Ball out of bounds');outOfBounds('Pass sails out of bounds',1-off);restartAfterPause(1-off,undefined,nearestQuadrant(pass))}
    return;
  }
  // A defender in the flight path can jump the pass before it reaches the receiver.
@@ -1698,7 +1734,9 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    else tackleCarrier(p,pressure,active);
  }
  };
- s.ball=()=>s.scoringSpot?{...s.scoringSpot,z:.82}:carrier?
-   {...(stationary?{x:carrier.x,y:carrier.y}:ballAt(carrier)),z:1.03,spin:Math.atan2(carrier.vy,carrier.vx)}:(pass||loose);
+ // During a restart pause nobody holds the ball; keep showing where it last was.
+ let lastBall={x:center.x,y:center.y,z:ballRadius};
+ s.ball=()=>lastBall=(s.scoringSpot?{...s.scoringSpot,z:.82}:carrier?
+   {...(stationary?{x:carrier.x,y:carrier.y}:ballAt(carrier)),z:1.03,spin:Math.atan2(carrier.vy,carrier.vx)}:(pass||loose))||lastBall;
  return s;
 }

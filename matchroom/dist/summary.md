@@ -6,7 +6,7 @@ Heaveball is a spectator-first fictional sports league built around a physical s
 
 The current release is a browser-local exhibition between Ember and Harbor. Open the [live Matchroom](https://heaveball-matchroom.hardyburl128.chatgpt.site) to generate squads and watch a match. Reloading starts a fresh session. The public GitHub repository contains the rules, playbook, player-generation spec, history and visual references. Matchroom’s simulation, renderer and release script live in its separate Sites source repository.
 
-For gameplay changes, inspect the match JavaScript in the Site’s dist directory. The view JavaScript draws the field and players and handles the handbook and controls. The HTML provides layout and styles. The two textured dirt strips above and below the blue center square identify the no-possession area. Compare rule changes against the current handbook and this summary, especially the four-yard ring and the out-of-bounds ruling when a carried or grounded ball enters a dirt strip. Airborne passes may travel over dirt.
+For gameplay changes, edit `src/match.js`. `src/view.js` draws the field and players and handles the handbook and controls. `src/index.html` provides layout and styles. Never edit `dist/`; `tools/build.py` regenerates it. The two textured dirt strips above and below the blue center square identify the no-possession area. Compare rule changes against the current handbook and this summary, especially the four-yard ring and the out-of-bounds ruling when a carried or grounded ball enters a dirt strip. Airborne passes may travel over dirt.
 
 Before releasing, exercise roster generation, the start gate and the affected match rules. For pacing changes, sample full randomized games and report combined scores and possession duration in game-clock seconds. Keep the roadmap below distinct from shipped features. Current playtesting priorities include recognizing off-ball routes, spotting dead balls in the no-possession area and checking that center-zone tackles and runway control affect results.
 
@@ -128,9 +128,9 @@ The current browser prototype generates fresh exhibition matches. The planned le
 
 The sport repository holds the revised rulebook, coaching playbook, player-generation specification and fictional history. The Matchroom Site uses a browser simulation, a canvas renderer and a pregame interface. The simulation includes runway-only sudden death. Substitutions remain on the roadmap. [Sport repository](https://github.com/miniappmike/heaveball)
 
-Maintain the project scope in this file as features change. Running `python build.py` updates the versioned asset references and build record and creates matching Markdown and Word copies for the static build. The Word export requires Pandoc. When publishing a release, sync both copies to the public repository so contributors can review the same snapshot.
+Maintain the project scope in this file as features change. Running `python3 tools/build.py` rebuilds `dist/` from `src/` and `assets/`: it inlines the game into `dist/index.html`, embeds the default field texture, copies the other textures and writes `dist/summary.md` with a build record. The build needs only Python 3.
 
-Field templates provide park surfaces with clay no-possession zones and all-weather synthetic turf in several colorways. Select a field above the match and the choice is remembered in the browser.
+Field templates provide high-resolution park surfaces with clay no-possession zones and all-weather synthetic turf in several colorways. Select a field above the match and the choice is remembered in the browser.
 
 The footer uses accessible GitHub and OpenAI logo links to the production Matchroom on GitHub Pages and the GPT test site for Codex Matchroom PR builds.
 
@@ -142,9 +142,18 @@ The field fills the mobile viewport with black margins and overlaid playback con
 
 Players keep their numbered circles during loose-ball scrambles.
 
+## Calls and stoppages
+
+Scores, penalties, turnovers and ordinary stoppages freeze play in place for 3.5 seconds. A tackle that keeps possession pauses for 2 seconds with no popup, and the tackled player wears a black inner ring until the next possession. Big plays show a large popup in the middle of the field: CENTER! (blue) for 2-, 3- and 5-point scores, TAKEAWAY! (orange) for 1-point center-zone interceptions and fumble recoveries, TURNOVER (red), PENALTY (yellow, with the penalized player in red) and OUT OF BOUNDS (white) when the same team keeps the ball. A line under the popup explains the play. Pausing holds the popup on screen.
+
+## Penalties
+
+Every penalty awards a free run lane: three seconds unblocked in the ring, a block in the back, a Runner or Heaver crossing past their own half, and a carrier holding the ball in the no-possession zone. Low IQ and Discipline make penalties more likely, and contact can still shove any player into one. Typical rates per match: about 0.7 half crossings, 1–2 no-possession calls, 2–3 ring-time calls and 2–4 blocks in the back.
+
+## Repository layout
+
+Sport documents and reference images live in `docs/`. Matchroom source is split into `src/` (hand-edited), `assets/` (textures), `tools/` (build and texture generator) and `dist/` (generated).
+
 ## Build record
 
-Built 2026-11-22 22:28 UTC.
-
-- match-5ab0c4f6dc.js
-- view-dd391b0cae.js
+Built 2026-11-23 01:40 UTC from `src/` and `assets/`.
