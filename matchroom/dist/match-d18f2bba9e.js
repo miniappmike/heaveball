@@ -205,7 +205,7 @@ function match(report){
    }}
  }
  for(const p of players)p.stats={pts:0,att:0,cmp:0,rec:0,tc:0,int:0,tkl:0,fum:0,to:0,pen:0,pbu:0,drp:0,hit:0};
- let s={callEvents:0,call:null,penalized:null,scoreEvents:0,penaltyEvents:0,stoppageEvents:0,penaltyPending:false,stoppagePending:false,scramblePursuers:[],highlights:[],stints:[[],[]],posAge:0,players,score:[0,0],half:1,time:1200,overtime:false,done:false},opening=Math.floor(rand()*2),carrier,pass,age,hold,cutter,run,worth,scoringPassYards=null,scoringThrower=null,cool=0;
+ let s={tackleEvents:0,tackled:null,callEvents:0,call:null,penalized:null,scoreEvents:0,penaltyEvents:0,stoppageEvents:0,penaltyPending:false,stoppagePending:false,scramblePursuers:[],highlights:[],stints:[[],[]],posAge:0,players,score:[0,0],half:1,time:1200,overtime:false,done:false},opening=Math.floor(rand()*2),carrier,pass,age,hold,cutter,run,worth,scoringPassYards=null,scoringThrower=null,cool=0;
  let retreat=null,nextRead=0,nextOutletRead=0;
  let buildup=0, neutralUntil=0, openingCall=null, plan="", previous=null;
  let cornerReturn=null,anchorLeak=null,relay=null,blueTrap=null,swing=null;
@@ -503,6 +503,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    if(responsible?.team===lastTeam)responsible.stats.to++,call('Turnover');
    const awarded=1-lastTeam;
    log('No-possession zone · ball out of bounds · '+teams[awarded]+' quadrant reset');
+   outOfBounds('Ball hits the dirt',awarded);
    restartAfterPause(awarded,undefined,nearestQuadrant(ball));
    return true;
  }
@@ -607,7 +608,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    }
    if(turnover){p.stats.to++,call('Turnover');highlightTurnover(d,'Stopped '+p.name+' and won possession')}
    swing=null;
-   log(stopped+(turnover?' · turnover':' · quadrant restart'));stoppage();
+   log(stopped+(turnover?' · turnover':' · quadrant restart'));s.tackled=p;if(turnover)stoppage();else s.tackleEvents++;
    if(!lane&&Math.abs(p.y-17)>5&&Math.abs(p.x-25)>=5){
      assign(p);stationary=true;run=false;readTime=0;hold=1.5;return
    }
@@ -989,7 +990,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    openingCall=null;
  }
  function log(msg){report(s,msg)}
- function call(text){s.call=text;s.callEvents++}
+ function call(text,sub){s.call=text;s.callSub=sub||null;s.callEvents++}
+ function outOfBounds(why,team){call('Out of bounds',why+' · '+teams[team]+(team===s.team?' retains':' gains')+' possession')}
  function rescueKick(off){
    const kicker=pass.target;
    const roll=rand();
@@ -1441,7 +1443,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
     deadNoPossession({...pass.bouncePoint,z:ballRadius},(pass.kicker||pass.thrower).team,pass.thrower||pass.kicker))return;
  if(f>=1&&pass.wide){
    if(pass.rescue)rescueKick(off);
-   else{pass.thrower.stats.to++,call('Turnover');log('Ball out of bounds');restartAfterPause(1-off,undefined,nearestQuadrant(pass))}
+   else{pass.thrower.stats.to++,call('Turnover');log('Ball out of bounds');outOfBounds('Pass sails out of bounds',1-off);restartAfterPause(1-off,undefined,nearestQuadrant(pass))}
    return;
  }
  // A defender in the flight path can jump the pass before it reaches the receiver.
