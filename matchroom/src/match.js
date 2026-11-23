@@ -19,10 +19,10 @@ const benchRoles=['Heaver','Anchor','Runner','Anchor'];
 const coachNames=['Marsh','Holt','Vance','Brooks','Doyle','Pryor','Keane','Sutter','Lyle','Banner','Whitley','Crane'];
 // Counters a coach reaches for. Defense by the opponent's playbook index:
 // Patient passing, Balanced, Runway power, Quick swing, Free flow.
-const defenseCounter=[5,7,6,7,0];
+const defenseCounter=[5,9,6,7,8];
 // Playbook by the opponent's defense index: Balanced, Ring guard, Receiver denial, Star focus,
 // Passing-lane zone, Carrier pressure, Runway contain, Switch coverage.
-const playbookCounter=[1,0,2,3,3,3,0,2];
+const playbookCounter=[1,0,2,3,3,3,0,2,3,1];
 // Overreaction: after the opponent scores, a coach may make a knee-jerk defensive switch. The chance per
 // score is OVERREACT_RATE × (1 − adaptability)², at most four per half, and not within one minute of a change.
 const OVERREACT_RATE=.5915,overreactCooldown=60,overreactPerHalf=4;
@@ -36,11 +36,11 @@ const pileProgressYards=.65;
 const pileLossYards=1.25;
 const handPassSpeed=rating=>1.5*.98*(8+rating*.12);
 const playbooks=[
-   {name:'Patient passing',blurb:'Methodical ball movement that wears a defense down',description:'Pros: protects the ball, controls possession and makes the defense defend repeated reads. Cons: creates fewer chances, can stall against pressure and may run out of time when trailing.',baseline:.45,hold:.88,risk:1.05,runBias:-.07,swingRate:.14,calls:['Short outlets','Far switch','Block away']},
-   {name:'Balanced',blurb:'Even mix of runs and throws that keeps defenses guessing',description:'Pros: answers most coverages and mixes passing, blocks and runs without a clear tell. Cons: has no single dominant pressure point and depends heavily on good reads.',baseline:.50,hold:1,risk:1,runBias:0,swingRate:.26,calls:['Far switch','Drive and kick','Anchor leak','Last-step handoff']},
-   {name:'Runway power',blurb:'Downhill runs behind big Anchor blocks',description:'Pros: creates direct ring chances, uses big blocks, misdirection handoffs and short same-half resets. Cons: produces short, physical possessions and more tackle or fumble risk against strong contain.',baseline:.72,hold:.86,risk:1,runBias:.27,swingRate:.04,groundFirst:true,calls:['Runway power','Runway power','Drive and kick','Last-step handoff','Last-step handoff']},
-   {name:'Quick swing',blurb:'Quick releases until a pass or run lane opens at the ring',description:'Pros: stretches the defense with short holds and fast exchanges across whichever quadrants are open. Cons: adds catch and deflection chances and can be disrupted by switching coverage.',baseline:.44,hold:.8,risk:.85,runBias:-.02,swingRate:.84,calls:['Far switch','Short outlets']},
-   {name:'Free flow',blurb:'Improvised attack that lets athletes hunt open space',description:'Pros: stays unpredictable, lets athletes attack space and can change the point of attack mid-possession. Cons: is volatile, asks for fast shared reads and can create spacing mistakes or turnovers.',baseline:.60,hold:.83,risk:1.05,runBias:.07,swingRate:.34,calls:['Drive and kick','Far switch','Anchor leak','Block away','Last-step handoff']}
+   {name:'Patient passing',blurb:'Methodical ball movement that wears a defense down',description:'Pros: protects the ball, controls possession and makes the defense defend repeated reads. Cons: creates fewer chances, can stall against pressure and may run out of time when trailing.',baseline:.45,hold:.88,risk:1.05,runBias:-.07,swingRate:.14,reads:['Safety valve','Weak-side reversal'],calls:['Short outlets','Far switch','Block away']},
+   {name:'Balanced',blurb:'Even mix of runs and throws that keeps defenses guessing',description:'Pros: answers most coverages and mixes passing, blocks and runs without a clear tell. Cons: has no single dominant pressure point and depends heavily on good reads.',baseline:.50,hold:1,risk:1,runBias:0,swingRate:.26,reads:['Safety valve','Seam pop','Runway lead'],calls:['Far switch','Drive and kick','Anchor leak','Last-step handoff','Pass and cut']},
+   {name:'Runway power',blurb:'Downhill runs behind big Anchor blocks',description:'Pros: creates direct ring chances, uses big blocks, misdirection handoffs and short same-half resets. Cons: produces short, physical possessions and more tackle or fumble risk against strong contain.',baseline:.72,hold:.86,risk:1,runBias:.27,swingRate:.04,groundFirst:true,reads:['Runway lead','Safety valve'],calls:['Runway power','Runway power','Drive and kick','Last-step handoff','Last-step handoff']},
+   {name:'Quick swing',blurb:'Quick releases until a pass or run lane opens at the ring',description:'Pros: stretches the defense with short holds and fast exchanges across whichever quadrants are open. Cons: adds catch and deflection chances and can be disrupted by switching coverage.',baseline:.44,hold:.8,risk:.85,runBias:-.02,swingRate:.84,reads:['Weak-side reversal','Safety valve','Seam pop'],calls:['Far switch','Short outlets','Pass and cut']},
+   {name:'Free flow',blurb:'Improvised attack that lets athletes hunt open space',description:'Pros: stays unpredictable, lets athletes attack space and can change the point of attack mid-possession. Cons: is volatile, asks for fast shared reads and can create spacing mistakes or turnovers.',baseline:.60,hold:.83,risk:1.05,runBias:.07,swingRate:.34,reads:['Safety valve','Weak-side reversal','Runway lead','Seam pop'],calls:['Drive and kick','Far switch','Anchor leak','Block away','Last-step handoff','Pass and cut']}
  ];
 const defenses=[
  {name:'Balanced',blurb:'Sound marking with help always waiting at the ring',description:'Pros: has help at the ring and sound receiver matches with few obvious weaknesses. Cons: does not fully erase elite runners, stars or rapid ball movement.',guards:2,depth:4.6,width:2.7,shade:.38,cushion:1.6,read:1},
@@ -50,7 +50,9 @@ const defenses=[
  {name:'Passing-lane zone',blurb:'Defenders read the throw and jump passing lanes',description:'Pros: produces tips and interceptions by crowding anticipated throwing lanes. Cons: short outlets, patient overloads and quick swings can open seams between zones.',guards:2,depth:5.9,width:3.3,shade:.49,cushion:1.8,read:.87,lanes:true,deflect:.12,takeaway:.04,swingWeak:.03,laneStep:.05,laneReach:.5},
  {name:'Carrier pressure',blurb:'An all-out press on the ball, gambling for turnovers',description:'Pros: shortens reads, forces hurried throws and can create immediate turnovers. Cons: a clean outlet or handoff beats the press and leaves less help at the ring.',guards:1,depth:6.8,width:2.1,shade:.29,cushion:2.8,read:.95,press:true,rush:.20,runWeak:.06,rushRead:3.2,pressGap:1.9},
  {name:'Runway contain',blurb:'Seals the runway and funnels runners into tacklers',description:'Pros: funnels runs into tacklers and is strongest against power attacks and direct ring drives. Cons: gives up deeper quadrant outlets and can be stretched by disciplined passing.',guards:3,depth:4.6,width:2.9,shade:.39,cushion:1.5,read:1,contain:true,tackle:.07,deflect:-.02,swingWeak:.04},
- {name:'Switch coverage',blurb:'Defenders trade assignments to stay with every cut',description:'Pros: handles cuts, blocks and quick swings without losing assignments. Cons: offers fewer aggressive takeaways and can lose power matchups or break down after a slow read.',guards:2,depth:4.75,width:2.6,shade:.25,cushion:1.55,read:.54,switches:true,deflect:-.015,tackle:-.02,swingWeak:-.09}
+ {name:'Switch coverage',blurb:'Defenders trade assignments to stay with every cut',description:'Pros: handles cuts, blocks and quick swings without losing assignments. Cons: offers fewer aggressive takeaways and can lose power matchups or break down after a slow read.',guards:2,depth:4.75,width:2.6,shade:.25,cushion:1.55,read:.54,switches:true,deflect:-.015,tackle:-.02,swingWeak:-.09},
+ {name:'Match zone',blurb:'Switches cutters while protecting inside passing lanes',description:'Pros: tracks cuts with quick handoffs between defenders. Cons: gives deep switches more space and commits only two defenders to the ring.',guards:2,depth:4.45,width:2.5,shade:.32,cushion:1.7,read:.68,switches:true,lanes:true,laneStep:.25,deflect:.025,runWeak:.02},
+ {name:'Runway funnel',blurb:'Two staggered guards steer runners toward help',description:'Pros: channels runs into a second tackler without selling out against the pass. Cons: leaves room for quick outlets away from the runway.',guards:2,depth:4.3,width:1.9,shade:.39,cushion:1.75,read:.77,contain:true,tackle:.045,swingWeak:.025}
 ];
 // Calibrated against a ten-yard run from rest with Speed and Agility at 60.
 const fieldSecondsPerSecond=.63;
@@ -65,6 +67,7 @@ const TRAFFIC_DEFLECT=3,trafficRadius=3;
 // jumps a long pass. GAMBLE_RATE is the attempt chance for an eligible top defender; success runs
 // 30-50% with those ratings. A miss leaves the defender stumbling out of position.
 const GAMBLE_RATE=.5,gambleSkill=68,gambleMiss=1.6,gambleBurst=1.1;
+const RING_GAMBLE_RATE=.80;
 // Extra chance per contested recovery that a fumble squirts loose again (up to six bobbles instead of three).
 const FUMBLE_SCRAMBLE=.14;
 // Smothering: a taller, faster defender pressing the passer widens the throw's scatter, adds a chance
@@ -76,7 +79,7 @@ const RELEASE_TRAFFIC=.08;
 // How far in front of the ring Carrier pressure's stay-home defender sits against run-first offenses.
 const homeGuardDepth=3.2,pressRunCushion=1.6;
 // Field units are yards. Height is measured from the turf to the ball's center.
-const ballRadius=.31,gravity=10.73;
+const ballRadius=.31,gravity=10.73,carriedBallHeight=1.03;
 // A softball-sized rubber ball on turf skips and rebounds, but sheds vertical energy quickly.
 const grass={restitution:.30,grip:.28,roll:4.20};
 const runwayTurf={restitution:.34,grip:.24,roll:3.05};
@@ -133,7 +136,7 @@ function advanceLooseBall(ball,dt){
    ball.vx*=grip;ball.vy*=grip;
    ball.omega=ball.omega*.55+pace/ballRadius*.45;
    ball.z=ballRadius;
-   const rebound=-ball.vz*turf.restitution;
+   const rebound=ball.kind==='fumble'?0:-ball.vz*turf.restitution;
    ball.vz=rebound>.46?rebound:0;
    if(ball.vz>0&&dt>airTime+1e-8){advanceLooseBall(ball,dt-airTime);return}
  }
@@ -300,7 +303,7 @@ function match(report){
  const subs=[null,null],pendingPlaybook=[null,null];
  let retreat=null,nextRead=0,nextOutletRead=0;
  let buildup=0, neutralUntil=0, openingCall=null, plan="", previous=null;
- let cornerReturn=null,anchorLeak=null,relay=null,blueTrap=null,swing=null,swingChecked=false;
+ let cornerReturn=null,passCut=null,openingPassUsed=false,anchorLeak=null,relay=null,blueTrap=null,swing=null,swingChecked=false;
  const intensityRoll=rand();
  const quietGame=intensityRoll<.075;
  const physicalGame=intensityRoll>=.91;
@@ -390,7 +393,7 @@ function match(report){
      pair(p=>-dist(p,spot)+p.ratings[6]*.015+(oldAssignments.get(p)?.home?1:0)-(p.blocked?2:0),{shoulder:0,home:true});
    }
    const threat=q=>4.4-.27*dist(q,center)-.065*dist(q,focus)+q.ratings[5]*.028+
-     (q.role==='Runner'?q.ratings[10]*.017:0)+(blue(q)?1.5:0)+(q===cutter?1:0);
+     (q.role==='Runner'?q.ratings[10]*.017:0)+(blue(q)?1.5:0)+(q===cutter?1:0)+(q===passCut?.player?1.25:0);
    const mark=(q,extra={})=>pair(p=>{
      if(legalX(p,q.x)!==q.x)return -Infinity;
      const hold=oldAssignments.get(p)?.mark===q?(scheme.switches?.25:1.5):0;
@@ -420,13 +423,13 @@ function match(report){
    const mark=p.helpTime>0&&p.helpTarget?.team===off&&!p.helpTarget.edgeTime&&
      !noPossession(p.helpTarget)&&p.helpTarget!==carrier?p.helpTarget:assignment?.mark;
    if(shoulder!==undefined||!mark||mark===carrier||mark.edgeTime>0||noPossession(mark)){
-     const base=(assignment?.home?homeGuardDepth:scheme.depth)+2*(tendency[off].drive-.4);
+     const base=(assignment?.home?homeGuardDepth:scheme.depth)+2.6*(tendency[off].drive-.4);
      const targetDepth=closing?clamp(depth-(scheme.contain?2.2:1.25),ringRadius+.8,base+2):
        clamp(base,ringRadius+.8,Math.max(ringRadius+.8,depth*.74));
      return lanePosition(focus,targetDepth,shoulder??(p.i-3.5)*1.7);
    }
    const star=p.helpTime<=0&&assignment?.star;
-   const goal=goalSide(mark,star?1:cushionFor(scheme,off)+tendency[off].block*.6);
+   const goal=goalSide(mark,star?1:cushionFor(scheme,off)+tendency[off].block*.75);
    if(star&&assignment.bracket){
      return {x:goal.x+(focus.x-mark.x)*.16,y:goal.y+(focus.y-mark.y)*.16};
    }
@@ -567,7 +570,7 @@ function match(report){
    p.route=best;p.routeTime=2+rand()*3;
  }
  function spill(p,kind,x,y){
-   cornerReturn=swing=null;
+   cornerReturn=passCut=swing=null;
    loose={x,y,vx:(rand()-.5)*3,vy:(rand()-.5)*3,z:ballRadius,vz:0,spin:0,omega:0,kind,last:p.team,originTeam:p.team,responsible:p.stats?p:pass?.thrower,wait:.18,bobbles:0};
    pass=null;carrier=null;s.contact=null;pile=null;stationary=false;
  }
@@ -706,7 +709,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  function ringPenalty(dt,active){
    for(const p of players){
-     const engaged=p.screened>0||pile&&(p===pile.p||p===pile.d)||lane?.grip&&(p===carrier||p===lane.grip.d);
+     const engaged=p.screened>0||pile&&(p===pile.p||p===pile.d||pile.pushing.has(p))||lane?.grip&&(p===carrier||p===lane.grip.d);
      p.ringTime=active(p)&&!engaged&&dist(p,center)<=ringRadius?p.ringTime+dt:0;
      p.screened=Math.max(0,p.screened-dt*fieldSecondsPerSecond);
      if(p.ringTime>ringLimit+1e-9){
@@ -753,11 +756,13 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    const thrower=flight?.thrower;
    spill(p,kind,spot.x,spot.y);
    if(thrower)loose.responsible=thrower;
-   const speed=clamp(contact.impact*.85,3.6,10);
+   const fumble=kind==='fumble';
+   const speed=fumble?clamp(contact.impact*.4,1.8,4.7):clamp(contact.impact*.85,3.6,10);
    const sideways=(rand()-.5)*speed;
    Object.assign(loose,{vx:contact.x*speed-contact.y*sideways+p.vx*.28+(flight?.vx??0)*.12,
      vy:contact.y*speed+contact.x*sideways+p.vy*.28+(flight?.vy??0)*.12,
-     z:spot.z??1.2,vz:.75+speed*.11+(flight?.vz??0)*.10,spin:flight?.spin??0,omega:sideways*6,wait:.28});
+     z:spot.z??carriedBallHeight,vz:fumble?-.65:.75+speed*.11+(flight?.vz??0)*.10,
+     spin:flight?.spin??0,omega:sideways*6,wait:.28});
    showImpact(p,d);
  }
  function tackleCarrier(p,d,active){
@@ -817,13 +822,74 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
        q.ratings[8]*.04+(team===d.team?q.ratings[tackling]*.11:0),0)/roster.length;
    };
    const attackProfile=teamProfile(p.team),defenseProfile=teamProfile(d.team);
-   const mismatch=Math.min(1,Math.abs(attackProfile-defenseProfile)/45);
-   const limit=clamp(25-23*mismatch,2,25);
+   const mismatch=clamp((defenseProfile-attackProfile)/45,0,1);
+   const limit=25-23*mismatch;
    const distance=dist(p,center);
-   s.contact={p,d};
-   pile={p,d,time:0,limit,tackleProgress:0,escapeProgress:0,
+   const momentum=((center.x-p.x)*p.vx+(center.y-p.y)*p.vy)/(distance||1);
+   pile={p,d,time:0,limit,momentum:clamp(momentum*.12,-.45,.65),tackleProgress:0,escapeProgress:0,
+     helpers:new Map(),pushing:new Set(),announced:new Set(),
      progressDistance:distance,closestDistance:distance,stallTime:0};
+   s.contact={p,d,pushing:pile.pushing};
    log(d.name+' wraps up '+p.name+' · pile drive');
+ }
+ function positionPileHelpers(active,nx,ny){
+   const {p,d,helpers,pushing,announced}=pile;
+   const previousHelpers=new Set(helpers.keys());
+   helpers.clear();pushing.clear();
+   for(const lead of [p,d]){
+     const side=lead===p?-1:1;
+     const candidates=players.filter(q=>q!==lead&&q.team===lead.team&&active(q)&&!q.blocked&&dist(q,lead)<7)
+       .sort((a,b)=>(dist(a,lead)-a.ratings[2]*.026-(previousHelpers.has(a)?.75:0))-
+         (dist(b,lead)-b.ratings[2]*.026-(previousHelpers.has(b)?.75:0)));
+     for(const [i,q] of candidates.slice(0,3).entries()){
+       const width=[0,1,-1][i];
+       const depth=side*(i===0?1.05:1.35);
+       const spot={x:lead.x+nx*depth-ny*width,y:lead.y+ny*depth+nx*width};
+       if(noPossession(spot)||legalX(q,spot.x)!==spot.x)continue;
+       helpers.set(q,spot);
+       if(dist(q,spot)>.9)continue;
+       pushing.add(q);
+       if(!announced.has(lead.team)){
+         announced.add(lead.team);
+         log(q.name+(lead===p?' joins to drive the pile toward the ring':' joins to drive the pile back'));
+       }
+     }
+   }
+ }
+ function readOpeningPass(p,active,calls){
+   let best=null;
+   const pressure=clearance(p,p.team)<4.5;
+   for(const q of players){
+     if(q===p||q.team!==p.team||!active(q)||q.blocked||noPossession(q))continue;
+     const gap=dist(p,q),space=clearance(q,p.team),lane=passingLane(p,q,active);
+     if(gap<2||space<2||lane<1.7)continue;
+     const forward=dist(p,center)-dist(q,center);
+     for(const call of calls){
+       const eligible={
+         'Safety valve':pressure&&gap<=13&&Math.abs(q.y-center.y)>5,
+         'Weak-side reversal':q.side!==p.side&&gap<=29&&space>=3.4&&lane>=2.5,
+         'Runway lead':q.role==='Runner'&&Math.abs(q.y-center.y)<=5&&gap<=21&&forward>2.5,
+         'Seam pop':q.role==='Anchor'&&blue(q)&&gap<=19&&space>=2.7
+       };
+       if(!eligible[call])continue;
+       const score=space+lane*.75+q.ratings[5]*.04-gap*.12+
+         (call==='Safety valve'?2:Math.min(8,forward)*.25);
+       if(!best||score>best.score)best={call,target:q,score};
+     }
+   }
+   return best;
+ }
+ function startPassCut(p,outlet){
+   const side=Math.sign(p.x-center.x)||p.side;
+   const exitSide=p.role==='Anchor'?-side:side;
+   const runway={x:center.x-side*3.4,y:center.y};
+   const opposite={x:center.x+exitSide*9,y:p.y<center.y?26:8};
+   const toQuadrant=clearance(opposite,p.team)>clearance(runway,p.team);
+   const route=[{x:center.x+side*6.3,y:center.y},{x:center.x+side*1.5,y:center.y}];
+   if(toQuadrant)route.push({x:center.x+exitSide*6.3,y:center.y},opposite);
+   else route.push(runway);
+   passCut={player:p,outlet,route,elapsed:0};
+   log(p.name+' passes to '+outlet.name+' and cuts through the center zone toward '+(toQuadrant?'the opposite legal quadrant':'the runway'));
  }
  function clearance(q,team){
    return Math.min(...players.filter(d=>d.team!==team&&!d.sidelined&&!(d.edgeTime>0)).map(d=>dist(q,d)));
@@ -925,7 +991,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  function passProfile(type,start,end,duration){
    if(type==='underhand')return {duration:Math.max(.4,dist(start,end)/4.5),arcHeight:clamp(dist(start,end)*.06,.08,.24),endHeight:1.25};
-   if(type==='line')return {duration:duration*.72,arcHeight:.52,endHeight:1.32};
+   if(type==='line')return {duration:duration*.72/.8,arcHeight:.52,endHeight:1.32};
    if(type==='overthrow')return {duration:duration*1.06,arcHeight:4.15,endHeight:2.55};
    if(type==='bounce'||type==='shortHop'){
      const bounceF=type==='bounce'?.54:.79;
@@ -956,8 +1022,10 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      if(chosen.size>=4)break;
      if(entry.gap<=3.25)chosen.add(entry.p);
    }
-   s.scramblePursuers=[...chosen].map(p=>p.team*8+p.i);
-   return chosen;
+   const inCenter=blue(loose)?ranked.filter(({p})=>blue(p)):[];
+   const pursuing=inCenter.length>4?new Set(inCenter.map(({p})=>p)):chosen;
+   s.scramblePursuers=[...pursuing].map(p=>p.team*8+p.i);
+   return pursuing;
  }
  function looseSupportSpot(p,ball){
    const side=p.role==='Anchor'?(p.hx<center.x?-1:1):p.side;
@@ -1008,7 +1076,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      const push=.55+rand()*.9;
      loose.vx=loose.vx*.16+winner.vx*.12+Math.cos(reachAngle)*push;
      loose.vy=loose.vy*.16+winner.vy*.12+Math.sin(reachAngle)*push;
-     loose.z=ballRadius;loose.vz=.06+rand()*.20;loose.omega+=(rand()-.5)*8;
+     loose.omega+=(rand()-.5)*8;
      loose.bobbles++;loose.wait=fumble?.3+rand()*.3:.22+rand()*.18;loose.last=winner.team;loose.scramble=true;
      log('The ball is still loose under the scramble');
      return null;
@@ -1020,7 +1088,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    scoringPassYards=passYards;scoringThrower=thrower;
    if(carrier&&carrier.team===p.team)previous=carrier;
    if(s.team!==p.team||s.posAge===0){
-     cornerReturn=anchorLeak=relay=openingCall=swing=null;
+     cornerReturn=passCut=anchorLeak=relay=openingCall=swing=null;
      blueTrap=null;
      buildup=2+Math.floor(rand()*3);
      neutralUntil=26+rand()*17-10*aggression(p.team);
@@ -1098,7 +1166,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    s.tackled=null;
    loose=null;s.contact=s.impact=null;s.scramblePursuers=[];pile=null;lane=null;cool=0;
    defensiveAssignments.clear();defenseReadAt=0;
-   cornerReturn=anchorLeak=relay=blueTrap=swing=null;
+   cornerReturn=passCut=anchorLeak=relay=blueTrap=swing=null;
+   openingPassUsed=false;
    if(subs[0]||subs[1])finishSubsNow();
    if(s.overtime){restartOvertime(team);return}
    const slots=[0,1,2,3].filter(i=>!side||Math.sign(quadrantCenters[i].x-25)===side);
@@ -1126,9 +1195,11 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
 
    const calls=s.playbooks[team].calls;
    plan=conservative(team)?'Short outlets':calls[Math.floor(rand()*calls.length)];
+   const opener=!conservative(team)&&readOpeningPass(attack[index],q=>!q.sidelined,s.playbooks[team].reads);
+   if(opener&&rand()<.55)plan=opener.call;
    openingCall=null;previous=null;
    assign(attack[index]);stationary=true;run=false;hold=1.5;
-   if(!conservative(team))readTime=urgent(team)? 0 : 1.6+1.8*(1-aggression(team));
+   if(!conservative(team))readTime=urgent(team)?0:opener?.call===plan?1.2:1.6+1.8*(1-aggression(team));
    const defender=players[(1-team)*8+6];
    const coach=s.playbooks[1-team];
    const trapChance=.08+.27*coach.baseline+.17*judgment(defender)+(urgent(1-team)?.22:0);
@@ -1224,7 +1295,9 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    return true;
  }
  function considerGamble(pass,active,off){
-   if(s.overtime||pass.bounceF||pass.kicker||dist(pass.start,pass.end)<12||noPossession(pass.end))return;
+   if(s.overtime||pass.kicker||!pass.target||noPossession(pass.end))return;
+   const ring=dist(pass.end,center)<=ringRadius;
+   if(!ring&&(pass.bounceF||dist(pass.start,pass.end)<12))return;
    const f=.9,spot=flightAt(pass,pass.duration*f),time=pass.duration*f/ballSpeedMultiplier;
    // Passers with low IQ and Discipline telegraph their throws: more gambles, and earlier reads.
    const thrower=pass.thrower,tell=clamp(1+((70-thrower.ratings[8])+(70-thrower.ratings[7]))/40,.5,2);
@@ -1233,21 +1306,23 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    for(const d of players){
      if(d.team===off||!active(d)||d.blocked>0||d.stumble>0)continue;
      const skill=(d.ratings[8]+d.ratings[6]+d.ratings[3])/3;
-     if(skill<gambleSkill)continue;
+     if(!ring&&skill<gambleSkill)continue;
      // Only tight coverage can gamble: the defender must be close to the intended receiver. Smart, quick
      // defenders read the passer's eyes and break before the release, which adds to the time they have.
      const k=clamp((skill-gambleSkill)/(95-gambleSkill),0,1),read=(.15+.25*k)*tell;
      const gap=dist(d,spot),reachable=topSpeed(d.ratings[3])*gambleBurst*(1-.15*fatigue(d))*(time+read)*.6+.5;
      const reachHeight=d.height/36+.39+d.ratings[4]*.0115;
-     if(!pass.target||dist(d,pass.target)>4.5||gap<1.5||gap>9||gap>reachable||spot.z>reachHeight+.3||legalX(d,spot.x)!==spot.x)continue;
-     if(!best||skill>best.skill)best={d,skill};
+     if(dist(d,pass.target)>(ring?5.5:4.5)||(!ring&&gap<1.5)||gap>9||gap>reachable||
+         spot.z>reachHeight+.3||legalX(d,spot.x)!==spot.x)continue;
+     const readQuality=ring?skill-3*gap:skill;
+     if(!best||readQuality>best.readQuality)best={d,skill,readQuality};
    }
    if(!best)return;
    const k=clamp((best.skill-gambleSkill)/(95-gambleSkill),0,1);
-   if(rand()>=GAMBLE_RATE*(.4+.6*k)*tell)return;
-   pass.gamble={d:best.d,spot,f,success:.30+.20*k,done:false};
+   if(rand()>=(ring?RING_GAMBLE_RATE:GAMBLE_RATE*(.4+.6*k)*tell))return;
+   pass.gamble={d:best.d,spot,f,ring,success:.30+.20*k,done:false};
    s.gambles.attempts++;
-   log(best.d.name+' reads the long pass and jumps the route');
+   log(best.d.name+(ring?' reads the throw to the ring and jumps the route':' reads the long pass and jumps the route'));
  }
  function resolveGamble(f){
    const g=pass.gamble;
@@ -1257,7 +1332,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    if(there&&rand()<g.success){
      s.gambles.wins++;
      if(rand()<clamp(.35+(d.ratings[5]-60)*.01,.2,.6)){intercept(d,true);return true}
-     log(d.name+' gets a hand on the long pass');looseFromPass(d,'bat');return true;
+     log(d.name+(g.ring?' gets a hand on the throw to the ring':' gets a hand on the long pass'));looseFromPass(d,'bat');return true;
    }
    d.stumble=gambleMiss;
    log(d.name+(there?' misses the jump':' cannot get there')+' · caught out of position');
@@ -1453,8 +1528,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    }
  }
  // One referee works a dirt strip: the top strip in the first half, the bottom strip after halftime.
- // They shadow the ball from the strip and sidestep low passes that would hit them.
- const ref=s.referee;let refRead=null;
+ // The official works for a clear angle from the strip and sidesteps low passes.
+ const ref=s.referee;let refRead=null,refView=null;
  function refereeThreat(){
    if(!pass||pass.elapsed>=pass.duration)return null;
    const {radius,height}=venue.referee;
@@ -1464,11 +1539,35 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    }
    return null;
  }
+ function refereeView(action,contact,home){
+   let best=null,bestScore=-Infinity;
+   for(const dx of [-2.7,-1.35,0,1.35,2.7])for(const dy of [-2.7,0,2.7]){
+     const x=center.x+dx,y=home+dy;
+     const ax=action.x-x,ay=action.y-y,distance=Math.hypot(ax,ay)||1;
+     const ux=ax/distance,uy=ay/distance;
+     let score=-Math.abs(distance-10)*.25-Math.hypot(x-ref.x,y-ref.y)*.30-Math.abs(dx)*.10;
+     if(contact){
+       const cx=contact.d.x-contact.p.x,cy=contact.d.y-contact.p.y;
+       score+=2.6*Math.abs(ux*cy-uy*cx)/(Math.hypot(cx,cy)||1);
+     }
+     for(const p of players){
+       if(p===carrier||p.sidelined||p.subbing||p.entering)continue;
+       const px=p.x-x,py=p.y-y,along=px*ux+py*uy;
+       if(along>0&&along<distance-.7)score-=2.4*Math.max(0,1-Math.abs(px*uy-py*ux)/1.2);
+     }
+     if(score>bestScore){best={x,y};bestScore=score}
+   }
+   return best;
+ }
  function moveReferee(dt){
    const {home,walk,dodge}=venue.referee,top=s.half===1&&!s.overtime;
    const lo=top?.8:venue.strip.gap[1]+.8,hi=top?venue.strip.gap[0]-.8:venue.field.height-.8;
    const b=carrier||pass||loose||lastBall;
-   let target={x:center.x+clamp((b.x-center.x)*.12,-2.5,2.5),y:home[top?0:1]},speed=walk;
+   const action=pass?flightAt(pass,Math.min(pass.elapsed+.26,pass.duration)):b;
+   if(!refView||refView.top!==top||(refView.wait-=dt)<=0){
+     refView={top,wait:.32,spot:refereeView(action,s.contact,home[top?0:1])};
+   }
+   let target=refView.spot,speed=walk;
    if(pass!==refRead?.pass)refRead=pass?{pass,wait:.22+rand()*.28}:null;
    const threat=refRead&&(refRead.wait-=dt)<=0?refereeThreat():null;
    ref.dodging=!!threat;
@@ -1478,9 +1577,9 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      const sign=Math.sign((ref.x-threat.x)*nx+(ref.y-threat.y)*ny)||(ref.y<17?-1:1);
      target={x:ref.x+nx*sign*2.5,y:ref.y+ny*sign*2.5};speed=dodge;
    }
-   target.x=clamp(target.x,venue.strip.x+.6,venue.strip.x+venue.strip.width-.6);
-   target.y=clamp(target.y,lo,hi);
-   const dx=target.x-ref.x,dy=target.y-ref.y,d=Math.hypot(dx,dy),step=Math.min(d,speed*dt);
+   const x=clamp(target.x,venue.strip.x+.9,venue.strip.x+venue.strip.width-.9);
+   const y=clamp(target.y,lo,hi);
+   const dx=x-ref.x,dy=y-ref.y,d=Math.hypot(dx,dy),step=Math.min(d,speed*dt,threat?d:d*dt*2.2);
    ref.vx=d?dx/d*step/dt:0;ref.vy=d?dy/d*step/dt:0;
    ref.x+=d?dx/d*step:0;ref.y+=d?dy/d*step:0;
  }
@@ -1580,24 +1679,35 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  if(cornerReturn&&carrier&&(cornerReturn.phase==='return'?age>6:age>6.5)){
    cornerReturn=null;readTime=0;
  }
+ if(passCut){
+   passCut.elapsed+=dt;
+   const {player,route}=passCut;
+   if(dist(player,route[0])<1.05)route.shift();
+   if(!route.length||!active(player)||passCut.elapsed>12)passCut=null;
+ }
  if(pile){
    let {p,d}=pile;
    updateStamina(p,.9,gameDt);
    updateStamina(d,.9,gameDt);
-   let support=players.filter(q=>q!==p&&q!==d&&active(q)&&dist(q,p)<3.1);
-   const bodyForce=q=>q.weight*(.34+q.ratings[2]/72)*(1+(q.height-72)*.006);
-   const attackForce=bodyForce(p)+support.filter(q=>q.team===p.team).reduce((sum,q)=>sum+bodyForce(q)*.52,0);
-   const defendForce=bodyForce(d)+support.filter(q=>q.team===d.team).reduce((sum,q)=>sum+bodyForce(q)*.52,0);
-   const forceEdge=(attackForce-defendForce)/(attackForce+defendForce||1);
-   const shove=.44*Math.sin(pile.time*5)*clamp(1-Math.abs(forceEdge)*5,0,1);
-   const step=dt*clamp(.07+forceEdge*2.15+shove,-.68,1.25);
    const gap=dist(p,center)||1;
-   let dx=(25-p.x)/gap*step,dy=(17-p.y)/gap*step;
+   const nx=(center.x-p.x)/gap,ny=(center.y-p.y)/gap;
+   positionPileHelpers(active,nx,ny);
+   const support=[...pile.pushing];
+   const attackers=support.filter(q=>q.team===p.team),defenders=support.filter(q=>q.team===d.team);
+   const bodyForce=q=>q.weight*(.24+q.ratings[2]/65)*(1+(q.height-72)*.008)*(1-.18*fatigue(q));
+   const assistance=group=>group.reduce((sum,q)=>sum+bodyForce(q)*.66,0);
+   const attackForce=bodyForce(p)+assistance(attackers);
+   const defendForce=bodyForce(d)+assistance(defenders);
+   const forceEdge=(attackForce-defendForce)/(attackForce+defendForce||1);
+   const shove=.34*Math.sin(pile.time*5)*clamp(1-Math.abs(forceEdge)*4,0,1);
+   const step=dt*clamp(.10+forceEdge*3.45+pile.momentum*Math.exp(-pile.time*.85)+shove,-1.15,1.7);
+   const dx=nx*step,dy=ny*step;
    movePlayer(p,p.x+dx,p.y+dy);movePlayer(d,d.x+dx,d.y+dy);
+   for(const q of support)movePlayer(q,q.x+dx,q.y+dy);
    updateCarryHand(p,dt,worth>0);
    pile.time+=dt;
    if(deadNoPossession(p,p.team,p,true))return;
-   if(worth>0&&insideRing(p)){score(p,worth);return}
+   if(worth>0&&insideRing(p)){log(p.name+' is driven across the ring line by the pile');score(p,worth);return}
    // Use actual position after movement so rocking or field limits cannot mask a stall.
    const distance=dist(p,center);
    pile.closestDistance=Math.min(pile.closestDistance,distance);
@@ -1609,21 +1719,20 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    const stalled=pile.stallTime+1e-9>=pileStallLimit;
    const drivenBack=distance-pile.closestDistance>=pileLossYards;
    if(pile.time>=2){
-     const defenders=support.filter(q=>q.team===d.team),attackers=support.filter(q=>q.team===p.team);
      const tackleSkill=(d.ratings[tackling]*.58+d.ratings[8]*.24+d.ratings[2]*.18)+
        defenders.reduce((sum,q)=>sum+(q.ratings[tackling]*.55+q.ratings[8]*.25+q.ratings[2]*.2)*.18,0);
      const ballControl=p.ratings[2]*.47+p.ratings[5]*.30+p.ratings[8]*.15+p.ratings[10]*.08+
        attackers.reduce((sum,q)=>sum+q.ratings[2]*.13,0);
      pile.tackleProgress+=dt*clamp(.025+(tackleSkill-ballControl)*.0012-forceEdge*.08,.006,.19);
-     const fumbleRate=clamp(.0015+(defendForce-attackForce)*.000012+(72-p.ratings[5])*.00012,.0004,.018);
+     const fumbleRate=1.10*clamp(.0015+(defendForce-attackForce)*.000012+(72-p.ratings[5])*.00012,.0004,.018);
      if(!lane&&rand()<fumbleRate*dt){
        p.stats.fum++;log(p.name+' loses the ball inside the pile · ball loose');
        spill(p,'fumble',p.x,p.y);
-       Object.assign(loose,{vx:(rand()-.5)*6,vy:(rand()-.5)*6,vz:.65+rand()*.75,omega:(rand()-.5)*18});return;
+       Object.assign(loose,{vx:(rand()-.5)*6,vy:(rand()-.5)*6,omega:(rand()-.5)*18});return;
      }
      const freeMate=players.filter(q=>q.team===p.team&&q!==p&&active(q)&&!q.blocked&&q.role!=='Anchor'&&
        dist(q,p)<2.15&&clearance(q,p.team)>2.4).sort((a,b)=>dist(a,p)-dist(b,p))[0];
-     if(freeMate&&rand()<dt*clamp(.0007+(p.ratings[8]+p.ratings[5]-100)*.000012,.0003,.0022)){
+     if(freeMate&&rand()<dt*1.25*clamp(.0007+(p.ratings[8]+p.ratings[5]-100)*.000012,.0003,.0022)){
        log(p.name+' slips a hidden handoff to '+freeMate.name);
        s.contact=pile=null;assign(freeMate);run=true;cool=.35;return;
      }
@@ -1644,14 +1753,12 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      }
    }
    if(stalled||drivenBack||pile.tackleProgress>=1){
+     if(drivenBack)log(teams[d.team]+' drives the pile back and stops forward progress');
      s.contact=pile=null;
      if(!tryBoundaryPush(p,d,boundaryContact(p,d),'pile'))stopCarrier(p,d);
      return;
    }
-   if(dist(d,center)<ringRadius){
-     // Contact can carry a defender across the line, but they must keep moving through.
-     s.contact=pile=null;cool=.45;
-   }else if(pile.time>=pile.limit){
+   if(pile.time>=pile.limit){
      s.contact=null;pile=null;
      if(forceEdge>-.015){cool=.86;log(p.name+' powers free of the pile')}
      else if(!tryBoundaryPush(p,d,boundaryContact(p,d),'pile'))stopCarrier(p,d);
@@ -1676,7 +1783,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  p.stumble=Math.max(0,(p.stumble||0)-dt);
  if(p.subbing){tx=subs[p.team].exit.x;ty=subs[p.team].exit.y}
  else if(pass?.gamble&&!pass.gamble.done&&pass.gamble.d===p){tx=pass.gamble.spot.x;ty=pass.gamble.spot.y}
- else if(pile&&p.role==='Anchor'){tx=pile.p.x;ty=pile.p.y}
+ else if(pile?.helpers.has(p)){const spot=pile.helpers.get(p);tx=spot.x;ty=spot.y}
  else if(loose&&scramblePursuers.has(p)){
    tx=loose.x+loose.vx*.18;ty=loose.y+loose.vy*.18;
    if(dist(p,loose)<1.7&&loose.z<.72&&p.scrambleTime<=0){
@@ -1701,6 +1808,9 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  else if(pass?.kicker===p&&(p.y<.7||p.y>33.3)){tx=p.x;ty=p.y<17?1.3:32.7}
  else if(pass&&p===pass.target&&(!pass.wide||pass.elapsed>=saveReaction(p)*ballSpeedMultiplier)){
    tx=pass.end.x;ty=pass.end.y;
+ }
+ else if(p===passCut?.player){
+   const spot=passCut.route[0];tx=spot.x;ty=spot.y;
  }
  else if(lane){
    if(p===lane.anchor){
@@ -1816,7 +1926,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  const leavingRing=p.team!==off&&dist(p,center)<=ringRadius;
  if(!leavingRing)p.ringExit=null;
- if(p.team!==off&&!loose){
+ const gambling=pass?.gamble&&!pass.gamble.done&&pass.gamble.d===p;
+ if(p.team!==off&&!loose&&!pile?.helpers.has(p)&&!(gambling&&pass.gamble.ring)){
    if(pass?.target===p&&pass.lookForFive&&pass.duration-pass.elapsed<.58&&!pass.saveExit){
      // Meet a live save on the run, with a destination past the ring.
      pass.saveExit=guardPosition(2*center.x-p.x,2*center.y-p.y,p);
@@ -1831,10 +1942,9 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    tx=exit.x;ty=exit.y;
  }
  tx=legalX(p,tx);
- const gambling=pass?.gamble&&!pass.gamble.done&&pass.gamble.d===p;
  const speed=topSpeed(p.ratings[3])*(gambling?gambleBurst:1);
  const gripping=p===carrier&&lane?.grip;
- const effort=gripping ? .85 : Math.hypot(p.vx,p.vy)/speed;
+ const effort=gripping||pile?.pushing.has(p) ? .85 : Math.hypot(p.vx,p.vy)/speed;
  updateStamina(p,effort,gameDt);
  const tired=fatigue(p);
  const speedLoss=tired*(p===carrier ? .26 : .15);
@@ -1875,14 +1985,14 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    if(refereeHit(loose,loose.last,loose.responsible))return;
    if(loose.dirtContact&&deadNoPossession(loose.dirtContact,loose.last,loose.responsible))return;
    if(deadNoPossession(loose,loose.last,loose.responsible))return;
-   if(loose.x<0||loose.x>50||loose.y<0||loose.y>34){
+   if(loose.x<0||loose.x>venue.field.width||loose.y<0||loose.y>venue.field.height){
      const awarded=1-loose.last;
-     if(loose.responsible?.team===off&&awarded!==off){
-       loose.responsible.stats.to++;call('Turnover',loose.responsible,'· '+possessionText(awarded));
-     }
+     if(loose.responsible?.team===off&&awarded!==off)loose.responsible.stats.to++;
+     call('Ball Out of Bounds',loose.responsible,'· '+possessionText(awarded));
      log('Loose ball out · last-touch ruling');restartAfterPause(awarded,undefined,nearestQuadrant(loose));return
    }
-   const recovery=loose.wait<=0&&!(loose.z>1.45)&&settleLooseBall(active);
+   // A loose-ball pickup happens on the turf, after any pass deflection has finished bouncing.
+   const recovery=loose.wait<=0&&loose.z<=ballRadius&&loose.vz===0&&settleLooseBall(q=>scramblePursuers.has(q));
    if(recovery){
      const {player:q,contested}=recovery;
      const {kind,originTeam,responsible}=loose,spot=loose;
@@ -1910,7 +2020,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    }else if(f<1)return;
    else log(kicker?kicker.name+' cannot reach the airborne save · ball out':'Ball out of bounds');
    pass.thrower.stats.to++;
-   call('Turnover',pass.thrower,'throws out of bounds · '+possessionText(1-off));
+   call('Ball Out of Bounds',pass.thrower,'throws out of bounds · '+possessionText(1-off));
    restartAfterPause(1-off,undefined,nearestQuadrant(pass));
    return;
  }
@@ -2026,10 +2136,12 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    }
    const returnPass=cornerReturn?.phase==='outbound'&&q===cornerReturn.outlet;
    if(cornerReturn&&!returnPass)cornerReturn=null;
+   if(passCut&&pass.thrower===passCut.player&&q!==passCut.outlet)passCut=null;
    const ringCatch=scoringCatch&&dist(pass,center)<=ringRadius;
    assign(q,scoringCatch?3:2,scoringCatch?Math.round(dist(pass.start,pass)):null,ringCatch?pass.thrower:null,pass);cool=.6;
    if(swing){run=false;readTime=swingReadTime(q)}
    if(returnPass){cornerReturn.phase='return';run=false;readTime=1.1}
+   if(passCut?.outlet===q&&!blue(q)&&Math.abs(q.y-center.y)>5){run=false;readTime=Math.max(readTime,2.3)}
    log(q.name+(save?' catches the airborne save':q.team!==off?' intercepts':contested?' secures it through contact':' takes the pass'));
    if(saveScore)score(q,5);
    else if(inside&&insideRing(q))score(q,worth)
@@ -2052,8 +2164,18 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    }
  }
  const canThrow=!s.overtime&&!run&&Math.abs(p.y-17)>5&&Math.abs(p.x-25)>=5&&(!retreat||dist(p,retreat)<2);
+ const cutOpening=plan==='Pass and cut'&&!openingPassUsed&&!cornerReturn&&!conservative(off);
+ const cutReturn=canThrow&&passCut?.outlet===p&&blue(passCut.player)&&clearance(passCut.player,off)>1.65&&
+   passingLane(p,passCut.player,active)>1.3;
+ const readCall=canThrow&&!openingPassUsed&&!cornerReturn&&style.reads.includes(plan);
+ const canReadOpening=canThrow&&!openingPassUsed&&!cutOpening&&!cutReturn&&!cornerReturn&&!anchorLeak&&
+   !relay&&!passCut&&!conservative(off)&&!swing&&age>=Math.min(readTime,.95)&&age>=nextOutletRead;
+ const calledPass=canReadOpening?readOpeningPass(p,active,readCall?[plan]:style.reads):null;
+ if(canReadOpening&&readCall&&!calledPass)nextOutletRead=age+.18;
  let quickTarget=null,swingAttack=false;
- if(canThrow&&age>=nextOutletRead){
+ if(cutReturn){quickTarget=passCut.player;swing=null}
+ else if(calledPass){quickTarget=calledPass.target;swing=null}
+ else if(canThrow&&!cutOpening&&!passCut&&!readCall&&age>=nextOutletRead){
    if(!swing&&!swingChecked&&!conservative(off)&&!cornerReturn&&!anchorLeak&&!relay&&!openingCall&&
       age>=Math.min(readTime,1.65-style.swingRate)){
      swingChecked=true;
@@ -2085,6 +2207,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  if(canThrow&&(quickTarget||!swing&&age>readTime)){
  let target=quickTarget||cutter, movement=quickTarget?(swing?'quick swing':'quick outlet'):null;
+ if(calledPass)movement=calledPass.call==='Runway lead'?'runner feed':'quick outlet';
  const circulating=circulate(off)&&!anchorLeak;
  const powerReset=style.groundFirst&&!quickTarget&&!cornerReturn&&!anchorLeak;
  if(!quickTarget&&(powerReset||protect(off)||retreat||cutter?.edgeTime>0||!cutter||clearance(cutter,off)<1.2)){
@@ -2115,6 +2238,11 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      target=choice.q;movement=choice.move||movement;
    }
  }
+ if(cutOpening){
+   target=players.filter(q=>q!==p&&q.team===off&&active(q)&&dist(q,p)>3&&
+     Math.abs(q.y-center.y)>5&&Math.abs(q.x-center.x)>=5)
+     .sort((a,b)=>clearance(b,off)-clearance(a,off)+(dist(p,a)-dist(p,b))*.12)[0]||target;
+ }
  if(!target)return;
  if(cornerReturn?.phase==='outlet'){
    if(dist(cornerReturn.outlet,cornerReturn.spot)>2.2)return;
@@ -2133,8 +2261,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  stationary=false;previous=p;
  const closeSafe=dist(p,target)<=4&&players.every(q=>q.team===off||!active(q)||q.blocked||
    dist(q,p)>=3.2&&dist(q,target)>=3.2);
- if(closeSafe&&dist(p,target)<=1.65&&rand()<.58){
-   log(p.name+' gives safely to '+target.name);
+ if(!cutOpening&&!cutReturn&&closeSafe&&dist(p,target)<=1.85&&rand()<.80){
+   log(p.name+' hands off safely to '+target.name);
    assign(target);run=false;cool=.24;return;
  }
  let passType=choosePassType(p,target,active,movement,scheme).type;
@@ -2168,6 +2296,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  // Use a single interception roll per throw across its flight.
  p.stats.att++;pass={thrower:p,wide,passType,quickSwing:Boolean(swing&&!wide),circulating:circulating&&!wide,
    laneRoll:rand(),start,end,target:wide?null:target,elapsed:0,...profile};
+ if(cutOpening||readCall||calledPass)openingPassUsed=true;
  if(wide&&!s.overtime&&!pass.bounceF){
    pass.rescuer=findRescuer(pass,active);
    if(pass.rescuer){
@@ -2185,7 +2314,16 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    s.releaseTips++;log(crowding[0].name+' tips the pass out of the crowd');looseFromPass(crowding[0],'tip');return;
  }
  if(wide)return;
+ if(cutReturn){
+   log(p.name+' looks for the return pass to '+target.name+' on the cut');
+   passCut=null;
+ }else if(cutOpening)startPassCut(p,target);
  considerGamble(pass,active,p.team);
+ if(cutOpening||cutReturn)return;
+ if(calledPass){
+   log(calledPass.call+' · '+p.name+' finds '+target.name);
+   return;
+ }
  if(swingAttack)log(p.name+' attacks the ring by air with a quick pass to '+target.name);
  else if(movement==='quick swing')log(p.name+' swings quickly to '+target.name+' in Q'+(nearestQuadrant(target)+1));
  else if(movement==='quick outlet')log(p.name+' finds '+target.name+' before the defense can close');
@@ -2220,8 +2358,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      log(p.name+' jukes past '+pressure.name)
    }else p.missedJuke={defender:pressure,until:age+.95};
  }
- if(!lane&&age>1.4&&pressure&&!blue(p)&&Math.abs(p.y-17)<=5){
-   const support=players.find(q=>q.team===off&&q!==p&&active(q)&&dist(q,p)<1.8&&
+ if(!lane&&age>1.25&&pressure&&!blue(p)&&Math.abs(p.y-17)<=5){
+   const support=players.find(q=>q.team===off&&q!==p&&active(q)&&!q.blocked&&dist(q,p)<2.05&&
      clearance(q,off)>dist(p,pressure)+(q.role==='Anchor' ? 1 : .8));
    if(support&&!noPossession(support)){if(support===relay?.player)relay.used=true;log(p.name+' hands off to '+support.name);assign(support);cool=.6;return}
  }
@@ -2235,6 +2373,6 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  let lastBall={x:center.x,y:center.y,z:ballRadius};
  s.ballCarrier=()=>carrier;
  s.ball=()=>lastBall=(s.scoringSpot?{...s.scoringSpot,z:.82}:carrier?
-   {...ballAt(carrier),z:1.03,spin:Math.atan2(carrier.vy,carrier.vx)}:(pass||loose))||lastBall;
+   {...ballAt(carrier),z:carriedBallHeight,spin:Math.atan2(carrier.vy,carrier.vx)}:(pass||loose))||lastBall;
  return s;
 }

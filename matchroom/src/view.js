@@ -9,7 +9,7 @@ const fieldTemplates=[
 if(!window.heaveballReady){
 const el=id=>document.getElementById(id),canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),colors=['#ff805d','#69bafa'];
 const tackleDuration=2000,fixedStep=.04,halftimeDuration=15000,scoringDuration=3500,penaltyDuration=3500,stoppageDuration=3500;
-let sim,playing=false,carry=0,wall=performance.now(),speed=1,backgroundTimer=0;
+let sim,playing=false,carry=0,wall=performance.now(),speed=Number(el('pace').value),backgroundTimer=0;
 let statsMode=null,statsPage=0,statsDeadline=0,frozenTime=null,finalStats=null;
 function stamp(s){let n=s.overtime?Math.floor(s.time):Math.ceil(s.time);return (s.overtime?'OT':'H'+s.half)+' · '+Math.floor(n/60)+':'+String(n%60).padStart(2,'0')}
 let tackleBreak=false,boxDirty=true,breakUntil=0,callAge=Infinity,lastFrame=performance.now(),shownHighlights=-1;
@@ -65,7 +65,7 @@ function briefing(){
      playbook:[0,1.39,4.85,-2.13,-.398],
      oppDefense:[0,-.521,1.31,2.58,2.61,2.72,-3.46,.007],
      ownDefense:[0,-.613,.531,2.69,-.928,5.2,-2.43,-.676],sd:11.8};
-   const points=[0,1].map(t=>{const o=1-t;let v=W.base+W.playbook[playbooks.indexOf(sim.playbooks[t])]+W.oppDefense[sim.defenses[o]]+W.ownDefense[sim.defenses[t]];
+   const points=[0,1].map(t=>{const o=1-t;let v=W.base+W.playbook[playbooks.indexOf(sim.playbooks[t])]+(W.oppDefense[sim.defenses[o]]??0)+(W.ownDefense[sim.defenses[t]]??0);
      for(let j=0;j<12;j++)v+=W.own[j]*(ratings[t][j]-70)+W.opp[j]*(ratings[o][j]-70);return Math.max(0,v)});
    const edge=points[0]-points[1],margin=Math.round(Math.abs(edge)*2)/2;
    const erf=x=>{const t=1/(1+.3275911*Math.abs(x)),y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x);return x<0?-y:y};
@@ -167,7 +167,7 @@ function drawStamina(p,carrier){
 function drawPlayer(p){
  const flagged=sim.penaltyPending&&sim.penalized===p;
  if(flagged)disc(p.x,p.y,1.25,'rgba(255,40,40,.45)','#ff2a2a');
- else if(p.blocked>0)disc(p.x,p.y,1,"#8a7546","#f5d688");
+ else if(p.blocked>0||sim.contact?.pushing?.has(p))disc(p.x,p.y,1,"#8a7546","#f5d688");
  disc(p.x,p.y,.76,flagged?'#ff3b3b':colors[p.team],flagged?'#fff':'#12271e');
  ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
  if(sim.tackled===p){ctx.beginPath();ctx.arc(0,0,.6,0,Math.PI*2);ctx.strokeStyle='#000';ctx.lineWidth=.16;ctx.stroke()}ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
