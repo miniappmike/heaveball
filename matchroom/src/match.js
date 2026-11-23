@@ -61,6 +61,8 @@ const SMOTHER_ERROR=.6,SMOTHER_WIDE=.04,SMOTHER_TIP=.2;
 // Throwing out of a crowd: each defender within 2.5 yards of the passer beyond the first adds this
 // chance that one of them tips the ball at release (lobs and line drives; capped at 35%).
 const RELEASE_TRAFFIC=.08;
+// How far in front of the ring Carrier pressure's stay-home defender sits against run-first offenses.
+const homeGuardDepth=3.2,pressRunCushion=1.6;
 // Field units are yards. Height is measured from the turf to the ball's center.
 const ballRadius=.31,gravity=10.73;
 // A softball-sized rubber ball on turf skips and rebounds, but sheds vertical energy quickly.
@@ -317,6 +319,9 @@ function match(report){
  const defensiveAssignments=new Map();
  let defenseReadAt=0,lastDefense=null;
 
+ // Carrier pressure normally plays a loose back line; against a run-first offense it tightens the marks,
+ // because drive-and-kick throws punish loose coverage in the center.
+ function cushionFor(scheme,off){return scheme.press&&s.playbooks[off].groundFirst?pressRunCushion:scheme.cushion}
  function goalSide(threat,gap){
    const depth=dist(threat,center);
    const fraction=depth?Math.min(1,gap/depth):0;
@@ -362,12 +367,18 @@ function match(report){
      pair(p=>-dist(p,spot)+(p.role==='Anchor'?2:0)+p.ratings[6]*.015+
        (oldAssignments.get(p)?.shoulder===shoulder?1:0)-(p.blocked?2:0),{shoulder});
    }
+   // Pressing a run-first offense: one defender stays home just in front of the ring so the
+   // drive-and-kick into the center is not an empty-net throw.
+   if(scheme.press&&s.playbooks[off].groundFirst){
+     const spot=lanePosition(focus,homeGuardDepth,0);
+     pair(p=>-dist(p,spot)+p.ratings[6]*.015+(oldAssignments.get(p)?.home?1:0)-(p.blocked?2:0),{shoulder:0,home:true});
+   }
    const threat=q=>4.4-.27*dist(q,center)-.065*dist(q,focus)+q.ratings[5]*.028+
      (q.role==='Runner'?q.ratings[10]*.017:0)+(blue(q)?1.5:0)+(q===cutter?1:0);
    const mark=(q,extra={})=>pair(p=>{
      if(legalX(p,q.x)!==q.x)return -Infinity;
      const hold=oldAssignments.get(p)?.mark===q?(scheme.switches?.25:1.5):0;
-     return -dist(p,goalSide(q,scheme.cushion))+hold+judgment(p)*1.3-(p.blocked?2:0);
+     return -dist(p,goalSide(q,cushionFor(scheme,off)))+hold+judgment(p)*1.3-(p.blocked?2:0);
    },{mark:q,...extra});
    const marked=new Set();
    if(scheme.stars){
@@ -393,13 +404,13 @@ function match(report){
    const mark=p.helpTime>0&&p.helpTarget?.team===off&&!p.helpTarget.edgeTime&&
      !noPossession(p.helpTarget)&&p.helpTarget!==carrier?p.helpTarget:assignment?.mark;
    if(shoulder!==undefined||!mark||mark===carrier||mark.edgeTime>0||noPossession(mark)){
-     const base=scheme.depth+2*(tendency[off].drive-.4);
+     const base=(assignment?.home?homeGuardDepth:scheme.depth)+2*(tendency[off].drive-.4);
      const targetDepth=closing?clamp(depth-(scheme.contain?2.2:1.25),ringRadius+.8,base+2):
        clamp(base,ringRadius+.8,Math.max(ringRadius+.8,depth*.74));
      return lanePosition(focus,targetDepth,shoulder??(p.i-3.5)*1.7);
    }
    const star=p.helpTime<=0&&assignment?.star;
-   const goal=goalSide(mark,star?1:scheme.cushion+tendency[off].block*.6);
+   const goal=goalSide(mark,star?1:cushionFor(scheme,off)+tendency[off].block*.6);
    if(star&&assignment.bracket){
      return {x:goal.x+(focus.x-mark.x)*.16,y:goal.y+(focus.y-mark.y)*.16};
    }

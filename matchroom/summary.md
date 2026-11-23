@@ -22,7 +22,7 @@ The pregame handbook shows both overall ratings and the projected spread above a
 
 The pregame spread is a fitted model, not the overall-rating difference. Each club's expected points start from a base of about 29 and add weighted contributions from its own 12 trait averages, the opponent's trait averages, its offensive playbook, the opponent's defensive scheme and its own defense. The spread is the difference in expected points, rounded to the half point. The total is their sum. Win probability treats the final margin as normally distributed around the spread with an 11.2-point standard deviation.
 
-The weights were refitted with ridge regression (penalty chosen by five-fold cross-validation) on 300 headless full matches after the fatigue and defensive-pressure pass. Those matches averaged 61.9 combined points. On held-out matches the model explains about 25% of the variance in final margin. The favorite won about 69% of the time, and the margin's residual standard deviation is 12 points, which sets the win-probability spread.
+The weights were refitted with ridge regression (penalty chosen by five-fold cross-validation) on 339 headless full matches. These are 300 matches from after the fatigue and defensive-pressure pass, minus their 11 Runway power vs Carrier pressure games, plus 50 new games of that matchup played after the Carrier pressure fix. On held-out matches the model explains about 33% of the variance in final margin. The favorite won about 69% of the time, and the margin's residual standard deviation is 11.8 points, which sets the win-probability spread.
 
 ## Strategy balance
 
@@ -148,7 +148,9 @@ This pass brought average combined scoring down from about 70–75 to about 62 (
 - **Throwing out of a crowd.** Each defender within 2.5 yards of the passer beyond the first adds `RELEASE_TRAFFIC` (8 points) to the chance of a tip at release on lobs and line drives, capped at 35%.
 - **Fumble scrambles.** Contested fumble recoveries can bobble up to six times instead of three. Each recovery is `FUMBLE_SCRAMBLE` (14 points) more likely to squirt loose again, and each bobble lasts a little longer.
 
-**Strategy balance after this pass (300 matches).** Points per team by playbook: Patient passing 29.0, Balanced 31.7, Runway power 35.5, Quick swing 27.3, Free flow 31.1. Every defense's average margin is within three points of even. Runway power was already an outlier before this pass, at about 38 points a team in the previous build. Its edge comes from long 3-point catches in the center while the defense collapses on the runway. Rebalancing it is open work. The strategy table below predates this pass.
+**Carrier pressure against run-first offenses.** Carrier pressure plays a loose back line, keeping marks 2.8 yards goal-side of receivers. Against Runway power that let the offense throw into an open center for 3 points, about 65 points a game in that matchup. Against a `groundFirst` playbook, Carrier pressure now tightens its marks to `pressRunCushion` (1.6 yards). It also keeps one defender home `homeGuardDepth` (3.2 yards) in front of the ring. The matchup now averages about 41 points for Runway power in 50 games. Tighter marks did most of the work; the home defender alone changed little.
+
+**Strategy balance after this pass (300 matches, adjusted for the fix).** Points per team by playbook: Patient passing 29.0, Balanced 31.7, Runway power about 34 (about 33 against every defense except Carrier pressure, about 41 against it), Quick swing 27.3, Free flow 31.1. Every defense's average margin is within about four points of even. Runway power is still slightly the strongest playbook. A planned coach-adaptability rating, letting coaches change tactics during a game, may cover the rest. Otherwise it can be made more stubborn about drive-and-kick throws. The strategy table below predates this pass.
 
 ## Gameplay targets
 
