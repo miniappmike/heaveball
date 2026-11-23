@@ -1626,7 +1626,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      if(!lane&&rand()<fumbleRate*dt){
        p.stats.fum++;log(p.name+' loses the ball inside the pile · ball loose');
        spill(p,'fumble',p.x,p.y);
-       Object.assign(loose,{vx:(rand()-.5)*6,vy:(rand()-.5)*6,vz:.65+rand()*.75,omega:(rand()-.5)*18});return;
+       Object.assign(loose,{vx:(rand()-.5)*6,vy:(rand()-.5)*6,omega:(rand()-.5)*18});return;
      }
      const freeMate=players.filter(q=>q.team===p.team&&q!==p&&active(q)&&!q.blocked&&q.role!=='Anchor'&&
        dist(q,p)<2.15&&clearance(q,p.team)>2.4).sort((a,b)=>dist(a,p)-dist(b,p))[0];
