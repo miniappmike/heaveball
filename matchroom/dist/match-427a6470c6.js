@@ -613,7 +613,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      assign(p);stationary=true;run=false;readTime=0;hold=1.5;return
    }
    const spot=blue(p)&&turnover?origin:p;
-   restart(turnover?1-p.team:p.team,lane?p.side:undefined,lane?undefined:nearestQuadrant(spot));
+   // Hold the tackle spot through the pause; the next step performs the reset.
+   delayedRestart={team:turnover?1-p.team:p.team,side:lane?p.side:undefined,index:lane?undefined:nearestQuadrant(spot)};
  }
  function contactMatchup(p,d){
    const gap=dist(p,d);

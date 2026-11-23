@@ -1033,7 +1033,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      assign(p);stationary=true;run=false;readTime=0;hold=1.5;return
    }
    const spot=blue(p)&&turnover?origin:p;
-   restart(turnover?1-p.team:p.team,lane?p.side:undefined,lane?undefined:nearestQuadrant(spot));
+   // Hold the tackle spot through the pause; the next step performs the reset.
+   delayedRestart={team:turnover?1-p.team:p.team,side:lane?p.side:undefined,index:lane?undefined:nearestQuadrant(spot)};
  }
  function contactMatchup(p,d){
    const gap=dist(p,d);
@@ -2643,7 +2644,7 @@ el('roster').onchange=scout;fresh();requestAnimationFrame(frame);
 window.heaveballReady=true;
 }
 
-})();</script><script src="match-737c888eee.js"></script><script src="view-648ef9eb3f.js"></script><script>(()=>{const d=document.getElementById('rules');if(!d)return;
+})();</script><script src="match-427a6470c6.js"></script><script src="view-648ef9eb3f.js"></script><script>(()=>{const d=document.getElementById('rules');if(!d)return;
 const toggle=()=>{if(d.open)d.close();else d.showModal()};
 document.querySelectorAll('.rules-open').forEach(b=>b.addEventListener('click',toggle));
 document.getElementById('rules-close').addEventListener('click',()=>d.close());
