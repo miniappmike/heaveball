@@ -46,6 +46,21 @@ const playerSpeedMultiplier=1.02*1.10;
 const ballSpeedMultiplier=.98;
 const lobSpeedMultiplier=1.10;
 const passDeflectionMultiplier=1.15;
+// Passes thrown into crowds are tipped and batted more often: each extra body within three yards
+// of the ball beyond the first two raises the tip and bat chance by this fraction.
+const TRAFFIC_DEFLECT=3,trafficRadius=3;
+// Defensive gambles: a smart, quick, fast defender (IQ, Reaction and Speed average 68+) sometimes
+// jumps a long pass. GAMBLE_RATE is the attempt chance for an eligible top defender; success runs
+// 30-50% with those ratings. A miss leaves the defender stumbling out of position.
+const GAMBLE_RATE=.5,gambleSkill=68,gambleMiss=1.6,gambleBurst=1.1;
+// Extra chance per contested recovery that a fumble squirts loose again (up to six bobbles instead of three).
+const FUMBLE_SCRAMBLE=.14;
+// Smothering: a taller, faster defender pressing the passer widens the throw's scatter, adds a chance
+// of an errant throw, and may tip the ball at release. Each value applies at full smother level.
+const SMOTHER_ERROR=.6,SMOTHER_WIDE=.04,SMOTHER_TIP=.2;
+// Throwing out of a crowd: each defender within 2.5 yards of the passer beyond the first adds this
+// chance that one of them tips the ball at release (lobs and line drives; capped at 35%).
+const RELEASE_TRAFFIC=.08;
 // Field units are yards. Height is measured from the turf to the ball's center.
 const ballRadius=.31,gravity=10.73;
 // A softball-sized rubber ball on turf skips and rebounds, but sheds vertical energy quickly.
@@ -135,12 +150,15 @@ function reboundVelocity(flight,actor,nx,ny,nz,restitution){
 function topSpeed(rating){return (2+rating*.055)*playerSpeedMultiplier}
 function acceleration(rating){return (3+rating*.09)*playerSpeedMultiplier}
 function fatigue(p){return clamp((.55-p.energy)/.55,0,1)}
+// Energy drain. The hidden stamina rating (40-95) sets how fast a player tires: a 40 drains about
+// three times as fast as a 95, so low-stamina players are the ones who need substitutes.
+const FATIGUE_RATE=.0102,STAMINA_SPREAD=3.6;
 function updateStamina(p,effort,gameDt){
  const endurance=(p.stamina-70)/100;
- const load=clamp((effort-.48)/.52,0,1);
+ const load=clamp((effort-.40)/.60,0,1);
  const rest=clamp((.59-effort)/.59,0,1);
  const reserve=clamp(p.energy/.35,0,1);
- const drain=load**2*(.0095-endurance*.014)*(.58+.42*reserve);
+ const drain=load**1.6*FATIGUE_RATE*Math.max(.25,1-endurance*STAMINA_SPREAD)*(.58+.42*reserve);
  const recovery=rest*(.0105+endurance*.012)*(1.25-.25*reserve);
  p.energy=clamp(p.energy+gameDt*(recovery-drain),0,1);
 }
@@ -942,7 +960,9 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      else runnerUp=Math.max(runnerUp,rating);
    }
    if(!winner)return null;
-   const traffic=clamp(.18+(nearby.length-2)*.065+Math.max(0,2-(best-runnerUp))*.09,0,.58);
+   // Fumbles turn into longer pile-ups: more bobbles, more chances the ball squirts free again.
+   const fumble=loose.kind==='fumble';
+   const traffic=clamp(.18+(nearby.length-2)*.065+Math.max(0,2-(best-runnerUp))*.09+(fumble?FUMBLE_SCRAMBLE:0),0,fumble?.72:.58);
    const bodies=nearby.filter(entry=>entry.gap<1.75);
    for(const {p} of bodies){
      const toward=Math.atan2(loose.y-p.y,loose.x-p.x);
@@ -951,13 +971,13 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      p.scrambleTime=.42+rand()*.48;
      if(p.scramblePose==='fall')p.blocked=Math.max(p.blocked||0,.35+rand()*.42);
    }
-   if(contested&&loose.bobbles<3&&rand()<traffic){
+   if(contested&&loose.bobbles<(fumble?6:3)&&rand()<traffic){
      const reachAngle=Math.atan2(loose.y-winner.y,loose.x-winner.x)+(rand()-.5)*.65;
      const push=.55+rand()*.9;
      loose.vx=loose.vx*.16+winner.vx*.12+Math.cos(reachAngle)*push;
      loose.vy=loose.vy*.16+winner.vy*.12+Math.sin(reachAngle)*push;
      loose.z=ballRadius;loose.vz=.06+rand()*.20;loose.omega+=(rand()-.5)*8;
-     loose.bobbles++;loose.wait=.22+rand()*.18;loose.last=winner.team;loose.scramble=true;
+     loose.bobbles++;loose.wait=fumble?.3+rand()*.3:.22+rand()*.18;loose.last=winner.team;loose.scramble=true;
      log('The ball is still loose under the scramble');
      return null;
    }
@@ -1170,6 +1190,59 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    Object.assign(pass,flightAt(pass,0));
    return true;
  }
+ function considerGamble(pass,active,off){
+   if(s.overtime||pass.bounceF||pass.kicker||dist(pass.start,pass.end)<12||noPossession(pass.end))return;
+   const f=.9,spot=flightAt(pass,pass.duration*f),time=pass.duration*f/ballSpeedMultiplier;
+   // Passers with low IQ and Discipline telegraph their throws: more gambles, and earlier reads.
+   const thrower=pass.thrower,tell=clamp(1+((70-thrower.ratings[8])+(70-thrower.ratings[7]))/40,.5,2);
+   if(spot.z>2.6||noPossession(spot))return;
+   let best=null;
+   for(const d of players){
+     if(d.team===off||!active(d)||d.blocked>0||d.stumble>0)continue;
+     const skill=(d.ratings[8]+d.ratings[6]+d.ratings[3])/3;
+     if(skill<gambleSkill)continue;
+     // Only tight coverage can gamble: the defender must be close to the intended receiver. Smart, quick
+     // defenders read the passer's eyes and break before the release, which adds to the time they have.
+     const k=clamp((skill-gambleSkill)/(95-gambleSkill),0,1),read=(.15+.25*k)*tell;
+     const gap=dist(d,spot),reachable=topSpeed(d.ratings[3])*gambleBurst*(1-.15*fatigue(d))*(time+read)*.6+.5;
+     const reachHeight=d.height/36+.39+d.ratings[4]*.0115;
+     if(!pass.target||dist(d,pass.target)>4.5||gap<1.5||gap>9||gap>reachable||spot.z>reachHeight+.3||legalX(d,spot.x)!==spot.x)continue;
+     if(!best||skill>best.skill)best={d,skill};
+   }
+   if(!best)return;
+   const k=clamp((best.skill-gambleSkill)/(95-gambleSkill),0,1);
+   if(rand()>=GAMBLE_RATE*(.4+.6*k)*tell)return;
+   pass.gamble={d:best.d,spot,f,success:.30+.20*k,done:false};
+   s.gambles.attempts++;
+   log(best.d.name+' reads the long pass and jumps the route');
+ }
+ function resolveGamble(f){
+   const g=pass.gamble;
+   if(!g||g.done||f<g.f)return false;
+   g.done=true;s.gambles.resolved++;
+   const d=g.d,there=!d.sidelined&&!(d.edgeTime>0)&&dist(d,pass)<2.4;
+   if(there&&rand()<g.success){
+     s.gambles.wins++;
+     if(rand()<clamp(.35+(d.ratings[5]-60)*.01,.2,.6)){intercept(d,true);return true}
+     log(d.name+' gets a hand on the long pass');looseFromPass(d,'bat');return true;
+   }
+   d.stumble=gambleMiss;
+   log(d.name+(there?' misses the jump':' cannot get there')+' · caught out of position');
+   return false;
+ }
+ // Pressure from a defender who is both taller and faster than the passer, within arm's reach.
+ // Level 0-1 grows with the height and speed edge and how tight the defender is.
+ function smotherOn(p,active){
+   let best=null;
+   for(const d of players){
+     if(d.team===p.team||!active(d)||d.blocked>0||d.stumble>0)continue;
+     const gap=dist(d,p),taller=d.height-p.height,faster=d.ratings[3]-p.ratings[3];
+     if(gap>1.8||taller<=0||faster<=0)continue;
+     const level=clamp((1.8-gap)/1.1,0,1)*(.5*clamp(taller/6,0,1)+.5*clamp(faster/20,0,1));
+     if(!best||level>best.level)best={d,level};
+   }
+   return best&&best.level>.05?best:null;
+ }
  function intercept(p,inFlight,contested=false){
    const detail=inFlight?'intercepts in the passing lane':contested?'wins a contested interception':'intercepts the pass';
    pass.thrower.stats.to++;call('Turnover',p,detail);p.stats.int++;assign(p);cool=.6;
@@ -1249,7 +1322,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  // The player coming off runs until they are off the playing surface by the bench; only then does the
  // substitute sprint on from the bench. The carrier usually holds the ball until the substitute is set.
  // Bench players recover energy while they sit.
- s.subEvents=0;s.subCount=[0,0];
+ s.subEvents=0;s.subCount=[0,0];s.gambles={attempts:0,resolved:0,wins:0};s.smotherTips=0;s.releaseTips=0;
  const personal=['name','jersey','role','height','weight','ratings','stamina','energy','stats'];
  const benchOf=b=>venue.benches.filter(v=>v.team===b.team)[(b.i-8)>>1];
  const eligible=(field,b)=>(field.role==='Anchor')===(b.role==='Anchor')&&(field.role==='Anchor'||benchOf(b).side===field.side);
@@ -1507,7 +1580,9 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  p.blocked=Math.max(0,(p.blocked||0)-dt);p.helpTime=Math.max(0,(p.helpTime||0)-dt);
  let tx=p.hx,ty=p.hy;
  p.jukeWait=Math.max(0,p.jukeWait-dt);p.jukeTime=Math.max(0,p.jukeTime-dt);
+ p.stumble=Math.max(0,(p.stumble||0)-dt);
  if(p.subbing){tx=subs[p.team].exit.x;ty=subs[p.team].exit.y}
+ else if(pass?.gamble&&!pass.gamble.done&&pass.gamble.d===p){tx=pass.gamble.spot.x;ty=pass.gamble.spot.y}
  else if(pile&&p.role==='Anchor'){tx=pile.p.x;ty=pile.p.y}
  else if(loose&&scramblePursuers.has(p)){
    tx=loose.x+loose.vx*.18;ty=loose.y+loose.vy*.18;
@@ -1663,17 +1738,20 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    tx=exit.x;ty=exit.y;
  }
  tx=legalX(p,tx);
- const speed=topSpeed(p.ratings[3]);
+ const gambling=pass?.gamble&&!pass.gamble.done&&pass.gamble.d===p;
+ const speed=topSpeed(p.ratings[3])*(gambling?gambleBurst:1);
  const gripping=p===carrier&&lane?.grip;
  const effort=gripping ? .85 : Math.hypot(p.vx,p.vy)/speed;
  updateStamina(p,effort,gameDt);
  const tired=fatigue(p);
- const speedLoss=tired*(p===carrier ? .20 : .10);
- const a=acceleration(p.ratings[10])*(1-.14*tired)*dt;
+ const speedLoss=tired*(p===carrier ? .26 : .15);
+ // A gambling defender already broke on the read, so they are at full speed with no ramp-up.
+ const a=gambling?99:acceleration(p.ratings[10])*(1-.14*tired)*dt;
  let dx=tx-p.x,dy=ty-p.y,d=Math.hypot(dx,dy),v=Math.min(speed,d*2*playerSpeedMultiplier);
  if(p===carrier&&p.energy<.24&&!stationary)readTime=Math.min(readTime,1);
  v*=1-(p===carrier&&lane&&!gripping?Math.min(.18,speedLoss):speedLoss);
  if(gripping)v*=.22;
+ if(p.stumble>0)v*=.3;
  if(p.blocked>0)v*=leavingRing ? .5 : .12;
  const dvx=dx/(d||1)*v-p.vx,dvy=dy/(d||1)*v-p.vy,k=Math.min(1,a/(Math.hypot(dvx,dvy)||1));
  p.vx+=dvx*k;p.vy+=dvy*k;
@@ -1743,12 +1821,14 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    restartAfterPause(1-off,undefined,nearestQuadrant(pass));
    return;
  }
+ if(resolveGamble(f))return;
  // A defender in the flight path can jump the pass before it reaches the receiver.
+ const crowd=spot=>1+TRAFFIC_DEFLECT*Math.max(0,players.filter(q=>q!==pass.thrower&&active(q)&&dist(q,spot)<trafficRadius).length-2);
  if(!pass.wide&&!pass.kicker&&f>.15&&f<.87&&!noPossession(pass)){
    let defender=null,bestRead=null;
    const inBlue=blue(pass);
    for(const q of players){
-     if(q.team===off||!active(q)||q.blocked||noPossession(q))continue;
+     if(q.team===off||!active(q)||q.blocked||q.stumble>0||noPossession(q))continue;
      const read=laneDeflection(q,pass,q===blueTrap&&inBlue,scheme);
      if(read&&(!bestRead||read.priority>bestRead.priority)){
        defender=q;bestRead=read;
@@ -1761,7 +1841,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      const chance=inMiddle?clamp(.15+(75-accuracy)*.004+(defender.ratings[6]-70)*.003+ambush+
        (scheme.takeaway||0)-(pass.quickSwing?(scheme.swingWeak||0)*.35:0),.02,.36+ambush):0;
      if(pass.laneRoll<chance){intercept(defender,true);return}
-     const disruption=bestRead.chance*(inMiddle?1:.52)*passDeflectionMultiplier;
+     const disruption=Math.min(.6-chance,bestRead.chance*(inMiddle?1:.52)*passDeflectionMultiplier*crowd(pass));
      if(pass.laneRoll<chance+disruption){
        looseFromPass(defender,rand()<.55?'bat':'tip');return;
      }
@@ -1769,7 +1849,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  if(f>=1){
    const target=pass.target,save=!!pass.kicker;
-   const eligible=players.filter(q=>active(q)&&q!==pass.kicker&&q.y>=0&&q.y<=34&&
+   const eligible=players.filter(q=>active(q)&&!(q.stumble>0)&&q!==pass.kicker&&q.y>=0&&q.y<=34&&
      (!save||!noPossession(q))&&
      pass.z<=q.height/36+.39+q.ratings[4]*.0115&&
      dist(q,pass)<1.5+q.ratings[4]*.012+(save?0:(q.height-72)*.014));
@@ -1794,7 +1874,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      if(contested||defenderNearby||traffic){
        const dropRisk=(contested?.18:traffic?.12:.07)+(traffic?.04:0);
        const difficulty=({underhand:-.04,bounce:-.02,line:.06,shortHop:.13,overthrow:.10}[pass.passType]||0);
-       catchChance=1-clamp(dropRisk+difficulty+(70-hands)*.002+(70-accuracy)*.001+fatigue(q)*.035,.035,.48);
+       catchChance=1-clamp(dropRisk+difficulty+(70-hands)*.002+(70-accuracy)*.001+fatigue(q)*.07,.035,.48);
      }else{
        const difficulty=pass.passType==='shortHop'||pass.passType==='overthrow'?.003:0;
        catchChance=1-clamp(.006+(70-hands)*.00009+(70-accuracy)*.00005+difficulty,.002,.015);
@@ -1804,8 +1884,9 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    const roll=q?rand():1;
    if(contested){
      const skill=deflectionSkill(defender);
-     const tipWindow=clamp(.04+contestEdge*.08+skill*.19,.012,.084);
-     const lateTipWindow=Math.min(1-cleanCatch,clamp(.12+skill*.26,.075,.18));
+     const traffic=crowd(pass);
+     const tipWindow=clamp(.04+contestEdge*.08+skill*.19,.012,.084)*traffic;
+     const lateTipWindow=Math.min(1-cleanCatch,clamp(.12+skill*.26,.075,.18)*traffic);
      const tipEnd=Math.min(1,cleanCatch+lateTipWindow*passDeflectionMultiplier);
      const tipStart=tipEnd-(tipWindow+lateTipWindow)*passDeflectionMultiplier;
      if(roll>=tipStart&&roll<=tipEnd){
@@ -1964,8 +2045,9 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    assign(target);run=false;cool=.24;return;
  }
  let passType=choosePassType(p,target,active,movement,scheme).type;
+ const smother=smotherOn(p,active);
  const accuracyGap=100-p.ratings[1];
- const errorScale={underhand:.25,bounce:.72,line:1.18,lob:.82,shortHop:.94,overthrow:.95}[passType];
+ const errorScale={underhand:.25,bounce:.72,line:1.18,lob:.82,shortHop:.94,overthrow:.95}[passType]*(1+SMOTHER_ERROR*(smother?.level||0));
  let end={x:target.x+(rand()-.5)*accuracyGap*.07*errorScale,
    y:target.y+(rand()-.5)*accuracyGap*.07*errorScale};
  if(movement==='runner feed'){
@@ -1982,7 +2064,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  const strategyRisk=s.playbooks[off].risk*(defenses[s.defenses[off]].ownRisk||1);
  // An accuracy miss can sail wide, with no extra hang time for a pursuer.
- if(rand()<(110-p.ratings[1])*(protect(off)?.000055:.00048)*strategyRisk){
+ if(rand()<(110-p.ratings[1])*(protect(off)?.000055:.00048)*strategyRisk+SMOTHER_WIDE*(smother?.level||0)){
    end={x:clamp(end.x,.8,49.2),y:target.y<17?-1:35};
    if(passType!=='line'&&passType!=='overthrow')passType='lob';
  }
@@ -2001,7 +2083,16 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    }
  }
  Object.assign(pass,flightAt(pass,0));carrier=null;
+ // A tall, fast defender in the passer's face can get a hand on it right out of the hand.
+ if(smother&&passType!=='underhand'&&passType!=='bounce'&&rand()<SMOTHER_TIP*smother.level){
+   s.smotherTips++;log(smother.d.name+' gets a hand up on the release');looseFromPass(smother.d,'tip');return;
+ }
+ const crowding=players.filter(d=>d.team!==p.team&&active(d)&&!d.blocked&&!(d.stumble>0)&&dist(d,p)<2.5).sort((a,b)=>dist(a,p)-dist(b,p));
+ if(crowding.length>1&&passType!=='underhand'&&passType!=='bounce'&&rand()<Math.min(.35,RELEASE_TRAFFIC*(crowding.length-1))){
+   s.releaseTips++;log(crowding[0].name+' tips the pass out of the crowd');looseFromPass(crowding[0],'tip');return;
+ }
  if(wide)return;
+ considerGamble(pass,active,p.team);
  if(swingAttack)log(p.name+' attacks the ring by air with a quick pass to '+target.name);
  else if(movement==='quick swing')log(p.name+' swings quickly to '+target.name+' in Q'+(nearestQuadrant(target)+1));
  else if(movement==='quick outlet')log(p.name+' finds '+target.name+' before the defense can close');

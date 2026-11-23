@@ -55,15 +55,15 @@ function briefing(){
      '<span class="sr-only">'+teams[team]+' </span>'+row[trait].toFixed(1)+'</span>').join('')+'</dd></dl></li>').join('');
  el('ember-overall').textContent=overall[0].toFixed(1);
  el('harbor-overall').textContent=overall[1].toFixed(1);
- // Spread model fitted on 1,000 simulated full matches (see summary.md, "Spread forecast").
+ // Spread model refitted on 300 simulated full matches after the fatigue and defensive-pressure pass (see summary.md, "Spread forecast").
  // Expected team points = base + own trait averages + opponent trait averages + own playbook + opponent defense + own defense tempo.
  const forecast=()=>{
-   const W={base:25.9,
-     own:[-.046,.228,.095,-.076,.058,.072,-.03,-.015,.02,.053,.202,0],
-     opp:[.064,-.056,-.061,.059,-.067,-.053,-.087,-.023,.005,.027,-.102,-.106],
-     playbook:[0,1.855,-.893,3.781,3.174],
-     oppDefense:[0,1.126,-1.111,.274,3.585,2.536,-1.364,.037],
-     ownDefense:[0,.59,.648,-.521,.209,4.156,-.023,.032],sd:11.2};
+   const W={base:28.9,
+     own:[.042,.206,-.107,-.028,.114,.099,-.016,-.144,.081,-.09,.185,.118],
+     opp:[.023,-.082,-.095,.112,-.177,-.035,-.046,.037,-.019,-.131,-.165,-.061],
+     playbook:[0,1.41,5.43,-1.79,.028],
+     oppDefense:[0,-.431,.88,2.23,2.82,4.04,-3.11,-.87],
+     ownDefense:[0,-.272,.242,2.7,.06,3.4,-2.1,-.533],sd:12};
    const points=[0,1].map(t=>{const o=1-t;let v=W.base+W.playbook[playbooks.indexOf(sim.playbooks[t])]+W.oppDefense[sim.defenses[o]]+W.ownDefense[sim.defenses[t]];
      for(let j=0;j<12;j++)v+=W.own[j]*(ratings[t][j]-70)+W.opp[j]*(ratings[o][j]-70);return Math.max(0,v)});
    const edge=points[0]-points[1],margin=Math.round(Math.abs(edge)*2)/2;
