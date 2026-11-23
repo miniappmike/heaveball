@@ -1529,7 +1529,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  // One referee works a dirt strip: the top strip in the first half, the bottom strip after halftime.
  // The official works for a clear angle from the strip and sidesteps low passes.
- const ref=s.referee;let refRead=null;
+ const ref=s.referee;let refRead=null,refView=null;
  function refereeThreat(){
    if(!pass||pass.elapsed>=pass.duration)return null;
    const {radius,height}=venue.referee;
@@ -1539,15 +1539,35 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    }
    return null;
  }
+ function refereeView(action,contact,home){
+   let best=null,bestScore=-Infinity;
+   for(const dx of [-2.7,-1.35,0,1.35,2.7])for(const dy of [-2.7,0,2.7]){
+     const x=center.x+dx,y=home+dy;
+     const ax=action.x-x,ay=action.y-y,distance=Math.hypot(ax,ay)||1;
+     const ux=ax/distance,uy=ay/distance;
+     let score=-Math.abs(distance-10)*.25-Math.hypot(x-ref.x,y-ref.y)*.30-Math.abs(dx)*.10;
+     if(contact){
+       const cx=contact.d.x-contact.p.x,cy=contact.d.y-contact.p.y;
+       score+=2.6*Math.abs(ux*cy-uy*cx)/(Math.hypot(cx,cy)||1);
+     }
+     for(const p of players){
+       if(p===carrier||p.sidelined||p.subbing||p.entering)continue;
+       const px=p.x-x,py=p.y-y,along=px*ux+py*uy;
+       if(along>0&&along<distance-.7)score-=2.4*Math.max(0,1-Math.abs(px*uy-py*ux)/1.2);
+     }
+     if(score>bestScore){best={x,y};bestScore=score}
+   }
+   return best;
+ }
  function moveReferee(dt){
    const {home,walk,dodge}=venue.referee,top=s.half===1&&!s.overtime;
    const lo=top?.8:venue.strip.gap[1]+.8,hi=top?venue.strip.gap[0]-.8:venue.field.height-.8;
    const b=carrier||pass||loose||lastBall;
    const action=pass?flightAt(pass,Math.min(pass.elapsed+.26,pass.duration)):b;
-   const goalLine=top?venue.strip.gap[0]:venue.strip.gap[1];
-   const angle=pile?pile.d.x-pile.p.x:(b.vx??0);
-   let target={x:center.x+(action.x-center.x)*.36-clamp(angle,-3,3)*.45,
-     y:home[top?0:1]+clamp((action.y-goalLine)*.43,-5,5)},speed=walk;
+   if(!refView||refView.top!==top||(refView.wait-=dt)<=0){
+     refView={top,wait:.32,spot:refereeView(action,s.contact,home[top?0:1])};
+   }
+   let target=refView.spot,speed=walk;
    if(pass!==refRead?.pass)refRead=pass?{pass,wait:.22+rand()*.28}:null;
    const threat=refRead&&(refRead.wait-=dt)<=0?refereeThreat():null;
    ref.dodging=!!threat;
@@ -1557,9 +1577,9 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      const sign=Math.sign((ref.x-threat.x)*nx+(ref.y-threat.y)*ny)||(ref.y<17?-1:1);
      target={x:ref.x+nx*sign*2.5,y:ref.y+ny*sign*2.5};speed=dodge;
    }
-   target.x=clamp(target.x,venue.strip.x+.6,venue.strip.x+venue.strip.width-.6);
-   target.y=clamp(target.y,lo,hi);
-   const dx=target.x-ref.x,dy=target.y-ref.y,d=Math.hypot(dx,dy),step=Math.min(d,speed*dt);
+   const x=clamp(target.x,venue.strip.x+.9,venue.strip.x+venue.strip.width-.9);
+   const y=clamp(target.y,lo,hi);
+   const dx=x-ref.x,dy=y-ref.y,d=Math.hypot(dx,dy),step=Math.min(d,speed*dt,threat?d:d*dt*2.2);
    ref.vx=d?dx/d*step/dt:0;ref.vy=d?dy/d*step/dt:0;
    ref.x+=d?dx/d*step:0;ref.y+=d?dy/d*step:0;
  }
