@@ -230,8 +230,22 @@ function drawCallout(){
  }
  ctx.restore();
 }
+// Field markings are vector paths so they stay sharp at any canvas size.
+function drawFieldLines(){
+ ctx.save();ctx.strokeStyle=ctx.fillStyle='rgba(247,249,245,.95)';ctx.lineCap='butt';
+ const line=(w,pts)=>{ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(pts[0],pts[1]);ctx.lineTo(pts[2],pts[3]);ctx.stroke()};
+ ctx.lineWidth=.2;ctx.strokeRect(.1,.1,49.8,33.8);
+ for(const x of [20,30])line(.2,[x,0,x,34]);
+ for(const y of [12,22])line(.2,[0,y,50,y]);
+ ctx.lineWidth=.25;ctx.beginPath();ctx.arc(25,17,2,0,Math.PI*2);ctx.stroke();
+ for(const [x,y] of [[10,6],[40,6],[10,28],[40,28]]){ctx.beginPath();ctx.arc(x,y,.35,0,Math.PI*2);ctx.fill()}
+ for(const x of [1.9,48.1])line(.22,[x,15.5,x,18.5]);
+ for(const x of [14.9,35.1])for(let i=0;i<4;i++)line(.18,[x,15.5+i*.8,x,15.95+i*.8]);
+ ctx.restore();
+}
 function draw(){const t=selectedField,view=layoutView();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=el('field').classList.contains('mobile-expanded')?'#000':'#121614';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.setTransform(view.s,0,0,view.s,view.ox,view.oy);
-if(t.image.complete&&t.image.naturalWidth){ctx.drawImage(t.image,0,0,50,34)}else{rect(0,0,50,34,t.grass)}
+if(t.image.complete&&t.image.naturalWidth){ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(t.image,0,0,50,34)}else{rect(0,0,50,34,t.grass)}
+drawFieldLines();
 ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
  if(sim.impact){
    const {x,y,time}=sim.impact;
