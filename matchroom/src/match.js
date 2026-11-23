@@ -15,6 +15,15 @@ const venue={
  referee:{radius:.45,height:2,home:[5,29],walk:4.5,dodge:6.5}
 };
 const benchRoles=['Heaver','Anchor','Runner','Anchor'];
+// Head coaches. Surnames never overlap player names, so the play-by-play does not color them as players.
+const coachNames=['Marsh','Holt','Vance','Brooks','Doyle','Pryor','Keane','Sutter','Lyle','Banner','Whitley','Crane'];
+// Counters a coach reaches for. Defense by the opponent's playbook index:
+// Patient passing, Balanced, Runway power, Quick swing, Free flow.
+const defenseCounter=[5,7,6,7,0];
+// Playbook by the opponent's defense index: Balanced, Ring guard, Receiver denial, Star focus,
+// Passing-lane zone, Carrier pressure, Runway contain, Switch coverage.
+const playbookCounter=[1,0,2,3,3,3,0,2];
+const firstHalfHurry=90,reviewEvery=300,coachMinPossessions=4,leakyDefense=1.05,stalledOffense=.6;
 const center={x:25,y:17}, blue=p=>Math.abs(p.x-25)<=5&&Math.abs(p.y-17)<=5;
 const ringRadius=2;
 const ringLimit=3;
@@ -285,7 +294,7 @@ function match(report){
  }
  for(const p of players.concat(bench))p.stats={pts:0,att:0,cmp:0,rec:0,tc:0,int:0,tkl:0,fum:0,to:0,pen:0,pbu:0,drp:0,hit:0};
  let s={tackleEvents:0,tackled:null,callEvents:0,call:null,penalized:null,scoreEvents:0,penaltyEvents:0,stoppageEvents:0,penaltyPending:false,stoppagePending:false,scramblePursuers:[],highlights:[],stints:[[],[]],posAge:0,players,bench,refereeHits:0,referee:{x:center.x,y:venue.referee.home[0],vx:0,vy:0,dodging:false},score:[0,0],half:1,time:1200,overtime:false,done:false},opening=Math.floor(rand()*2),carrier,pass,age,hold,cutter,run,worth,scoringPassYards=null,scoringThrower=null,cool=0;
- const subs=[null,null];
+ const subs=[null,null],pendingPlaybook=[null,null];
  let retreat=null,nextRead=0,nextOutletRead=0;
  let buildup=0, neutralUntil=0, openingCall=null, plan="", previous=null;
  let cornerReturn=null,anchorLeak=null,relay=null,blueTrap=null,swing=null,swingChecked=false;
@@ -306,6 +315,10 @@ function match(report){
  const quadrantCenters=[{x:40,y:6},{x:10,y:6},{x:10,y:28},{x:40,y:28}];
  const nearestQuadrant=spot=>quadrantCenters.reduce((best,q,i)=>dist(q,spot)<dist(quadrantCenters[best],spot)?i:best,0);
  s.playbooks=teams.map(()=>playbooks[Math.floor(rand()*playbooks.length)]);
+ // Adaptability (25-98, most near 65) is hidden from the broadcast; it shows in the pregame handbook.
+ const coachPool=coachNames.slice();
+ s.coaches=teams.map(()=>({name:coachPool.splice(Math.floor(rand()*coachPool.length),1)[0],
+   adaptability:clamp(Math.round(65+15*(rand()+rand()+rand()-1.5)),25,98),changes:0}));
  s.defenses=teams.map(()=>Math.floor(rand()*defenses.length));
  // Each side's best Runner and Heaver on the field; recomputed after substitutions.
  const findStars=()=>teams.map((_,team)=>['Runner','Heaver'].map(role=>{
@@ -502,8 +515,13 @@ function match(report){
    blockAnchor=anchors[0];decoy=anchors[1];
  }
 
- function urgent(team){
+ // Trailing by 5+ in the last five minutes of the game: hurry-up on offense, a press on defense.
+ function trailingLate(team){
    return !s.overtime&&s.half===2&&s.time<=300&&s.score[1-team]-s.score[team]>=5;
+ }
+ // Hurry-up offense: when trailing late, and for every offense in the last 1:30 of the first half.
+ function urgent(team){
+   return trailingLate(team)||!s.overtime&&s.half===1&&s.time<=firstHalfHurry;
  }
  function conservative(team){
    return !s.overtime&&s.half===2&&s.time<=120&&s.score[team]-s.score[1-team]>=5;
@@ -1073,6 +1091,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    log(teams[team]+' sets up · '+plan);
  }
  function restart(team,side,index){
+   for(const t of [0,1])if(pendingPlaybook[t]!==null){s.playbooks[t]=playbooks[pendingPlaybook[t]];pendingPlaybook[t]=null}
    s.tackled=null;
    loose=null;s.contact=s.impact=null;s.scramblePursuers=[];pile=null;lane=null;cool=0;
    defensiveAssignments.clear();defenseReadAt=0;
@@ -1375,6 +1394,39 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
        (!best||field.energy<best.field.energy||field===best.field&&seat.energy>best.seat.energy))best={field,seat};
    if(best)requestSub(best.field,best.seat,'fatigue');
  }
+ // Coach adjustments. Every five minutes of game clock and at halftime each coach reviews the stretch
+ // since their last change. Adaptability sets whether they notice (stubborn coaches mostly wait for
+ // halftime) and whether they pick the right counter or guess. A defense change applies at once; a
+ // playbook change waits for the team's next restart.
+ const coachWindow=teams.map(()=>({score:[0,0],poss:[0,0]}));
+ let reviewMark=0;
+ const stretch=(team,t)=>({pts:s.score[t]-coachWindow[team].score[t],poss:s.stints[t].length-coachWindow[team].poss[t]});
+ function coachReview(halftime){
+   for(const team of [0,1]){
+     const c=s.coaches[team],o=1-team,a=c.adaptability/100;
+     const notice=halftime?.25+.75*a:.9*a*a;
+     const right=()=>rand()<.3+.7*a;
+     const against=stretch(team,o),own=stretch(team,team);
+     let changed=false;
+     if(against.poss>=coachMinPossessions&&against.pts/against.poss>leakyDefense&&rand()<notice){
+       const counter=defenseCounter[playbooks.indexOf(s.playbooks[o])];
+       const pick=right()?counter:Math.floor(rand()*defenses.length);
+       if(pick!==s.defenses[team]){
+         s.defenses[team]=pick;changed=true;c.changes++;
+         log(teams[team]+' coach '+c.name+' switches the defense to '+defenses[pick].name);
+       }
+     }
+     if(own.poss>=coachMinPossessions&&own.pts/own.poss<stalledOffense&&rand()<notice){
+       const counter=playbookCounter[s.defenses[o]];
+       const pick=right()?counter:Math.floor(rand()*playbooks.length);
+       if(playbooks[pick]!==s.playbooks[team]){
+         pendingPlaybook[team]=pick;changed=true;c.changes++;
+         log(teams[team]+' coach '+c.name+' changes the offense to '+playbooks[pick].name+' from the next restart');
+       }
+     }
+     if(changed)coachWindow[team]={score:s.score.slice(),poss:s.stints.map(x=>x.length)};
+   }
+ }
  // One referee works a dirt strip: the top strip in the first half, the bottom strip after halftime.
  // They shadow the ball from the strip and sidestep low passes that would hit them.
  const ref=s.referee;let refRead=null;
@@ -1434,6 +1486,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  moveReferee(dt*fieldSecondsPerSecond);
  if(secondHalfPending){
    secondHalfPending=false;s.half=2;s.time=1200;
+   coachReview(true);reviewMark=1200;
    Object.assign(ref,{x:center.x,y:venue.referee.home[1],vx:0,vy:0});
    restart(1-opening);log('Second half begins');
    return;
@@ -1451,7 +1504,10 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  if(delayedRestart){const r=delayedRestart;delayedRestart=null;restart(r.team,r.side,r.index);return}
  if(scoringRestart){restart(scoringRestart.team,undefined,scoringRestart.index);scoringRestart=null;s.scoringSpot=null}
  if(s.overtime)s.time+=dt;
- else if((s.time-=dt)<=0){
+ else if((s.time-=dt)>0&&(s.half-1)*1200+1200-s.time>=reviewMark+reviewEvery){
+   reviewMark+=reviewEvery;coachReview(false);
+ }
+ if(!s.overtime&&s.time<=0){
    finishStint();
    for(const athlete of players.concat(bench))athlete.energy=1;
    if(s.half===1){
@@ -1469,7 +1525,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    if(!s.conservative||s.coachingTeam!==s.team)readTime=Math.max(readTime,age+4);
    run=false;cornerReturn=anchorLeak=relay=openingCall=swing=null;
  }
- s.urgent=hurry;s.conservative=safe;s.press=urgent(1-s.team);s.coachingTeam=s.team;
+ s.urgent=hurry;s.conservative=safe;s.press=trailingLate(1-s.team);s.coachingTeam=s.team;
  s.posAge+=dt;s.possession[s.team]+=dt; if(carrier&&Math.abs(carrier.y-17)<=5&&!blue(carrier))s.runway[s.team]+=dt;
  if(hold>0){
    hold=Math.max(0,hold-dt);

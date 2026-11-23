@@ -58,7 +58,8 @@ function briefing(){
  // Spread model refitted on 339 simulated full matches after the fatigue, defensive-pressure and Carrier pressure changes (see summary.md, "Spread forecast").
  // Expected team points = base + own trait averages + opponent trait averages + own playbook + opponent defense + own defense tempo.
  const forecast=()=>{
-   const W={base:29.3,
+   // Base raised 0.6 from the fit to account for the first-half hurry-up and coach adjustments (about +1.3 combined).
+   const W={base:29.9,
      own:[.065,.165,-.024,-.03,.114,.072,-.038,-.068,.091,-.042,.187,.047],
      opp:[-.002,-.057,-.096,.069,-.176,-.044,-.004,.031,-.057,-.11,-.183,-.09],
      playbook:[0,1.39,4.85,-2.13,-.398],
@@ -78,7 +79,11 @@ function briefing(){
    fieldset.className='tactic-team';
    legend.className=team?'blue':'red';
    legend.textContent=name;
-   fieldset.append(legend);
+   const coach=document.createElement('p'),c=sim.coaches[team];
+   coach.className='coach-line';
+   coach.textContent='Head coach '+c.name+' · Adaptability '+c.adaptability;
+   coach.title='Adaptability sets how quickly the coach notices a losing matchup during the game and how often they pick the right counter.';
+   fieldset.append(legend,coach);
    for(const type of ['offense','defense']){
      const defending=type==='defense',choices=defending?defenses:playbooks;
      const label=document.createElement('label'),select=document.createElement('select'),description=document.createElement('small');
