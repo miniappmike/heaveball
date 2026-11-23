@@ -1411,7 +1411,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  function log(msg){report(s,msg)}
  function call(text,sub){s.call=text;s.callSub=sub||null;s.callEvents++}
- function outOfBounds(why,team){call('Out of bounds',why+' · '+teams[team]+(team===s.team?' retains':' gains')+' possession')}
+ // Same team keeps it: OUT OF BOUNDS. Possession flips: that is a turnover.
+ function outOfBounds(why,team){if(team===s.team)call('Out of bounds',why+' · '+teams[team]+' retains possession');else call('Turnover',why+' · '+teams[team]+' gains possession')}
  function rescueKick(off){
    const kicker=pass.target;
    const roll=rand();
@@ -2281,7 +2282,7 @@ function drawPlayer(p){
  else if(p.blocked>0)disc(p.x,p.y,1,"#8a7546","#f5d688");
  disc(p.x,p.y,.76,flagged?'#ff3b3b':colors[p.team],flagged?'#fff':'#12271e');
  ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
- if(sim.tackled===p&&performance.now()<breakUntil){ctx.beginPath();ctx.arc(0,0,.42,0,Math.PI*2);ctx.fillStyle='#000';ctx.fill()}else{ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0)}ctx.restore();
+ if(sim.tackled===p&&performance.now()<breakUntil){ctx.beginPath();ctx.arc(0,0,.24,0,Math.PI*2);ctx.fillStyle='#000';ctx.fill()}else{ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0)}ctx.restore();
 }
 // Canvas layout: the canvas matches its on-screen size and the field fills it below a thin score bar.
 // Inline, the canvas height follows its width; in full screen it fills the screen.
@@ -2640,7 +2641,7 @@ el('roster').onchange=scout;fresh();requestAnimationFrame(frame);
 window.heaveballReady=true;
 }
 
-})();</script><script src="match-d18f2bba9e.js"></script><script src="view-d2e82986a0.js"></script><script>(()=>{const d=document.getElementById('rules');if(!d)return;
+})();</script><script src="match-6e3ca21947.js"></script><script src="view-f47883c059.js"></script><script>(()=>{const d=document.getElementById('rules');if(!d)return;
 const toggle=()=>{if(d.open)d.close();else d.showModal()};
 document.querySelectorAll('.rules-open').forEach(b=>b.addEventListener('click',toggle));
 document.getElementById('rules-close').addEventListener('click',()=>d.close());

@@ -991,7 +991,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  function log(msg){report(s,msg)}
  function call(text,sub){s.call=text;s.callSub=sub||null;s.callEvents++}
- function outOfBounds(why,team){call('Out of bounds',why+' · '+teams[team]+(team===s.team?' retains':' gains')+' possession')}
+ // Same team keeps it: OUT OF BOUNDS. Possession flips: that is a turnover.
+ function outOfBounds(why,team){if(team===s.team)call('Out of bounds',why+' · '+teams[team]+' retains possession');else call('Turnover',why+' · '+teams[team]+' gains possession')}
  function rescueKick(off){
    const kicker=pass.target;
    const roll=rand();
