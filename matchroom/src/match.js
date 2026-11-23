@@ -24,8 +24,8 @@ const defenseCounter=[5,7,6,7,0];
 // Passing-lane zone, Carrier pressure, Runway contain, Switch coverage.
 const playbookCounter=[1,0,2,3,3,3,0,2];
 // Overreaction: after the opponent scores, a coach may make a knee-jerk defensive switch. The chance per
-// score is OVERREACT_RATE × (1 − adaptability)², at most two per half, and not within two minutes of a change.
-const OVERREACT_RATE=.455,overreactCooldown=120,overreactPerHalf=2;
+// score is OVERREACT_RATE × (1 − adaptability)², at most four per half, and not within two minutes of a change.
+const OVERREACT_RATE=.455,overreactCooldown=120,overreactPerHalf=4;
 const firstHalfHurry=90,reviewEvery=300,coachMinPossessions=4,leakyDefense=1.05,stalledOffense=.6;
 const center={x:25,y:17}, blue=p=>Math.abs(p.x-25)<=5&&Math.abs(p.y-17)<=5;
 const ringRadius=2;
