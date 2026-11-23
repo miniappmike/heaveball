@@ -1,0 +1,424 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Heaveball Matchroom</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap"><style>
+/* Matchroom: dark broadcast bento. Cards on a near-black pitch-green ground, condensed display type, one mint accent. */
+:root{
+ --bg:#0b0e0d;--card:#151917;--card-2:#1d2220;--card-3:#252b28;--line:rgba(255,255,255,.07);--line-2:rgba(255,255,255,.12);
+ --text:#f2f5f3;--muted:#99a49d;--mint:#2fe39a;--mint-ink:#04200f;--ember:#ff7f5c;--harbor:#5db4ff;--gold:#f2d21b;
+ --display:"Bebas Neue","Oswald","Arial Narrow",Impact,sans-serif;--body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+ --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--r:20px;--r-sm:12px;--gap:20px;
+ color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;color:var(--text);font:15px/1.5 var(--body);background:
+ radial-gradient(900px 520px at 85% -8%,rgba(47,227,154,.09),transparent 60%),
+ radial-gradient(700px 420px at -10% 30%,rgba(93,180,255,.05),transparent 60%),var(--bg);min-height:100vh}
+main{max-width:1240px;margin:0 auto;padding-block:24px 32px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));display:grid;gap:var(--gap)}
+h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:.04em;text-transform:uppercase;margin:0;line-height:1}
+h2{font-size:24px}h3{font-size:21px}
+p{margin:0}
+.red{color:var(--ember)}.blue{color:var(--harbor)}.accent{color:var(--mint)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+.eyebrow{font:15px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+section,aside,article,.grid>*{min-width:0}
+
+/* Controls */
+button,select{font:500 14px/1 var(--body);color:var(--text);background:var(--card-3);border:1px solid var(--line-2);border-radius:999px;min-height:44px;padding:0 16px;cursor:pointer;transition:background .15s,border-color .15s,transform .1s}
+select{border-radius:var(--r-sm);padding:0 34px 0 14px;appearance:none;max-width:100%;
+ background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+ background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+button:hover,select:hover{border-color:rgba(255,255,255,.24)}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.45;cursor:default;transform:none}
+:focus-visible{outline:2px solid var(--mint);outline-offset:2px}
+.btn{font:20px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;padding:0 22px;min-height:46px}
+.btn.primary{background:var(--mint);color:var(--mint-ink);border-color:var(--mint)}
+.btn.primary:hover{background:#4ff0ad}
+.btn.ghost{background:var(--card-2)}
+summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:10px;list-style:none;font:22px/1 var(--display);letter-spacing:.05em;text-transform:uppercase}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"";margin-left:auto;width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .2s}
+details[open]>summary::after{transform:rotate(-135deg)}
+
+/* Cards */
+.card{background:linear-gradient(180deg,#191e1b,#131715);border:1px solid var(--line);border-radius:var(--r);padding:22px;box-shadow:0 18px 40px -28px rgba(0,0,0,.8)}
+.chip{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px;background:var(--card-2);border:1px solid var(--line);font:15px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+/* Header */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.brand h1{font-size:34px;letter-spacing:.06em}
+.mark{width:34px;height:34px;fill:none;stroke:var(--mint);stroke-width:2}
+.mark rect{fill:rgba(47,227,154,.1)}
+.live-chip small{font:13px/1 var(--mono);letter-spacing:0;text-transform:none;color:var(--text)}
+.live-chip .dot{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 4px rgba(47,227,154,.15)}
+.live-chip:has(small:empty){display:none}
+
+/* Crests (placeholders until club marks exist) */
+.crest{display:grid;place-items:center;width:64px;height:72px;font:34px/1 var(--display);color:#fff;
+ clip-path:polygon(50% 0,100% 14%,100% 62%,50% 100%,0 62%,0 14%)}
+.ember .crest{background:linear-gradient(160deg,#ff9c7f,#b8452e)}
+.harbor .crest{background:linear-gradient(160deg,#8fd0ff,#2f63a3)}
+.tname{font:22px/1 var(--display);letter-spacing:.06em;text-transform:uppercase}
+
+/* Live score hero */
+.score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:18px 26px;
+ background:radial-gradient(500px 200px at 50% 0,rgba(47,227,154,.12),transparent 70%),linear-gradient(180deg,#191e1b,#131715)}
+.score .team{display:flex;align-items:center;gap:14px}
+.score .harbor{flex-direction:row-reverse}
+.score .crest{width:52px;height:58px;font-size:28px}
+.score .tname{font-size:26px}
+.tally{display:grid;justify-items:center;gap:6px}
+.tally b{font:400 clamp(44px,6vw,64px)/.9 var(--display);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+main:has(#pregame:not([hidden])) .score{display:none}
+
+/* Pregame bento */
+#pregame[hidden]{display:none}
+.bento{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);grid-template-areas:"matchup tactics" "averages tactics";gap:var(--gap);align-items:start}
+.matchup{grid-area:matchup;display:grid;gap:18px;background:radial-gradient(520px 260px at 50% 30%,rgba(47,227,154,.13),transparent 70%),linear-gradient(180deg,#1a201c,#121614)}
+.matchup h2{font-size:clamp(40px,5vw,56px);letter-spacing:.03em}
+.tactics-panel{grid-area:tactics}
+.averages{grid-area:averages}
+.versus{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;padding:18px;border-radius:16px;background:rgba(0,0,0,.25);border:1px solid var(--line)}
+.side{display:grid;justify-items:center;gap:6px;text-align:center}
+.side strong{font:400 46px/.9 var(--display);letter-spacing:.03em;font-variant-numeric:tabular-nums}
+.side small,.line .label{font:13px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.line{display:grid;justify-items:center;gap:8px;text-align:center;max-width:220px}
+.line strong{font:400 clamp(34px,4vw,48px)/.9 var(--display);letter-spacing:.04em;white-space:nowrap}
+.spread-detail{font:600 12px/1.3 var(--body);color:var(--mint)}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.actions #start{flex:1 1 220px;min-height:54px;font-size:24px}
+.actions #reroll{flex:0 1 auto;min-height:54px}
+
+.average-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+.team-key{display:flex;gap:14px;font:600 12px/1 var(--body)}
+.team-key span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;margin-right:6px}
+#averages{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;list-style:none;padding:0;margin:0}
+.rating-card{margin:0;padding:12px;background:var(--card-2);border:1px solid var(--line);border-radius:var(--r-sm)}
+.rating-card dt{font:600 11px/1.2 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.rating-card dd{margin:8px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rating-value{font:400 24px/1 var(--display);letter-spacing:.03em;font-variant-numeric:tabular-nums;min-width:0}
+.rating-value::after{content:"";display:block;margin-top:6px;height:3px;border-radius:3px;background:linear-gradient(90deg,currentColor var(--rating),rgba(255,255,255,.08) var(--rating))}
+
+#tactics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
+.tactic-team{min-width:0;margin:0;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--card-2)}
+.tactic-team legend{padding:0;font:22px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;float:left;width:100%;margin-bottom:10px}
+.tactic-team label{display:block;clear:both;font:600 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.tactic-team select{display:block;width:100%;margin:8px 0}
+.tactic-team small{display:block;font:12.5px/1.45 var(--body);color:var(--muted);margin-bottom:8px}
+.rules-dialog p,.guide p{color:var(--muted);margin:0 0 12px;max-width:80ch}
+.rules-dialog a{color:var(--mint)}
+
+/* Match area */
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:var(--gap);align-items:start}
+.field-card{padding:16px;display:grid;gap:14px}
+.field-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:4px 6px 0}
+.picker{display:flex;align-items:center;gap:10px;font:600 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.picker select{text-transform:none;letter-spacing:0;font-size:14px;color:var(--text)}
+canvas{display:block;width:100%;max-width:100%;height:auto;border-radius:14px;background:#121614}
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bar .spacer{flex:1}
+#bar-toggle{min-width:110px}
+.speeds{display:flex;gap:2px;padding:3px;border-radius:999px;background:#0f1311;border:1px solid var(--line)}
+.speeds button{min-height:38px;min-width:46px;padding:0 12px;border:0;background:transparent;color:var(--muted);font:18px/1 var(--display);letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.speeds button[aria-pressed="true"]{background:var(--mint);color:var(--mint-ink)}
+.guide{padding:0 6px}
+.guide summary{font-size:19px;color:var(--muted)}
+
+.rail{display:grid;gap:var(--gap)}
+.rail .card{padding:18px 20px}
+.rail h2{font-size:22px}
+#feed{height:260px;overflow:auto;margin-top:12px;padding-right:4px;scrollbar-width:thin}
+#feed p{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px;line-height:1.4}
+#feed p:first-child{border-top:0}
+#feed time{font:12px/1.4 var(--mono);color:var(--mint);white-space:nowrap}
+#control{margin-top:12px;padding:12px;border-radius:var(--r-sm);background:var(--card-2);font:12px/1.6 var(--mono);color:var(--muted)}
+#control:empty{display:none}
+#highlights label{display:block;margin:12px 0 6px;font:600 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+#highlights select{width:100%}
+#highlight-list{list-style:none;padding:0;margin:10px 0 0;max-height:17rem;overflow:auto}
+#highlight-list li{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.2rem .7rem;padding:.6rem 0;border-top:1px solid var(--line);font-size:13.5px}
+#highlight-list span{grid-column:2}
+#highlight-list time{font:12px/1.4 var(--mono);color:var(--mint);font-variant-numeric:tabular-nums}
+#highlight-empty{margin:.7rem 0 0;color:var(--muted);font-size:13.5px}
+#highlight-empty:empty{display:none}
+#box details summary{font-size:17px;color:var(--muted)}
+#box details p{color:var(--muted);font-size:13px}
+#posavg{color:var(--muted);font-size:13px;margin-top:10px}
+.box-scroll{overflow-x:auto;margin-top:10px}
+.box-scroll table{width:100%;border-collapse:collapse;font:12.5px/1.3 var(--mono)}
+.box-scroll th,.box-scroll td{padding:7px 5px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+.box-scroll th{color:var(--muted);font-weight:600}
+.box-scroll th:first-child{text-align:left}
+.box-scroll .position{text-align:center}
+.box-scroll abbr{text-decoration:none}
+.scout select{width:100%;margin-top:14px}
+#build{margin:14px 0 10px;font:20px/1 var(--display);letter-spacing:.05em;text-transform:uppercase}
+#cards{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#cards span{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:8px 10px;border-radius:10px;background:var(--card-2);font-size:12.5px;color:var(--muted)}
+#cards b{font:400 20px/1 var(--display);color:var(--text);letter-spacing:.03em}
+
+/* Halftime and final dialog */
+#match-stats{width:min(820px,calc(100% - 24px));max-height:calc(100dvh - 24px);color:var(--text);background:linear-gradient(180deg,#1a1f1c,#121614);border:1px solid var(--line-2);border-radius:24px;padding:clamp(18px,4vw,32px)}
+#match-stats::backdrop{background:rgba(5,8,7,.78);backdrop-filter:blur(4px)}
+#match-stats h2{font-size:clamp(30px,5vw,44px);margin-bottom:.3em}
+#match-stats h3{font-size:20px;margin:1em 0 .5em;color:var(--muted)}
+#match-stats .score{display:flex;justify-content:center;gap:18px;padding:12px;border-radius:16px;background:rgba(0,0,0,.25);border:1px solid var(--line);font:28px/1 var(--display);letter-spacing:.05em;text-transform:uppercase;box-shadow:none}
+#match-stats .score b{font:40px/1 var(--display)}
+#stats-team,#stats-leaders{width:100%;border-collapse:collapse;font-size:14px}
+#stats-team th,#stats-team td,#stats-leaders th,#stats-leaders td{padding:.5em;border-bottom:1px solid var(--line);text-align:left}
+#stats-team td{text-align:right;font-variant-numeric:tabular-nums}
+#stats-team thead th:not(:first-child){text-align:right}
+.stats-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:20px}
+#stats-dismiss{background:var(--mint);color:var(--mint-ink);border-color:var(--mint);font-weight:700}
+#stats-next{margin-inline-start:auto;display:inline-flex;gap:.45em;align-items:center}
+#stats-next [aria-hidden]{font-size:1.3em;line-height:1}
+#stats-time{margin:.6em 0 0;font-size:13px;color:var(--muted)}
+#match-stats [hidden],#final-box[hidden]{display:none}
+
+/* Footer */
+.site-footer{display:flex;flex-wrap:wrap;gap:8px;padding-top:8px;border-top:1px solid var(--line)}
+.site-footer a{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;color:var(--muted)}
+.site-footer a:hover,.site-footer a:focus-visible{background:var(--card-2);color:var(--mint)}
+.site-footer svg{width:22px;height:22px;fill:currentColor}
+
+/* Tablet and phone: the same cards and controls, stacked */
+@media(max-width:1000px){
+ .grid{grid-template-columns:minmax(0,1fr)}
+ .bento{grid-template-columns:minmax(0,1fr);grid-template-areas:"matchup" "averages" "tactics"}
+}
+@media(max-width:640px){
+ :root{--gap:14px}
+ main{padding-block:16px 24px;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px))}
+ .card{padding:16px;border-radius:18px}
+ .brand h1{font-size:28px}
+ .score{grid-template-columns:1fr auto 1fr;padding:14px;gap:8px}
+ .score .team{flex-direction:column;gap:6px}.score .harbor{flex-direction:column}
+ .score .crest{width:40px;height:46px;font-size:22px}
+ .score .tname{font-size:16px;text-align:center}
+ .tally b{font-size:44px}
+ .versus{padding:14px 8px;gap:6px}
+ .crest{width:48px;height:54px;font-size:26px}
+ .side strong{font-size:36px}
+ .line strong{font-size:30px}
+ #averages{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #tactics{grid-template-columns:minmax(0,1fr)}
+ .field-card{padding:10px;gap:10px}
+ canvas{border-radius:10px}
+ .bar{display:grid;grid-template-columns:auto 1fr;gap:8px}
+ .bar .speeds{justify-content:space-between}
+ .speeds button{min-width:0;flex:1}
+ .bar .spacer{display:none}
+ .bar #final-box,.bar #fresh,.bar #expand{grid-column:span 1}
+ .bar #final-box:not([hidden])~#fresh{grid-column:auto}
+ #feed{height:220px}
+}
+
+/* Full screen: the field fills the screen, controls beside or below it */
+#field.expanded{position:fixed;inset:0;z-index:100;width:100%;height:100vh;height:100dvh;margin:0;border:0;border-radius:0;background:var(--bg);box-shadow:none;
+ padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);display:grid;grid-template-rows:minmax(0,1fr) auto;gap:0;align-items:center;justify-items:center}
+#field.expanded canvas{grid-row:1;grid-column:1;aspect-ratio:auto;width:100%;height:100%;max-width:none;border-radius:0;object-fit:fill}
+#field.expanded .field-head,#field.expanded .guide,#field.expanded #fresh{display:none}
+#field.expanded .bar{grid-row:2;width:100%;justify-content:center;flex-wrap:wrap;padding:8px;display:flex}
+#field.expanded .bar .spacer{display:none}
+#field.expanded .btn{min-height:40px;font-size:17px;padding:0 14px}
+#field.expanded .speeds button{min-height:34px}
+body:has(#field.expanded:not(.mobile-expanded)){overflow:hidden}
+@media (orientation:landscape){
+ #field.expanded{grid-template-columns:minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr)}
+ #field.expanded .bar{grid-row:1;grid-column:2;flex-direction:column;flex-wrap:nowrap;justify-content:center;width:auto;height:100%;padding:8px 10px;gap:10px}
+ #field.expanded .speeds{flex-direction:column;border-radius:22px}
+}
+/* Phones: scrollable full-screen field with the controls overlaid along the bottom */
+main .grid:has(#field.mobile-expanded){grid-template-columns:minmax(0,1fr)}
+#field.mobile-expanded.expanded{position:relative;inset:auto;z-index:auto;width:100vw;margin-inline:calc(50% - 50vw);
+ grid-template:minmax(0,1fr)/minmax(0,1fr);background:#000;height:100vh;height:100dvh;touch-action:pan-y pinch-zoom}
+#field.mobile-expanded.expanded canvas{border-radius:0}
+#field.mobile-expanded.expanded .bar{position:absolute;inset:auto env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+ grid-area:auto;flex-direction:row;flex-wrap:wrap;width:auto;height:auto;padding:6px;gap:6px;justify-content:center}
+#field.mobile-expanded.expanded .speeds{flex-direction:row;background:rgba(15,19,17,.92)}
+#field.mobile-expanded.expanded .btn.ghost{background:rgba(29,34,32,.92)}
+#field.mobile-expanded.expanded .btn{min-height:36px;font-size:15px;padding:0 12px}
+#field.mobile-expanded.expanded .speeds button{min-height:30px;min-width:38px;font-size:15px}
+#field.mobile-expanded.expanded .bar{opacity:.92}
+html:fullscreen:has(#field.mobile-expanded){overflow:auto}
+
+
+/* How to play overlay */
+.top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rules-open svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;margin-right:8px;vertical-align:-3px}
+#rules-open{min-height:38px;font-size:17px;padding:0 16px}
+.rules-dialog{width:min(1040px,calc(100% - 24px));max-height:calc(100dvh - 24px);overflow:auto;color:var(--text);background:linear-gradient(180deg,#1a1f1c,#121614);border:1px solid var(--line-2);border-radius:24px;padding:clamp(16px,3vw,28px);overscroll-behavior:contain}
+.rules-dialog::backdrop{background:rgba(5,8,7,.78);backdrop-filter:blur(4px)}
+.rules-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
+.rules-head h2{font-size:clamp(32px,4vw,44px);margin-top:6px}
+.rules-close{flex:none;width:44px;height:44px;padding:0;display:grid;place-items:center;font-size:18px}
+/* Visual rules guide */
+.guide-intro{margin:6px 0 18px}
+.g-lede{font-size:16px;line-height:1.55;color:var(--text);max-width:70ch}
+.g-lede strong{color:var(--mint);font-weight:600}
+.g-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.g-block{background:var(--card-2);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:14px;align-content:start;min-width:0}
+.g-block h4{display:flex;align-items:center;gap:10px;margin:0;font:22px/1 var(--display);letter-spacing:.05em;text-transform:uppercase}
+.g-num{font:14px/1 var(--display);letter-spacing:.1em;color:var(--mint-ink);background:var(--mint);border-radius:999px;padding:5px 8px 4px}
+.g-field{width:100%;height:auto;border-radius:10px;display:block}
+.g-zones{counter-reset:zone;list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.g-zones li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;font-size:13px;color:var(--muted);counter-increment:zone}
+.g-zones b{display:block;color:var(--text);font-weight:600;font-size:14px}
+.g-sw{width:22px;height:22px;border-radius:6px;border:1px solid rgba(255,255,255,.2);position:relative}
+.g-zones li .g-sw::after{content:counter(zone);position:absolute;inset:0;display:grid;place-items:center;font:13px/1 var(--display);color:#fff}
+.g-points,.g-passes,.g-rules{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.g-points li{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.22);font-size:13px;color:var(--muted)}
+.g-points b{display:block;color:var(--text);font-weight:600;font-size:14px;margin-bottom:2px}
+.g-pt{display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:rgba(47,227,154,.14);border:1px solid rgba(47,227,154,.5);color:var(--mint);font:32px/1 var(--display)}
+.g-pt-gold{background:rgba(242,210,27,.12);border-color:rgba(242,210,27,.5);color:var(--gold)}
+.g-passes{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g-passes li{display:grid;gap:4px;padding:12px;border-radius:12px;background:rgba(0,0,0,.22);font-size:13px;color:var(--muted)}
+.g-passes svg{width:60px;height:24px;fill:none;stroke:var(--mint);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;margin-bottom:4px}
+.g-passes b{color:var(--text);font:20px/1 var(--display);letter-spacing:.05em;text-transform:uppercase}
+.g-rules li{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.g-rules li:first-child{border-top:0;padding-top:0}
+.g-rules b{color:var(--text);font-weight:600}
+.g-bad{color:#ff9a7f}
+.g-note{font-size:13px;line-height:1.5;color:var(--muted);margin:0}
+.g-note b{color:var(--text);font-weight:600}
+.g-links{margin-top:16px;font-size:13px;color:var(--muted)}
+.rules-dialog .g-links a{color:var(--mint)}
+.rules-dialog p.g-note,.rules-dialog p.g-lede,.rules-dialog p.g-links{margin-bottom:0;max-width:none}
+.rules-dialog p.g-lede{color:var(--text);max-width:70ch}
+@media(max-width:760px){.g-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:420px){.g-zones,.g-passes{grid-template-columns:minmax(0,1fr)}.g-rules li{grid-template-columns:minmax(0,1fr);gap:2px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+</style><main>
+<header class="topbar">
+ <div class="brand"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="9"/><path d="M6 12h20M6 20h20M12 6v20M20 6v20"/><circle cx="16" cy="16" r="3.2"/></svg><h1>Heaveball</h1><span class="chip">Matchroom</span></div>
+ <div class="top-actions"><button type="button" class="btn ghost rules-open" id="rules-open" aria-haspopup="dialog" aria-controls="rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></svg>How to play</button><span class="chip live-chip"><span class="dot" aria-hidden="true"></span><small class="live" id="clock"></small></span></div>
+</header>
+<div class="score card" aria-live="polite">
+ <div class="team ember"><span class="crest" aria-hidden="true">E</span><span class="tname">Ember Club</span></div>
+ <div class="tally"><span class="eyebrow">Heaveball League · <span class="accent">Live</span></span><b id="points"></b></div>
+ <div class="team harbor"><span class="crest" aria-hidden="true">H</span><span class="tname">Harbor Club</span></div>
+</div>
+<section id="pregame" class="bento" aria-labelledby="handbook">
+ <article class="card matchup">
+  <p class="eyebrow">Match preview · <span class="accent">Pregame</span></p>
+  <h2 id="handbook">Ember vs Harbor</h2>
+  <div class="versus matchup-overview" aria-live="polite">
+   <div class="side ember"><span class="crest" aria-hidden="true">E</span><span class="tname">Ember</span><strong class="red" id="ember-overall"></strong><small>Overall</small></div>
+   <div class="line" title="Forecast from ratings and both teams' tactics, fitted on simulated matches"><span class="label">Projected spread</span><strong id="spread"></strong><small id="spread-detail" class="spread-detail"></small></div>
+   <div class="side harbor"><span class="crest" aria-hidden="true">H</span><span class="tname">Harbor</span><strong class="blue" id="harbor-overall"></strong><small>Overall</small></div>
+  </div>
+  <div class="actions"><button id="start" class="btn primary" type="button">Play match</button><button id="reroll" class="btn ghost" type="button">Generate new rosters</button></div>
+ </article>
+ <article class="card tactics-panel" aria-labelledby="tactics-heading"><h3 id="tactics-heading">Team tactics</h3><div id="tactics"></div></article>
+ <article class="card averages" aria-labelledby="average-heading">
+  <div class="average-heading"><h3 id="average-heading">Team averages</h3><div class="team-key" aria-hidden="true"><span class="red">Ember</span><span class="blue">Harbor</span></div></div>
+  <ul id="averages" aria-labelledby="average-heading"></ul>
+ </article>
+</section>
+<dialog id="rules" class="rules-dialog" aria-labelledby="rules-title">
+ <div class="rules-head"><div><p class="eyebrow">New to Heaveball? · <span class="accent">Field guide</span></p><h2 id="rules-title">How to play</h2></div><button type="button" id="rules-close" class="rules-close" aria-label="Close rules">✕</button></div>
+
+<div class="guide-intro"><p class="g-lede">Two teams of eight attack <strong>one shared ring</strong> in the middle of the field. Get the ball into the ring to score. The first time you watch, follow the white ball.</p></div>
+<div class="g-grid">
+ <section class="g-block g-fieldblock" aria-labelledby="g-h-field">
+  <h4 id="g-h-field"><span class="g-num">01</span>The field</h4>
+  <svg class="g-field" viewBox="-1 -1 52 36" role="img" aria-labelledby="g-field-title"><title id="g-field-title">Top-down field: four green quadrants in the corners, a runway across the middle, a center zone with the ring, and dirt strips above and below the center</title>
+<rect x="0" y="0" width="50" height="34" fill="#3f7a3c"/>
+<rect x="0" y="12" width="20" height="10" fill="#5a9447"/><rect x="30" y="12" width="20" height="10" fill="#5a9447"/>
+<rect x="20" y="0" width="10" height="12" fill="#9c503a"/><rect x="20" y="22" width="10" height="12" fill="#9c503a"/>
+<rect x="20" y="12" width="10" height="10" fill="#2f6e4d"/>
+<g fill="none" stroke="#fff" stroke-width=".35" stroke-opacity=".9"><rect x="0" y="0" width="50" height="34"/><path d="M20 0v34M30 0v34M0 12h50M0 22h50"/><circle cx="25" cy="17" r="2"/></g>
+<g transform="translate(10 6)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#9fd88c" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">1</text></g><g transform="translate(40 6)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#9fd88c" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">1</text></g><g transform="translate(10 28)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#9fd88c" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">1</text></g><g transform="translate(40 28)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#9fd88c" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">1</text></g><g transform="translate(10 17)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#cfe8a8" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">2</text></g><g transform="translate(40 17)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#cfe8a8" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">2</text></g><g transform="translate(25 6)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#f0a58a" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">4</text></g><g transform="translate(25 28)"><circle r="2.3" fill="#0b0e0d" fill-opacity=".55" stroke="#f0a58a" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">4</text></g><g transform="translate(23.1 20.2)"><circle r="1.6" fill="#0b0e0d" fill-opacity=".55" stroke="#9fe0c0" stroke-width=".35"/><text y=".95" font-family="Bebas Neue,Arial Narrow,sans-serif" font-size="2.9" fill="#fff" text-anchor="middle">3</text></g></svg>
+  <ol class="g-zones">
+   <li><span class="g-sw" style="background:#3f7a3c"></span><div><b>Quadrants</b>Throw from here.</div></li>
+   <li><span class="g-sw" style="background:#5a9447"></span><div><b>Runway</b>Run or hand off.</div></li>
+   <li><span class="g-sw" style="background:#2f6e4d"></span><div><b>Center zone</b>Anyone can enter. The ring sits inside it.</div></li>
+   <li><span class="g-sw" style="background:#9c503a"></span><div><b>Dirt strips</b>Out of bounds for the ball. Passes can fly over them.</div></li>
+  </ol>
+  <p class="g-note">Only <b>Anchors</b> can cross into the opposite half.</p>
+ </section>
+ <section class="g-block" aria-labelledby="g-h-score">
+  <h4 id="g-h-score"><span class="g-num">02</span>Scoring</h4>
+  <ul class="g-points">
+   <li><span class="g-pt">2</span><div><b>Carry it in</b>Run the ball through the ring.</div></li>
+   <li><span class="g-pt">3</span><div><b>Catch and finish</b>Catch a teammate's pass in the center zone, then finish through the ring.</div></li>
+   <li><span class="g-pt">1</span><div><b>Steal in the center</b>Intercept a pass or recover an opponent’s fumble in the center zone. You also get the ball.</div></li>
+   <li><span class="g-pt g-pt-gold">5</span><div><b>Save-kick catch</b>Rare. Catch a legal airborne save kick in the center zone.</div></li>
+  </ul>
+  <p class="g-note"><b>Tied at full time?</b> Sudden death in the runway only. Next score wins.</p>
+ </section>
+ <section class="g-block" aria-labelledby="g-h-pass">
+  <h4 id="g-h-pass"><span class="g-num">03</span>Passing</h4>
+  <ul class="g-passes">
+   <li><svg viewBox="0 0 60 24" aria-hidden="true"><path d="M4 20Q30-6 56 20" /></svg><b>Lob</b><span>The standard pass. High and arching.</span></li>
+   <li><svg viewBox="0 0 60 24" aria-hidden="true"><path d="M4 8L30 20L56 8" /></svg><b>Bounce</b><span>Slower and easier to catch. Stays on one half.</span></li>
+   <li><svg viewBox="0 0 60 24" aria-hidden="true"><path d="M4 13H56" /></svg><b>Line drive</b><span>Fastest and flattest, but harder to catch.</span></li>
+   <li><svg viewBox="0 0 60 24" aria-hidden="true"><path d="M14 18Q30 8 46 18" /></svg><b>Underhand</b><span>A safe short toss or handoff to a nearby teammate.</span></li>
+  </ul>
+  <p class="g-note">Weak arms and poor accuracy cause more short-hops, and some throws sail over the receiver.</p>
+ </section>
+ <section class="g-block" aria-labelledby="g-h-contact">
+  <h4 id="g-h-contact"><span class="g-num">04</span>Tackles and restarts</h4>
+  <ul class="g-rules">
+   <li><b>Tackled in a quadrant</b><span>Carrier keeps the ball and gets a standing throw.</span></li>
+   <li><b>Tackled in the runway</b><span class="g-bad">Turnover.</span></li>
+   <li><b>Center catch stopped short</b><span>Your team keeps the ball.</span></li>
+   <li><b>Incomplete pass</b><span>Still live, unless it lands or rolls out of bounds.</span></li>
+   <li><b>Ball touches dirt</b><span class="g-bad">Out of bounds. Opponent restarts in a quadrant.</span></li>
+   <li><b>3+ seconds unblocked in the ring</b><span class="g-bad">Penalty. Opponent gets a free run lane.</span></li>
+  </ul>
+  <p class="g-note"><b>Piles</b> last 2 to 25 seconds. Strength, size and teammates push; Tackling and IQ end them. Carriers can pull out, fumble, sneak a handoff or risk a wild pass. Defenders can also strip the ball.</p>
+  <p class="g-note"><b>Free run lane:</b> the lead Anchor screens the help defender to leave the Runner one-on-one. The first defender can grab and wait for help or try a risky lunge. Every penalty (ring time, block in the back, a Runner or Heaver crossing past their own half, or holding the ball on the dirt) awards a free run lane. Scores, penalties and ordinary stoppages freeze play in place for 3.5 seconds so you can read the play log.</p>
+ </section>
+</div>
+<p class="g-links"><a href="summary.md" target="_blank">Build summary</a></p>
+
+</dialog>
+<div class="grid">
+ <section id="field" class="card field-card">
+  <div class="field-head"><h2>Match field</h2><label class="picker">Field <select id="field-picker" aria-label="Field template"></select></label></div>
+  <canvas width="1100" height="900" aria-label="Top-down field with numbered players and a score bar above the field"></canvas>
+  <div class="bar" role="toolbar" aria-label="Playback controls">
+   <button type="button" id="bar-toggle" class="btn primary">Pause</button>
+   <div id="speeds" class="speeds" role="group" aria-label="Playback speed"><button type="button" data-speed="1">1×</button><button type="button" data-speed="2">2×</button><button type="button" data-speed="4">4×</button><button type="button" data-speed="8">8×</button></div>
+   <span class="spacer" aria-hidden="true"></span>
+   <button id="final-box" type="button" class="btn ghost" hidden>Final box score</button>
+   <button type="button" class="btn ghost rules-open" id="rules-open-field" aria-haspopup="dialog" aria-controls="rules">Rules</button><button id="fresh" type="button" class="btn ghost">New match</button>
+   <button type="button" id="expand" class="btn ghost" aria-pressed="false">Full screen</button>
+  </div>
+  <div class="controls" hidden><button id="toggle" type="button">Pause</button><select id="pace" aria-label="Playback speed"><option value="1" selected>1× speed</option><option value="2">2× speed</option><option value="4">4× speed</option><option value="8">8× speed</option></select></div>
+  <details class="guide"><summary>Field guide</summary><p>Both teams attack the 4-yard ring inside the 10-yard center zone. A tackle short of the ring stops the finish. Watch for Anchors blocking off the ball, slipping toward the ring or drawing a defender away from a cut. Carry in for two or catch in the blue and finish for three. Watch the white ball and its shadow to read the height of a pass or bounce. Gold outlines show blocks and pile drives. On fumbles, only players with a realistic arrival path pursue; nearby markers dive, fall and shove around a grounded ball while distant players preserve team shape. A center catch directly from an airborne kick save earns five. New match draws two fresh squads.</p></details>
+  <dialog id="match-stats" aria-labelledby="stats-title">
+ <h2 id="stats-title"></h2>
+ <div class="score"><span class="red">Ember</span><b id="stats-score"></b><span class="blue">Harbor</span></div>
+ <h3 id="stats-page">Team stats</h3>
+ <table id="stats-team" aria-label="Team stats"></table>
+ <table id="stats-leaders" aria-label="First-half stat leaders" hidden></table>
+ <div id="stats-players" class="box-scroll" hidden><table id="stats-lines" aria-label="Individual box score"></table></div>
+ <div class="stats-actions">
+   <button id="stats-dismiss" type="button" autofocus>Start second half</button>
+   <button id="stats-freeze" type="button" aria-pressed="false">Freeze</button>
+   <button id="stats-next" type="button"><span id="stats-next-label">Stat leaders</span><span id="stats-arrow" aria-hidden="true">→</span></button>
+ </div>
+ <p id="stats-time"></p>
+</dialog>
+ </section>
+ <aside class="rail">
+  <section class="card feed-card" aria-labelledby="feed-heading"><h2 id="feed-heading">Play-by-play</h2><div id="feed"></div><p id="control"></p></section>
+  <section class="card"><details id="highlights"><summary>Highlights</summary>
+ <label for="highlight-filter">Show highlights</label>
+ <select id="highlight-filter"><option value="all">All highlights</option><option value="scoring">Scoring plays</option></select>
+ <p id="highlight-empty">No highlights yet.</p><ul id="highlight-list"></ul>
+</details></section>
+  <section class="card"><details id="box"><summary>Live box score</summary><div class="box-scroll"><table id="statlines"></table></div><p id="posavg"></p><details><summary>Stat legend</summary><p>POS position · H Heaver · R Runner · A Anchor</p><p>PTS points · ATT hand passes attempted · CMP passes completed · REC catches of teammate passes · TC Throwing Centers (passes caught in the ring for three points) · INT interceptions · TKL completed tackles · FUM fumbles on contact · TO turnovers charged · PEN penalties committed · PBU passes broken up · DRP hand-pass drops · HIT big hits. Average possession uses game-clock time and counts completed possessions.</p></details></details></section>
+  <section class="card scout" aria-labelledby="scout-heading"><h2 id="scout-heading">Player scouting</h2><select id="roster" aria-label="Inspect player"></select><p id="build"></p><div id="cards"></div></section>
+ </aside>
+</div>
+<footer class="site-footer" aria-label="Matchroom sites"><a href="https://miniappmike.github.io/heaveball/" aria-label="GitHub Pages" title="GitHub Pages"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.404 1.1 0 1.999.135 2.807.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943"/></svg></a><a href="https://heaveball-matchroom.hardyburl128.chatgpt.site/" aria-label="GPT test site" title="GPT test site"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></a></footer>
+</main><script src="match.js"></script><script src="view.js"></script><script>(()=>{const d=document.getElementById('rules');if(!d)return;
+const toggle=()=>{if(d.open)d.close();else d.showModal()};
+document.querySelectorAll('.rules-open').forEach(b=>b.addEventListener('click',toggle));
+document.getElementById('rules-close').addEventListener('click',()=>d.close());
+d.addEventListener('click',e=>{if(e.target===d)d.close()});
+d.addEventListener('keydown',e=>{if(e.key==='Escape')e.stopPropagation()});})();</script></html>

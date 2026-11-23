@@ -3,7 +3,7 @@ name: Deploy Matchroom to GitHub Pages
 on:
   push:
     branches: [main]
-    paths: ["matchroom/dist/**", ".github/workflows/pages.yml"]
+    paths: ["matchroom/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -22,6 +22,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # dist is committed, but it must match a fresh build of src/ and assets/.
+      - name: Check dist matches the source
+        run: |
+          python3 matchroom/tools/build.py
+          git diff --exit-code -- matchroom/dist ':(exclude)matchroom/dist/summary.md'
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v4
         with:

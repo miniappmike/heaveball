@@ -98,9 +98,11 @@ for(const template of fieldTemplates){const option=document.createElement('optio
 try{selectedField=fieldTemplates.find(t=>t.id===localStorage.getItem('heaveball-field'))||selectedField}catch{}
 fieldPicker.value=selectedField.id;
 fieldPicker.addEventListener('change',()=>{selectedField=fieldTemplates.find(t=>t.id===fieldPicker.value)||fieldTemplates[0];try{localStorage.setItem('heaveball-field',selectedField.id)}catch{}});
-for(const template of fieldTemplates){template.image=new Image();template.image.src='fields/'+template.id+'.jpg'}
-const dirtTexture=new Image();
-dirtTexture.src="dirt.png";
+// Field textures load on first use. The build may embed the default one so the page draws without sibling files.
+function fieldImage(template){
+ if(!template.image){template.image=new Image();template.image.src=(typeof fieldImages!=='undefined'&&fieldImages[template.id])||'fields/'+template.id+'.webp'}
+ return template.image;
+}
 function drawBall(ball){
  const height=Math.max(0,(ball.z??ballRadius)-ballRadius);
  const x=ball.x,y=ball.y-height*.67;
@@ -244,7 +246,7 @@ function drawFieldLines(){
  ctx.restore();
 }
 function draw(){const t=selectedField,view=layoutView();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=el('field').classList.contains('mobile-expanded')?'#000':'#121614';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.setTransform(view.s,0,0,view.s,view.ox,view.oy);
-if(t.image.complete&&t.image.naturalWidth){ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(t.image,0,0,50,34)}else{rect(0,0,50,34,t.grass)}
+const image=fieldImage(t);if(image.complete&&image.naturalWidth){ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(image,0,0,50,34)}else{rect(0,0,50,34,t.grass)}
 drawFieldLines();
 ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
  if(sim.impact){
@@ -425,13 +427,21 @@ function scheduleBackground(){
    },750);
  }
 }
+let lastDrawKey='';
 function frame(){
  if(!document.hidden){
    const now=performance.now();
    // The popup clock only runs during playback, so a paused game keeps the call on screen.
    if(playing&&statsMode!=='half')callAge+=now-lastFrame;lastFrame=now;
    // A drawing error must never stop the animation loop, or the field freezes while the log keeps going.
-   try{advance(now);draw();renderBox();renderHighlights()}catch(e){console.error(e)}
+   try{
+     advance(now);
+     // While nothing on the field can change (paused, halftime screen, idle pregame), skip the redraw to save battery.
+     const image=fieldImage(selectedField),key=[sim.players.reduce((a,p)=>a+p.x*3.1+p.y,0).toFixed(3),playing,statsMode,frozenTime,sim.time,sim.posAge,sim.done,sim.half,sim.callEvents,selectedField.id,image.complete,
+       canvas.clientWidth,canvas.clientHeight,window.devicePixelRatio,el('field').className,el('pregame').hidden].join('|');
+     if(playing||key!==lastDrawKey){draw();lastDrawKey=key}
+     renderBox();renderHighlights();
+   }catch(e){console.error(e)}
    if(now<breakUntil&&!sim.done)el('clock').textContent=stamp(sim)+(sim.penaltyPending?' · Penalty · free run lane pending':sim.stoppagePending?' · Stoppage':tackleBreak?' · Tackle':' · Scoring break');
  }
  requestAnimationFrame(frame);
