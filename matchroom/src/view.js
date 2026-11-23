@@ -277,35 +277,24 @@ function drawCallout(){
  }
  ctx.restore();
 }
-// Surround outside the field: park grass with tufts, or all-weather turf, matching the field's surface.
-// Drawn once per surface into a tile, then repeated as a pattern.
-const surroundTiles={};
+// Surround outside the field: natural park grass or all-weather turf, matching the field's surface.
+// The tileable textures come from tools/generate_surrounds.py; each tile covers 12 yards.
+const surroundTiles={},surroundTextures={},surroundFallback={park:'#5f8a3c',turf:'#457c4d'};
 function surroundPattern(surface){
- if(!surroundTiles[surface]){
-   const tile=document.createElement('canvas'),g=tile.getContext('2d'),n=256;
-   tile.width=tile.height=n;
-   let seed=surface==='park'?7:11;const r=()=>(seed=(seed*16807)%2147483647)/2147483647;
-   if(surface==='park'){
-     g.fillStyle='#6fb33a';g.fillRect(0,0,n,n);
-     for(let i=0;i<260;i++){g.fillStyle='rgba(60,120,35,'+(.05+r()*.08)+')';g.beginPath();g.arc(r()*n,r()*n,4+r()*14,0,7);g.fill()}
-     for(let i=0;i<38;i++){
-       const x=r()*n,y=r()*n;g.fillStyle='rgba(206,226,110,'+(.45+r()*.3)+')';
-       for(let k=0;k<3;k++){g.beginPath();g.ellipse(x+k*3-3,y+(k%2)*2,1.6,4+r()*2,(k-1)*.35,0,7);g.fill()}
-     }
-   }else{
-     g.fillStyle='#3f8f4a';g.fillRect(0,0,n,n);
-     for(let y=0;y<n;y+=2){g.fillStyle='rgba(255,255,255,'+(r()*.035)+')';g.fillRect(0,y,n,1)}
-     for(let i=0;i<1400;i++){g.fillStyle=r()<.5?'rgba(20,60,28,.18)':'rgba(140,200,140,.12)';g.fillRect(r()*n,r()*n,1,1)}
-   }
-   surroundTiles[surface]=ctx.createPattern(tile,'repeat');
+ if(!surroundTextures[surface]){
+   const image=surroundTextures[surface]=new Image();
+   image.src=(typeof surroundImages!=='undefined'&&surroundImages[surface])||'surrounds/'+surface+'.webp';
  }
- return surroundTiles[surface];
+ const image=surroundTextures[surface];
+ if(!surroundTiles[surface]&&image.complete&&image.naturalWidth){
+   const p=surroundTiles[surface]=ctx.createPattern(image,'repeat');
+   p.setTransform?.(new DOMMatrix().scaleSelf(12/image.naturalWidth));
+ }
+ return surroundTiles[surface]||surroundFallback[surface];
 }
 function drawSurround(surface){
  const v=venue.view,p=surroundPattern(surface);
  ctx.save();
- // The tile is 256 px; scale it to about 12 yards so tufts read at match zoom.
- p.setTransform?.(new DOMMatrix().scaleSelf(12/256));
  ctx.fillStyle=p;ctx.fillRect(v.x,v.y,v.width,v.height);
  ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(-.25,-.25,venue.field.width+.5,venue.field.height+.5);
  ctx.restore();
@@ -558,7 +547,7 @@ function frame(){
    try{
      advance(now);
      // While nothing on the field can change (paused, halftime screen, idle pregame), skip the redraw to save battery.
-     const image=fieldImage(selectedField),key=[sim.players.reduce((a,p)=>a+p.x*3.1+p.y,0).toFixed(3),playing,statsMode,frozenTime,sim.time,sim.posAge,sim.done,sim.half,sim.callEvents,selectedField.id,image.complete,
+     const image=fieldImage(selectedField),key=[sim.players.reduce((a,p)=>a+p.x*3.1+p.y,0).toFixed(3),playing,statsMode,frozenTime,sim.time,sim.posAge,sim.done,sim.half,sim.callEvents,selectedField.id,image.complete,typeof surroundPattern(selectedField.surface),
        canvas.clientWidth,canvas.clientHeight,window.devicePixelRatio,el('field').className,el('pregame').hidden].join('|');
      if(playing||key!==lastDrawKey){draw();lastDrawKey=key}
      renderBox();renderHighlights();

@@ -9,9 +9,9 @@ const venue={
  view:{x:-7.5,y:-5,width:65,height:44},
  strip:{x:20,width:10,gap:[12,22]},
  bench:{length:3.6,depth:1.1,seatGap:1.8},
- benches:[{team:1,side:-1,x:-4,y:6},{team:0,side:-1,x:-4,y:28},{team:0,side:1,x:54,y:6},{team:1,side:1,x:54,y:28}],
+ benches:[{team:1,side:-1,x:-4,y:6},{team:0,side:-1,x:-4,y:28},{team:1,side:1,x:54,y:6},{team:0,side:1,x:54,y:28}],
  coachBox:{size:2.4},
- coachBoxes:[{team:1,x:-4,y:-2},{team:0,x:54,y:-2}],
+ coachBoxes:[{team:1,x:-4,y:-2},{team:0,x:54,y:36}],
  referee:{radius:.45,height:2,home:[5,29],walk:4.5,dodge:6.5}
 };
 const benchRoles=['Heaver','Anchor','Runner','Anchor'];

@@ -1,7 +1,7 @@
 """Build matchroom/dist from matchroom/src and matchroom/assets.
 
 src/      hand-edited page (index.html), engine (match.js) and renderer (view.js)
-assets/   field textures (fields/*.webp)
+assets/   field textures (fields/*.webp) and surround textures (surrounds/*.webp)
 dist/     generated here; never edit by hand
 
 The game scripts are inlined into dist/index.html so the page also runs in
@@ -21,13 +21,22 @@ DEFAULT_FIELD = "park-red"
 if dist.exists():
     shutil.rmtree(dist)
 (dist / "fields").mkdir(parents=True)
+(dist / "surrounds").mkdir()
+DEFAULT_SURROUND = DEFAULT_FIELD.split("-")[0]
 
 for texture in sorted((assets / "fields").glob("*.webp")):
     shutil.copy2(texture, dist / "fields" / texture.name)
 
-embedded = {DEFAULT_FIELD: "data:image/webp;base64," + base64.b64encode(
-    (assets / "fields" / f"{DEFAULT_FIELD}.webp").read_bytes()).decode()}
+for texture in sorted((assets / "surrounds").glob("*.webp")):
+    shutil.copy2(texture, dist / "surrounds" / texture.name)
+
+def data_uri(path):
+    return "data:image/webp;base64," + base64.b64encode(path.read_bytes()).decode()
+
+embedded = {DEFAULT_FIELD: data_uri(assets / "fields" / f"{DEFAULT_FIELD}.webp")}
+surrounds = {DEFAULT_SURROUND: data_uri(assets / "surrounds" / f"{DEFAULT_SURROUND}.webp")}
 bundle = "const fieldImages=" + json.dumps(embedded) + ";\n"
+bundle += "const surroundImages=" + json.dumps(surrounds) + ";\n"
 bundle += (src / "match.js").read_text() + "\n" + (src / "view.js").read_text()
 
 html = (src / "index.html").read_text()
