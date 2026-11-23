@@ -167,7 +167,7 @@ function acceleration(rating){return (3+rating*.09)*playerSpeedMultiplier}
 function fatigue(p){return clamp((.55-p.energy)/.55,0,1)}
 // Energy drain. The hidden stamina rating (40-95) sets how fast a player tires: a 40 drains about
 // three times as fast as a 95, so low-stamina players are the ones who need substitutes.
-const FATIGUE_RATE=.0102,STAMINA_SPREAD=3.6;
+const FATIGUE_RATE=.0102*1.05,STAMINA_SPREAD=3.6;
 function updateStamina(p,effort,gameDt){
  const endurance=(p.stamina-70)/100;
  const load=clamp((effort-.40)/.60,0,1);
@@ -296,7 +296,7 @@ function match(report){
    }}
    }
  }
- for(const p of players.concat(bench))p.stats={pts:0,att:0,cmp:0,rec:0,tc:0,int:0,tkl:0,fum:0,to:0,pen:0,pbu:0,drp:0,hit:0};
+ for(const p of players.concat(bench))p.stats={min:0,pts:0,att:0,cmp:0,rec:0,tc:0,int:0,tkl:0,fum:0,to:0,pen:0,pbu:0,drp:0,hit:0};
  let s={tackleEvents:0,tackled:null,callEvents:0,call:null,penalized:null,scoreEvents:0,penaltyEvents:0,stoppageEvents:0,penaltyPending:false,stoppagePending:false,scramblePursuers:[],highlights:[],stints:[[],[]],posAge:0,players,bench,refereeHits:0,referee:{x:center.x,y:venue.referee.home[0],vx:0,vy:0,dodging:false},score:[0,0],half:1,time:1200,overtime:false,done:false},opening=Math.floor(rand()*2),carrier,pass,age,hold,cutter,run,worth,scoringPassYards=null,scoringThrower=null,cool=0;
  const subs=[null,null],pendingPlaybook=[null,null];
  let retreat=null,nextRead=0,nextOutletRead=0;
@@ -351,7 +351,7 @@ function match(report){
    return {x:center.x+depth*dx-shoulder*dy,y:center.y+depth*dy+shoulder*dx};
  }
  function readDefense(off,focus,active,scheme){
-   const selection=s.defenses[1-off];
+   const selection=scheme;
    if(lastDefense?.off===off&&lastDefense.selection===selection&&s.posAge<defenseReadAt)return;
    if(lastDefense?.off!==off||lastDefense.selection!==selection){
      lastDefense={off,selection};
@@ -374,8 +374,10 @@ function match(report){
      return best;
    };
    if(carrier&&(scheme.press||s.press)){
-     pair(p=>p.blocked||legalX(p,carrier.x)!==carrier.x?-Infinity:
-       -dist(p,goalSide(carrier,1.05))+p.ratings[3]*.025,{press:true});
+     const pressValue=p=>p.blocked||legalX(p,carrier.x)!==carrier.x?-Infinity:
+       -dist(p,goalSide(carrier,1.05))+p.ratings[3]*.025;
+     pair(pressValue,{press:true});
+     if(s.press)pair(pressValue,{press:true,flank:true});
    }
    // Reserve the inside help before handing out the off-ball marks.
    for(let slot=0;slot<scheme.guards;slot++){
@@ -414,6 +416,11 @@ function match(report){
    const assignment=defensiveAssignments.get(p);
    const depth=dist(focus,center);
    if(assignment?.press&&carrier&&legalX(p,carrier.x)===carrier.x){
+     if(s.press) {
+       const spot=goalSide(carrier,assignment.flank?1.1:.48);
+       if(assignment.flank)spot.y+=carrier.y<17?1.15:-1.15;
+       return spot;
+     }
      return goalSide(carrier,run?.65:(scheme.press?scheme.pressGap??1.05:1.05));
    }
    const shoulder=assignment?.shoulder;
@@ -519,17 +526,24 @@ function match(report){
    blockAnchor=anchors[0];decoy=anchors[1];
  }
 
- // Trailing by 5+ in the last five minutes of the game: hurry-up on offense, a press on defense.
- function trailingLate(team){
-   return !s.overtime&&s.half===2&&s.time<=300&&s.score[1-team]-s.score[team]>=5;
- }
- // Hurry-up offense: when trailing late, and for every offense in the last 1:30 of the first half.
+ const secondHalfWithin=seconds=>!s.overtime&&s.half===2&&s.time<=seconds;
+ const deficit=team=>s.score[1-team]-s.score[team];
  function urgent(team){
-   return trailingLate(team)||!s.overtime&&s.half===1&&s.time<=firstHalfHurry;
+   const gap=deficit(team);
+   return (!s.overtime&&s.half===1&&s.time<=firstHalfHurry)||
+     (secondHalfWithin(600)&&gap>0&&gap<=10)||(secondHalfWithin(300)&&gap>=0);
  }
  function conservative(team){
-   return !s.overtime&&s.half===2&&s.time<=120&&s.score[team]-s.score[1-team]>=5;
+   const lead=-deficit(team);
+   return secondHalfWithin(300)&&lead>0&&(lead<=7||s.time<=120);
  }
+ function latePress(team){
+   const gap=deficit(team);
+   return secondHalfWithin(300)&&gap>=0&&gap<=7;
+ }
+ // Keep the coach's selected scheme available for when the score or clock changes.
+ const latePressure={...defenses.find(scheme=>scheme.name==='Carrier pressure'),
+   guards:1,read:.32,cushion:1.25,deflect:.075,takeaway:.075,tackle:.09};
  function circulate(team){
    return !s.overtime&&!lane&&!urgent(team)&&!cornerReturn&&
      (conservative(team)||!s.playbooks[team].groundFirst&&buildup>0&&s.posAge<neutralUntil);
@@ -555,7 +569,7 @@ function match(report){
  }
  function finishStint(){if(s.team!==undefined&&s.posAge>0)s.stints[s.team].push(s.posAge);s.posAge=0}
  let loose=null,stationary=false,origin=center,lastChoice=[-1,-1],readTime=0;
- s.possession=[0,0];s.runway=[0,0];
+ s.possession=[0,0];
  function spaceRoute(p,off){
    let best,score=-Infinity;
    for(let i=0;i<8;i++){
@@ -777,7 +791,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    }
    const carrierControl=p.ratings[2]*.26+p.ratings[5]*.34+p.ratings[6]*.16+p.ratings[8]*.24;
    const stripSkill=d.ratings[2]*.29+d.ratings[5]*.28+d.ratings[6]*.20+d.ratings[8]*.23;
-   const stripChance=clamp(.003+(stripSkill-carrierControl)*.00034+(supported?.004:0),.001,.038);
+   const stripChance=clamp(.003+(stripSkill-carrierControl)*.00034+(supported?.004:0)+(s.press?.011:0),.001,.045);
    if(!lane&&rand()<stripChance){
      p.stats.fum++;
      log(d.name+' strips '+p.name+' · ball ripped free');
@@ -785,7 +799,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    }
    const leverage=clamp(weight*.0022+height*.012,-.17,.18);
    const technique=(form-60)*.0036;
-   const tacklingScheme=defenses[s.defenses[d.team]];
+   const tacklingScheme=s.press?latePressure:defenses[s.defenses[d.team]];
    const attackingIdentity=defenses[s.defenses[p.team]];
    let finish=.21+strength*.0044+drive*.11+leverage+technique+(supported?.18:0)+(failedJuke?.19:0)+
      (tacklingScheme.tackle||0)-(plan==='Runway power'&&(tacklingScheme.runWeak||0)||0)+
@@ -1392,7 +1406,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    const sub=subs[off];
    // The carrier usually lets the substitute get set before starting the offense.
    if(sub&&carrier?.team===off&&stationary&&!urgent(off))readTime=Math.max(readTime,age+.3);
-   if(sub||s.overtime||!carrier||carrier.team!==off||!stationary||pile||lane||pass||loose||s.penaltyPending)return;
+   if(sub||s.overtime||urgent(off)||!carrier||carrier.team!==off||!stationary||pile||lane||pass||loose||s.penaltyPending)return;
    let best=null;
    for(const field of players)if(field.team===off&&field!==carrier&&!field.sidelined&&!(field.edgeTime>0)&&field.energy<.5)
      for(const seat of bench)if(seat.team===off&&eligible(field,seat)&&seat.energy-field.energy>.3&&
@@ -1506,8 +1520,38 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    }
    stepInner(dt);
  };
+ function finishRegulation(){
+   finishStint();
+   if(s.score[0]===s.score[1]){
+     s.overtime=true;scoringRestart=s.scoringSpot=null;
+     log('Sudden death · runway only · next score wins');
+     restart(Math.floor(rand()*2));
+   }else{
+     s.done=true;
+     log('Final whistle');
+   }
+ }
+ function tryDesperationHeave(p){
+   const gap=deficit(p.team);
+   if(!secondHalfWithin(12)||gap<1||gap>10||noPossession(p))return;
+   const start={x:p.x,y:p.y},end={...center};
+   const duration=Math.max(.46,dist(start,end)/handPassSpeed(p.ratings[0])*1.28);
+   if(s.time>duration/(fieldSecondsPerSecond*ballSpeedMultiplier)+2)return;
+   const target=players.filter(q=>q!==p&&q.team===p.team&&!q.sidelined&&
+     !q.subbing&&!q.entering&&!q.edgeTime)
+     .reduce((best,q)=>!best||dist(q,end)<dist(best,end)?q:best,null);
+   p.stats.att++;
+   pass={thrower:p,start,end,target,desperation:true,passType:'lob',laneRoll:rand(),
+     elapsed:0,duration,arcHeight:clamp(gravity*duration**2/8,.4,4.2),endHeight:1.65};
+   Object.assign(pass,flightAt(pass,0));
+   carrier=null;pile=lane=null;s.contact=null;hold=0;
+   cornerReturn=anchorLeak=relay=openingCall=swing=null;
+   stationary=false;
+   log(p.name+' launches a desperation heave toward the ring');
+ }
  const stepInner=dt=>{
  if(s.done)return;
+ if(s.half===2&&!s.overtime&&s.time===0&&!pass?.desperation){finishRegulation();return}
  if(pendingLane!==null){const team=pendingLane;pendingLane=null;freeLane(team);return}
  s.stoppagePending=false;
  moveReferee(dt*fieldSecondsPerSecond);
@@ -1530,31 +1574,47 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  if(delayedRestart){const r=delayedRestart;delayedRestart=null;restart(r.team,r.side,r.index);return}
  if(scoringRestart){restart(scoringRestart.team,undefined,scoringRestart.index);scoringRestart=null;s.scoringSpot=null}
- if(s.overtime)s.time+=dt;
- else if((s.time-=dt)>0&&(s.half-1)*1200+1200-s.time>=reviewMark+reviewEvery){
-   reviewMark+=reviewEvery;coachReview(false);
+ if(carrier)tryDesperationHeave(carrier);
+ const clockStep=s.overtime?dt:Math.min(dt,s.time);
+ if(s.overtime)s.time+=clockStep;
+ else{
+   s.time-=clockStep;
+   if(s.time>0&&(s.half-1)*1200+1200-s.time>=reviewMark+reviewEvery){
+     reviewMark+=reviewEvery;
+     coachReview(false);
+   }
+ }
+ if(clockStep>0){
+   for(const p of players)if(!p.sidelined&&(!p.entering||p.x>=0&&p.x<=venue.field.width)){
+     p.stats.min+=clockStep;
+   }
  }
  if(s.score[0]!==seenScore[0]||s.score[1]!==seenScore[1])coachOverreact();
- if(!s.overtime&&s.time<=0){
-   finishStint();
-   for(const athlete of players.concat(bench))athlete.energy=1;
+ if(!s.overtime&&s.time===0&&!pass?.desperation){
    if(s.half===1){
-     s.time=0;s.halftime=true;secondHalfPending=true;log('Halftime');return;
+     finishStint();
+     for(const athlete of players.concat(bench))athlete.energy=1;
+     s.halftime=true;secondHalfPending=true;log('Halftime');return;
    }
-   else if(s.score[0]===s.score[1]){
-     s.overtime=true;s.time=0;
-     log('Sudden death · runway only · next score wins');
-     restart(Math.floor(rand()*2));
-   }else{s.time=0;s.done=true;log('Final whistle');return}
+   finishRegulation();return;
  }
- const hurry=urgent(s.team), safe=conservative(s.team);
- if(carrier&&hurry)readTime=Math.min(readTime,age+.65);
- if(carrier&&safe&&Math.abs(carrier.y-17)>5&&!pile&&!lane){
+ const hurry=urgent(s.team),safe=conservative(s.team);
+ if(carrier&&hurry){
+   readTime=Math.min(readTime,.65);
+   openingCall=cornerReturn=anchorLeak=null;
+   if(!stationary&&!lane&&!pile&&!blue(carrier)&&!retreat&&!run&&Math.abs(carrier.y-17)<=5){
+     run=true;
+     log(carrier.name+' drives toward the ring in the hurry-up');
+   }
+ }
+ if(carrier&&safe&&!blue(carrier)&&!lane&&!pile){
    if(!s.conservative||s.coachingTeam!==s.team)readTime=Math.max(readTime,age+4);
-   run=false;cornerReturn=anchorLeak=relay=openingCall=swing=null;
+   if(!stationary){run=false;retreat=null}
+   cornerReturn=anchorLeak=relay=openingCall=swing=null;
+   if(clearance(carrier,s.team)<3.2)readTime=Math.min(readTime,age+.35);
  }
- s.urgent=hurry;s.conservative=safe;s.press=trailingLate(1-s.team);s.coachingTeam=s.team;
- s.posAge+=dt;s.possession[s.team]+=dt; if(carrier&&Math.abs(carrier.y-17)<=5&&!blue(carrier))s.runway[s.team]+=dt;
+ s.urgent=hurry;s.conservative=safe;s.press=latePress(1-s.team);s.coachingTeam=s.team;
+ s.posAge+=clockStep;s.possession[s.team]+=clockStep;
  if(hold>0){
    hold=Math.max(0,hold-dt);
    for(const p of players)if(!p.sidelined)updateStamina(p,0,dt);
@@ -1564,12 +1624,14 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  const style=s.playbooks[off];
  manageSubs(dt,s.team);
  const active=p=>!p.sidelined&&!p.subbing&&!p.entering&&!(p.edgeTime>0)&&(!lane||(p.team===off?(p.i===4||p.i===5):p.i>=6));
- if(ringPenalty(dt,active)||restrictedPenalty(active,dt))return;
+ if(!pass?.desperation||s.time>0){
+   if(ringPenalty(dt,active)||restrictedPenalty(active,dt))return;
+ }
  const gameDt=dt;
  dt*=fieldSecondsPerSecond;age+=dt;cool-=dt;
  if(s.impact&&(s.impact.time-=dt)<=0)s.impact=null;
- const scheme=defenses[s.defenses[1-off]];
- if(carrier&&scheme.rush)readTime=Math.min(readTime,age+(scheme.rushRead??Math.max(.38,1.45-scheme.rush*3.2)));
+ const scheme=s.press?latePressure:defenses[s.defenses[1-off]];
+ if(carrier&&scheme.rush&&!safe)readTime=Math.min(readTime,age+(scheme.rushRead??Math.max(.38,1.45-scheme.rush*3.2)));
  if(!lane&&!s.overtime)readDefense(off,focus,active,scheme);
  if(openingCall&&carrier&&!pile&&!lane&&!s.overtime&&!circulate(off)&&!conservative(off)&&
     (!run||openingCall==='Last-step handoff')&&Math.abs(carrier.y-17)>5&&Math.abs(carrier.x-25)>=5){
@@ -1690,6 +1752,10 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  else if(loose){const spot=looseSupportSpot(p,loose);tx=spot.x;ty=spot.y}
  else if(p===carrier&&stationary){tx=p.x;ty=p.y;p.vx=0;p.vy=0}
  else if(p===carrier&&retreat){tx=retreat.x;ty=Math.abs(p.x-25)<6.2?clamp(p.y,14,20):retreat.y}
+ else if(p===carrier&&safe&&!lane&&!blue(p)&&Math.abs(p.y-17)<=5){
+   tx=center.x+(p.x<center.x?-1:1)*8;
+   ty=Math.abs(p.x-center.x)<6?center.y:p.hy<17?9:25;
+ }
  else if(p===carrier&&p.jukeTime>0){tx=p.jukeX;ty=p.jukeY}
  else if(p===carrier&&style.groundFirst&&!run&&!lane&&!blue(p)&&Math.abs(p.y-17)<=5){
    tx=center.x+(p.x<center.x?-7.5:7.5);
@@ -1703,6 +1769,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  else if(pass?.kicker===p&&(p.y<.7||p.y>33.3)){tx=p.x;ty=p.y<17?1.3:32.7}
  else if(pass&&p===pass.target&&(!pass.wide||pass.elapsed>=saveReaction(p)*ballSpeedMultiplier)){
    tx=pass.end.x;ty=pass.end.y;
+   if(pass.desperation&&Math.abs(p.y-center.y)>5)tx=center.x+(p.x<center.x?-5.5:5.5);
  }
  else if(lane){
    if(p===lane.anchor){
@@ -2088,14 +2155,14 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  if(canThrow&&(quickTarget||!swing&&age>readTime)){
  let target=quickTarget||cutter, movement=quickTarget?(swing?'quick swing':'quick outlet'):null;
  const circulating=circulate(off)&&!anchorLeak;
- const powerReset=style.groundFirst&&!quickTarget&&!cornerReturn&&!anchorLeak;
- if(!quickTarget&&(powerReset||protect(off)||retreat||cutter?.edgeTime>0||!cutter||clearance(cutter,off)<1.2)){
+ const powerReset=style.groundFirst&&!hurry&&!safe&&!quickTarget&&!cornerReturn&&!anchorLeak;
+ if(!quickTarget&&(hurry||powerReset||protect(off)||retreat||cutter?.edgeTime>0||!cutter||clearance(cutter,off)<1.2)){
    const options=players.filter(q=>q.team===off&&q!==p&&active(q)&&!noPossession(q)&&q.y>=0&&q.y<=34);
    const safe=options.filter(q=>Math.abs(q.y-17)>6.8&&Math.abs(q.x-25)>6.8);
    if(!powerReset&&protect(off)&&safe.length)options.splice(0,options.length,...safe);
    const carrierSpace=circulating?clearance(p,off):0;
    if(options.length){
-     const value=q=>(q===blockFor&&plan==='Block away'?1.8:0)+(blue(q)&&clearance(q,off)>2?5:0)-.19*dist(q,center)+Math.min(8,clearance(q,off))+q.ratings[5]*.024-dist(p,q)*.045+(q===previous?-1:0)+(q===cutter?1:0)+(Math.abs(q.y-17)>5&&circulating?2:0)-
+     const value=q=>(q===blockFor&&plan==='Block away'?1.8:0)+(blue(q)&&clearance(q,off)>2?5:0)-(hurry?.48:.19)*dist(q,center)+Math.min(8,clearance(q,off))+q.ratings[5]*.024-dist(p,q)*.045+(q===previous?-1:0)+(q===cutter?1:0)+(Math.abs(q.y-17)>5&&circulating?2:0)-
        (q.role==='Anchor' ? .9 : 0)-(conservative(off)?dist(p,q)*.22:0);
      const ranked=options.map(q=>{
        const gap=dist(p,q)||1;

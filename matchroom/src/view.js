@@ -227,10 +227,12 @@ function drawThinBar(v){
  }
  // Left: possession or ruling.
  if(!narrow){
-   const status=sim.penaltyPending?'FREE RUN LANE':sim.done?'FINAL':teams[poss].toUpperCase()+' BALL';
+   const strategy=sim.conservative?' · RUN CLOCK':sim.urgent?' · HURRY-UP':'';
+   const status=sim.penaltyPending?'FREE RUN LANE':sim.done?'FINAL':teams[poss].toUpperCase()+' BALL'+strategy;
+   const maxWidth=lpc-bw/2-7-abbrW-gap-crestW-pad-20;
    if(!sim.done&&!sim.penaltyPending){ctx.beginPath();ctx.arc(pad+4,cy-1,4,0,Math.PI*2);ctx.fillStyle=teamInk[poss];ctx.fill()}
    ctx.font=label+'px '+barFont;ctx.textAlign='left';ctx.fillStyle=sim.penaltyPending?'#ffd47d':ink;
-   ctx.fillText(status,pad+(sim.done||sim.penaltyPending?0:14),cy);
+   ctx.fillText(status,pad+(sim.done||sim.penaltyPending?0:14),cy,Math.max(80,maxWidth));
  }
  // Right: clock, period and the possession clock pill.
  let r=w-pad;
@@ -386,10 +388,10 @@ ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace'
  drawCallout();
  drawThinBar(view);
  const share=(values)=>{let total=values[0]+values[1];return total?Math.round(100*values[0]/total)+'% / '+Math.round(100*values[1]/total)+'%':'—'};
- el('control').textContent='Current possession '+Math.floor(sim.posAge/60)+':'+String(Math.floor(sim.posAge)%60).padStart(2,'0')+' · Ember / Harbor · Possession '+share(sim.possession)+' · Runway ball control '+share(sim.runway);
+ el('control').textContent='Current possession '+Math.floor(sim.posAge/60)+':'+String(Math.floor(sim.posAge)%60).padStart(2,'0')+' · Ember / Harbor · Possession '+share(sim.possession);
  el('points').textContent=sim.score.join(' – ');el('clock').textContent=sim.done?'FULL TIME':statsMode==='half'?'HALFTIME':stamp(sim)+' · '+teams[sim.team]+(sim.urgent?' · Hurry-up':sim.conservative?' · Protecting lead':'')+(sim.press?' · '+teams[1-sim.team]+' pressing':'');el('toggle').textContent=sim.done?'Full time':playing?'Pause':'Resume';el('toggle').disabled=sim.done||!el('pregame').hidden;el('bar-toggle').textContent=el('toggle').textContent;el('bar-toggle').disabled=el('toggle').disabled}
-const statKeys=['pts','att','cmp','rec','tc','int','tkl','fum','to','pen','pbu','drp','hit'];
-const statLabels=['Points','Pass attempts','Completions','Receptions','Throwing Centers','Interceptions',
+const statKeys=['min','pts','att','cmp','rec','tc','int','tkl','fum','to','pen','pbu','drp','hit'];
+const statLabels=['Minutes played','Points','Pass attempts','Completions','Receptions','Throwing Centers','Interceptions',
   'Tackles','Fumbles','Turnovers','Penalties','Passes broken up','Drops','Big hits'];
 const positions={Heaver:'H',Runner:'R',Anchor:'A'};
 const cells=values=>values.map(n=>'<td>'+n+'</td>').join('');
@@ -401,13 +403,18 @@ function snapshot(){
  const average=sim.stints.map(a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length)+'s':'—');
  return {rows,totals,share,average,score:sim.score.slice()};
 }
+function playerStat(key,value){
+ if(key!=='min')return value;
+ const seconds=Math.floor(value+1e-6);
+ return Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
+}
 function playerTable(data){
  return '<thead><tr><th scope="col">Player</th><th scope="col" class="position"><abbr title="Position">POS</abbr></th>'+
    statKeys.map((k,i)=>'<th scope="col"><abbr title="'+statLabels[i]+'">'+k.toUpperCase()+'</abbr></th>').join('')+'</tr></thead>'+
-   teams.map((name,i)=>'<tbody><tr><th scope="row" colspan="2">'+name+'</th>'+cells(statKeys.map(k=>data.totals[i][k]))+'</tr>'+
+   teams.map((name,i)=>'<tbody><tr><th scope="row" colspan="2">'+name+'</th>'+cells(statKeys.map(k=>playerStat(k,data.totals[i][k])))+'</tr>'+
      data.rows[i].map(p=>'<tr><th scope="row">#'+p.jersey+' <span style="color:'+colors[p.team]+'">'+p.name+'</span></th>'+
        '<td class="position"><abbr title="'+p.role+'" aria-label="'+p.role+'">'+positions[p.role]+'</abbr></td>'+
-       cells(statKeys.map(k=>p.stats[k]))+'</tr>').join('')+'</tbody>').join('');
+       cells(statKeys.map(k=>playerStat(k,p.stats[k])))+'</tr>').join('')+'</tbody>').join('');
 }
 function renderHighlights(){
  if(!el('highlights').open||shownHighlights===sim.highlights.length)return;
@@ -529,7 +536,9 @@ function advance(now){
    }
    wall+=stepTime;carry=0;steps--;
    const tackles=sim.tackleEvents,calls=sim.callEvents,scores=sim.scoreEvents,penalties=sim.penaltyEvents,stoppages=sim.stoppageEvents,priorHalftime=sim.halftime;
+   const second=Math.ceil(sim.time);
    tackleBreak=false;sim.step(fixedStep);
+   if(Math.ceil(sim.time)!==second)boxDirty=true;
    if(sim.callEvents!==calls)callAge=0;
    if(sim.done){
      finalStats=snapshot();
