@@ -96,8 +96,9 @@ Each club has a head coach with a name and a hidden **adaptability** rating from
 - **Reviews.** Coaches review the stretch since their last change every five minutes of game clock (`reviewEvery`) and at halftime. They need at least four possessions to judge (`coachMinPossessions`).
 - **Defense.** If the opponent is scoring more than 1.05 points a possession (`leakyDefense`), the coach may switch schemes at once. The counter comes from `defenseCounter`: Carrier pressure against Patient passing, Switch coverage against Balanced and Quick swing, Runway contain against Runway power, and Balanced against Free flow.
 - **Offense.** If their own offense is under 0.6 points a possession (`stalledOffense`), the coach may change playbooks from the team's next restart. The counter comes from `playbookCounter`, chosen against the opponent's defense from the strategy descriptions: Patient passing against Ring guard and Runway contain, Runway power against Receiver denial and Switch coverage, Quick swing against Star focus, Passing-lane zone and Carrier pressure, and Balanced against Balanced.
-- **Adaptability.** It sets the chance of noticing: 0.9 × adaptability² at five-minute reviews, so stubborn coaches rarely react mid-half, and 25% + 75% × adaptability at halftime. It also sets the chance of choosing the counter instead of a random scheme (30% + 70% × adaptability). Overreaction to single plays is not modeled.
-- **Effect.** Coaches make about 1.5–2 changes a game. With adaptive coaches, Runway power against a Carrier pressure start averages about 34 points, down from 38, because coaches move to Runway contain. The play-by-play logs every change, for example “Harbor coach Pryor switches the defense to Runway contain”.
+- **Adaptability.** It sets the chance of noticing: 0.9 × adaptability² at five-minute reviews, so stubborn coaches rarely react mid-half, and 25% + 75% × adaptability at halftime. It also sets the chance of choosing the counter instead of a random scheme (30% + 70% × adaptability). 
+- **Overreaction.** Every time the opponent scores, a coach may make a knee-jerk defensive switch without reviewing anything. The chance per score is `OVERREACT_RATE` (0.35) × (1 − adaptability)². That allows at most two per half (`overreactPerHalf`) and none within two minutes of their last change (`overreactCooldown`). The pick is the real counter only 35% of the time; otherwise it is a random different scheme. In a 30-match check, coaches under 55 adaptability overreacted about 0.9 times a game, coaches from 55 to 74 about 0.4, and coaches 75 and up about 0.2. The play-by-play shows it, for example “Ember coach Vance overreacts to the score and switches the defense to Switch coverage”. Scoring did not change (about 66 combined).
+- **Effect.** Coaches make about 1.5–2 reviewed changes a game. With adaptive coaches, Runway power against a Carrier pressure start averages about 34 points, down from 38, because coaches move to Runway contain. The play-by-play logs every change, for example “Harbor coach Pryor switches the defense to Runway contain”.
 
 ## Hurry-up
 
@@ -208,4 +209,4 @@ Sport documents and reference images live in `docs/`. Matchroom source is split 
 
 ## Build record
 
-Built 2026-11-23 06:20 UTC from `src/` and `assets/`.
+Built 2026-11-23 06:24 UTC from `src/` and `assets/`.
