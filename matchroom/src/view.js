@@ -21,7 +21,7 @@ function report(s,msg){
  row.append(time,message);
  let end=0;
  for(const match of msg.matchAll(playerNamePattern)){
-   const player=s.players.find(p=>p.name===match[0]);
+   const player=s.players.concat(s.bench).find(p=>p.name===match[0]);
    if(!player)continue;
    const name=document.createElement('span');
    name.style.color=colors[player.team];name.textContent=player.name;
@@ -34,7 +34,17 @@ function report(s,msg){
 }
 function scout(){let p=roster()[+el('roster').value],h=Math.round(p.height);el('build').textContent=p.role+' · '+Math.floor(h/12)+'′'+h%12+'″ · '+Math.round(p.weight)+' lb';el('cards').replaceChildren(...traits.map((name,i)=>{let line=document.createElement('span'),num=document.createElement('b');num.textContent=p.ratings[i];line.append(name,num);return line}))}
 const roster=()=>sim.players.concat(sim.bench);
-function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;callAge=Infinity;boxDirty=true;el('feed').replaceChildren();sim=match(report);playing=false;carry=0;el('roster').replaceChildren(...roster().map((p,i)=>new Option(teams[p.team]+' #'+p.jersey+' · '+p.name+(p.bench?' · bench':''),i)));scout();briefing()}
+// Substitutions move players between field slots and bench seats, so the list is rebuilt after each one.
+let shownSubs=0;
+function rosterOptions(){
+ const chosen=roster()[+el('roster').value]?.name;
+ shownSubs=sim.subEvents;
+ const list=roster();
+ el('roster').replaceChildren(...list.map((p,i)=>new Option(teams[p.team]+' #'+p.jersey+' · '+p.name+(p.bench?' · bench':''),i)));
+ const keep=list.findIndex(p=>p.name===chosen);if(keep>=0)el('roster').value=keep;
+ scout();
+}
+function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;callAge=Infinity;boxDirty=true;el('feed').replaceChildren();sim=match(report);playing=false;carry=0;rosterOptions();briefing()}
 function briefing(){
  const average=values=>values.reduce((sum,v)=>sum+v,0)/values.length;
  const squads=teams.map((_,i)=>sim.players.filter(p=>p.team===i));
@@ -364,7 +374,7 @@ ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace'
  const showStamina=el('pregame').hidden&&!sim.done&&statsMode!=='half';
  const ballCarrier=showStamina?sim.ballCarrier():null;
  for(const p of sim.players)if(!p.sidelined){
-   drawPlayer(p);
+   ctx.globalAlpha=p.subbing?.6:1;drawPlayer(p);ctx.globalAlpha=1;
    if(showStamina)drawStamina(p,ballCarrier);
  }
  const ball=sim.ball();if(ball)drawBall(ball);
@@ -379,7 +389,7 @@ const statLabels=['Points','Pass attempts','Completions','Receptions','Throwing 
 const positions={Heaver:'H',Runner:'R',Anchor:'A'};
 const cells=values=>values.map(n=>'<td>'+n+'</td>').join('');
 function snapshot(){
- const rows=teams.map((_,team)=>sim.players.filter(p=>p.team===team).map(p=>({...p,stats:{...p.stats}})));
+ const rows=teams.map((_,team)=>roster().filter(p=>p.team===team).map(p=>({...p,stats:{...p.stats}})));
  const totals=rows.map(roster=>Object.fromEntries(statKeys.map(k=>[k,roster.reduce((sum,p)=>sum+p.stats[k],0)])));
  const possession=sim.possession.reduce((a,b)=>a+b,0);
  const share=sim.possession.map(n=>possession?Math.round(n/possession*100)+'%':'—');
@@ -550,6 +560,7 @@ function frame(){
      const image=fieldImage(selectedField),key=[sim.players.reduce((a,p)=>a+p.x*3.1+p.y,0).toFixed(3),playing,statsMode,frozenTime,sim.time,sim.posAge,sim.done,sim.half,sim.callEvents,selectedField.id,image.complete,typeof surroundPattern(selectedField.surface),
        canvas.clientWidth,canvas.clientHeight,window.devicePixelRatio,el('field').className,el('pregame').hidden].join('|');
      if(playing||key!==lastDrawKey){draw();lastDrawKey=key}
+     if(sim.subEvents!==shownSubs){rosterOptions();boxDirty=true}
      renderBox();renderHighlights();
    }catch(e){console.error(e)}
    if(now<breakUntil&&!sim.done)el('clock').textContent=stamp(sim)+(sim.penaltyPending?' · Penalty · free run lane pending':sim.stoppagePending?' · Stoppage':tackleBreak?' · Tackle':' · Scoring break');
