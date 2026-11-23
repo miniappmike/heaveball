@@ -1,6 +1,6 @@
 """Generate the tileable surround textures in assets/surrounds (needs numpy and Pillow).
 
-park.webp  natural park grass: uneven color, clumps, blades, a few worn soil patches
+park.webp  natural park grass: quiet, low-contrast color variation and fine fibers
 turf.webp  all-weather synthetic turf: fine fibers, brushed grain, rubber infill, roll seams
 
 Each tile covers TILE yards square and wraps seamlessly; view.js repeats it around the field.
@@ -42,28 +42,25 @@ def strokes(img, count, seed, length, width, colors, angle_spread, base_angle=0.
 
 
 def park():
-    broad = periodic_noise(N, 90, 1)
-    mid = periodic_noise(N, 22, 2)
-    fine = periodic_noise(N, 2.5, 3)
-    dry = np.clip(periodic_noise(N, 60, 4) - .6, 0, None)  # sun-dried, yellower areas
-    base = np.array([88, 138, 52], float)
-    img = base + broad[..., None] * [9, 12, 6] + mid[..., None] * [6, 8, 4] + fine[..., None] * [7, 9, 5]
-    img += dry[..., None] * [34, 22, -2]
-    # Dark clover / lush clumps.
-    clumps = np.clip(periodic_noise(N, 9, 5) - 1.4, 0, None)
-    img -= clumps[..., None] * [26, 18, 16]
-    # A few worn patches showing soil.
-    worn = np.clip(periodic_noise(N, 40, 6) - 2.1, 0, 1)
-    worn = np.clip(worn * 3, 0, 1)[..., None] * (0.6 + 0.4 * (fine[..., None] > 0))
-    img = img * (1 - worn) + np.array([128, 108, 74]) * worn + fine[..., None] * 6 * worn
-    im = Image.fromarray(img.clip(0, 255).astype('uint8')).convert('RGBA')
-    blades = [(62, 104, 38), (74, 122, 44), (118, 160, 66), (140, 172, 80), (48, 86, 32)]
-    strokes(im, 26000, 7, 7, 2, blades, 1.1, -np.pi / 2)
-    strokes(im, 9000, 8, 5, 1, [(170, 196, 104), (150, 186, 92)], 1.0, -np.pi / 2)
-    im = im.convert('RGB').filter(ImageFilter.GaussianBlur(.6))
-    # Soft overall light variation so the repeat is less visible.
-    a = np.asarray(im).astype(float) * (1 + .05 * broad[..., None])
-    return Image.fromarray(a.clip(0, 255).astype('uint8'))
+    """Natural grass in the same quiet style as the turf and the field textures: low contrast, no hard detail."""
+    rng = np.random.default_rng(21)
+    base = np.array([70, 118, 58], float)  # close to the park field greens, a touch lighter and warmer
+    broad = periodic_noise(N, 80, 22)
+    mid = periodic_noise(N, 14, 23)
+    fiber = periodic_noise(N, 1.2, 24)
+    # Unmown grass lies in loose, random directions: soft short streaks rather than one grain.
+    streak = np.real(np.fft.ifft2(np.fft.fft2(rng.standard_normal((N, N))) *
+                                  np.exp(-((np.fft.fftfreq(N)[:, None] * 14) ** 2 +
+                                           (np.fft.fftfreq(N)[None, :] * 4) ** 2))))
+    streak = (streak - streak.mean()) / streak.std()
+    img = (base + broad[..., None] * [4, 5, 2] + mid[..., None] * [2, 3, 1.5]
+           + fiber[..., None] * [6, 9, 5] + streak[..., None] * [3, 4, 2])
+    # Faint sun-dried areas, kept subtle so they read as variation, not patches.
+    dry = np.clip(periodic_noise(N, 60, 25) - .8, 0, None)
+    img += dry[..., None] * [7, 4, -1]
+    speck = rng.random((N, N))
+    img[speck < .03] = img[speck < .03] * .8
+    return Image.fromarray(img.clip(0, 255).astype('uint8')).filter(ImageFilter.GaussianBlur(.45))
 
 
 def turf():
