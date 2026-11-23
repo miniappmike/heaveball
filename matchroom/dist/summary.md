@@ -131,7 +131,7 @@ Regulation game totals can range from 0 to 100 combined points, with most matche
 
 ## League and media roadmap
 
-The current browser prototype generates fresh exhibition matches. The planned league layer would retain player and club identities, schedule games and record standings, statistics and season history. Shared broadcasts would reveal events as they air. Recordings of player and ball movement alongside the event log would support replays, highlights and box scores. Pregame stories, recaps and ongoing media coverage would use those same records so a fan could trace a headline to the play that earned it. Persistent seasons, synchronized broadcasts, replay archives and an automated newsroom are future work.
+The current browser prototype generates fresh exhibition matches. The planned league layer would retain player and club identities, schedule games and record standings, statistics and season history. Shared broadcasts would reveal events as they air. Once clubs have logos, the home club's logo will be spray-painted into the center zone beneath the ring and blended into the grass: drawn over the field texture and under the field lines, partly transparent and multiplied into the grass so the texture shows through, with slightly rough edges like real field paint. Recordings of player and ball movement alongside the event log would support replays, highlights and box scores. Pregame stories, recaps and ongoing media coverage would use those same records so a fan could trace a headline to the play that earned it. Persistent seasons, synchronized broadcasts, replay archives and an automated newsroom are future work.
 
 ## Source and release workflow
 
@@ -167,4 +167,4 @@ Sport documents and reference images live in `docs/`. Matchroom source is split 
 
 ## Build record
 
-Built 2026-11-23 04:40 UTC from `src/` and `assets/`.
+Built 2026-11-23 04:43 UTC from `src/` and `assets/`.
