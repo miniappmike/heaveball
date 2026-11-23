@@ -118,6 +118,10 @@ Quadrant-center resets pause for 1.5 simulation seconds. Defenders align goal-si
 - **Quick swing.** The carrier holds the ball briefly and reads the ring before choosing another outlet. A clear lane can bring a quick pass into the blue or a run through the runway. The ball can work between two or three quadrants, go all the way around, or keep moving for up to eight outlet passes (two full trips around the four quadrants). Teams can reverse direction or skip across the field either way between Q2 and Q4 or Q1 and Q3 when the passing lane opens. If the outlets close or the sequence reaches eight exchanges, the team returns to its usual reads. Every playbook can use this tempo when the spacing suits it. It is most common for Quick swing and rare for Runway power.
 - **Corner boomerang.** Five percent of quadrant setups call for a deep same-half outlet and a return pass to the original passer cutting into the blue. The offense can switch back to its usual reads if either leg closes.
 - **Anchor leak.** An Anchor shows a lead block, then releases into the blue as a receiver. Balanced and Free Flow carry the call, and the offense can also switch to it mid-possession.
+- **Safety valve:** a quick, short outlet when the passer is under pressure.
+- **Weak-side reversal:** switch to an open receiver across the field when the lane is clear.
+- **Runway lead:** lead an open Runner who has gained ground toward the ring.
+- **Seam pop:** feed an open Anchor in the center zone. Opening reads weigh separation, lane clearance, Hands and throw distance. If the chosen look closes, the offense goes back to its normal reads.
 - **Pass and cut.** Balanced, Quick Swing and Free Flow can open with a pass to a quadrant outlet. The original passer cuts through the blue toward open runway space or the opposite legal quadrant. The outlet can send the ball back if the cut opens a clear lane.
 - **Last-step handoff.** Balanced, Runway Power and Free Flow can call a runway attack with a trailing carrier. The exchange comes as the first carrier draws a nearby defender. Routine open and pressure handoffs are more common when a teammate is within reach.
 - **Three-on-three runway.** A regulation tie goes to sudden death. A coin flip sets first possession, and each side fields three Anchors, a Runner and a Heaver. The offense sends its three Anchors against the three defensive Anchors. Turnovers start the new carrier at the back of their runway. The first score ends the match.
@@ -210,4 +214,4 @@ Sport documents and reference images live in `docs/`. Matchroom source is split 
 
 ## Build record
 
-Built 2026-11-23 07:16 UTC from `src/` and `assets/`.
+Built 2026-11-23 07:27 UTC from `src/` and `assets/`.
