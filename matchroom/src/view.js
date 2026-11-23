@@ -65,7 +65,7 @@ function briefing(){
      playbook:[0,1.39,4.85,-2.13,-.398],
      oppDefense:[0,-.521,1.31,2.58,2.61,2.72,-3.46,.007],
      ownDefense:[0,-.613,.531,2.69,-.928,5.2,-2.43,-.676],sd:11.8};
-   const points=[0,1].map(t=>{const o=1-t;let v=W.base+W.playbook[playbooks.indexOf(sim.playbooks[t])]+W.oppDefense[sim.defenses[o]]+W.ownDefense[sim.defenses[t]];
+   const points=[0,1].map(t=>{const o=1-t;let v=W.base+W.playbook[playbooks.indexOf(sim.playbooks[t])]+(W.oppDefense[sim.defenses[o]]??0)+(W.ownDefense[sim.defenses[t]]??0);
      for(let j=0;j<12;j++)v+=W.own[j]*(ratings[t][j]-70)+W.opp[j]*(ratings[o][j]-70);return Math.max(0,v)});
    const edge=points[0]-points[1],margin=Math.round(Math.abs(edge)*2)/2;
    const erf=x=>{const t=1/(1+.3275911*Math.abs(x)),y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x);return x<0?-y:y};

@@ -39,6 +39,8 @@ Every playbook and defense was tuned against randomized simulations so that none
 | Receiver denial | Fewest 3-point catches allowed |
 | Star focus | Most passes broken up |
 | Passing-lane zone | Lane-reading defenders get extra reach for tips while keeping their ring-side shade |
+| Match zone | Switches cutters and protects inside throwing lanes. | Gives more space to deep switches, with two guards protecting the ring. |
+| Runway funnel | Staggers two guards to steer carriers to help. | Gives up quick outlets away from the runway. |
 | Carrier pressure | Most tackles and forced turnovers, with a deep, loose back line that concedes when the press is beaten |
 | Runway contain | Funnels runs into tacklers and limits 3-point catches |
 | Switch coverage | Steady marks with fewer opponent possessions |
@@ -214,4 +216,4 @@ Sport documents and reference images live in `docs/`. Matchroom source is split 
 
 ## Build record
 
-Built 2026-11-23 07:27 UTC from `src/` and `assets/`.
+Built 2026-11-23 07:33 UTC from `src/` and `assets/`.

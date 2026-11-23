@@ -19,10 +19,10 @@ const benchRoles=['Heaver','Anchor','Runner','Anchor'];
 const coachNames=['Marsh','Holt','Vance','Brooks','Doyle','Pryor','Keane','Sutter','Lyle','Banner','Whitley','Crane'];
 // Counters a coach reaches for. Defense by the opponent's playbook index:
 // Patient passing, Balanced, Runway power, Quick swing, Free flow.
-const defenseCounter=[5,7,6,7,0];
+const defenseCounter=[5,9,6,7,8];
 // Playbook by the opponent's defense index: Balanced, Ring guard, Receiver denial, Star focus,
 // Passing-lane zone, Carrier pressure, Runway contain, Switch coverage.
-const playbookCounter=[1,0,2,3,3,3,0,2];
+const playbookCounter=[1,0,2,3,3,3,0,2,3,1];
 // Overreaction: after the opponent scores, a coach may make a knee-jerk defensive switch. The chance per
 // score is OVERREACT_RATE × (1 − adaptability)², at most four per half, and not within one minute of a change.
 const OVERREACT_RATE=.5915,overreactCooldown=60,overreactPerHalf=4;
@@ -50,7 +50,9 @@ const defenses=[
  {name:'Passing-lane zone',blurb:'Defenders read the throw and jump passing lanes',description:'Pros: produces tips and interceptions by crowding anticipated throwing lanes. Cons: short outlets, patient overloads and quick swings can open seams between zones.',guards:2,depth:5.9,width:3.3,shade:.49,cushion:1.8,read:.87,lanes:true,deflect:.12,takeaway:.04,swingWeak:.03,laneStep:.05,laneReach:.5},
  {name:'Carrier pressure',blurb:'An all-out press on the ball, gambling for turnovers',description:'Pros: shortens reads, forces hurried throws and can create immediate turnovers. Cons: a clean outlet or handoff beats the press and leaves less help at the ring.',guards:1,depth:6.8,width:2.1,shade:.29,cushion:2.8,read:.95,press:true,rush:.20,runWeak:.06,rushRead:3.2,pressGap:1.9},
  {name:'Runway contain',blurb:'Seals the runway and funnels runners into tacklers',description:'Pros: funnels runs into tacklers and is strongest against power attacks and direct ring drives. Cons: gives up deeper quadrant outlets and can be stretched by disciplined passing.',guards:3,depth:4.6,width:2.9,shade:.39,cushion:1.5,read:1,contain:true,tackle:.07,deflect:-.02,swingWeak:.04},
- {name:'Switch coverage',blurb:'Defenders trade assignments to stay with every cut',description:'Pros: handles cuts, blocks and quick swings without losing assignments. Cons: offers fewer aggressive takeaways and can lose power matchups or break down after a slow read.',guards:2,depth:4.75,width:2.6,shade:.25,cushion:1.55,read:.54,switches:true,deflect:-.015,tackle:-.02,swingWeak:-.09}
+ {name:'Switch coverage',blurb:'Defenders trade assignments to stay with every cut',description:'Pros: handles cuts, blocks and quick swings without losing assignments. Cons: offers fewer aggressive takeaways and can lose power matchups or break down after a slow read.',guards:2,depth:4.75,width:2.6,shade:.25,cushion:1.55,read:.54,switches:true,deflect:-.015,tackle:-.02,swingWeak:-.09},
+ {name:'Match zone',blurb:'Switches cutters while protecting inside passing lanes',description:'Pros: tracks cuts with quick handoffs between defenders. Cons: gives deep switches more space and commits only two defenders to the ring.',guards:2,depth:4.45,width:2.5,shade:.32,cushion:1.7,read:.68,switches:true,lanes:true,laneStep:.25,deflect:.025,runWeak:.02},
+ {name:'Runway funnel',blurb:'Two staggered guards steer runners toward help',description:'Pros: channels runs into a second tackler without selling out against the pass. Cons: leaves room for quick outlets away from the runway.',guards:2,depth:4.3,width:1.9,shade:.39,cushion:1.75,read:.77,contain:true,tackle:.045,swingWeak:.025}
 ];
 // Calibrated against a ten-yard run from rest with Speed and Agility at 60.
 const fieldSecondsPerSecond=.63;
@@ -391,7 +393,7 @@ function match(report){
      pair(p=>-dist(p,spot)+p.ratings[6]*.015+(oldAssignments.get(p)?.home?1:0)-(p.blocked?2:0),{shoulder:0,home:true});
    }
    const threat=q=>4.4-.27*dist(q,center)-.065*dist(q,focus)+q.ratings[5]*.028+
-     (q.role==='Runner'?q.ratings[10]*.017:0)+(blue(q)?1.5:0)+(q===cutter?1:0);
+     (q.role==='Runner'?q.ratings[10]*.017:0)+(blue(q)?1.5:0)+(q===cutter?1:0)+(q===passCut?.player?1.25:0);
    const mark=(q,extra={})=>pair(p=>{
      if(legalX(p,q.x)!==q.x)return -Infinity;
      const hold=oldAssignments.get(p)?.mark===q?(scheme.switches?.25:1.5):0;
@@ -421,13 +423,13 @@ function match(report){
    const mark=p.helpTime>0&&p.helpTarget?.team===off&&!p.helpTarget.edgeTime&&
      !noPossession(p.helpTarget)&&p.helpTarget!==carrier?p.helpTarget:assignment?.mark;
    if(shoulder!==undefined||!mark||mark===carrier||mark.edgeTime>0||noPossession(mark)){
-     const base=(assignment?.home?homeGuardDepth:scheme.depth)+2*(tendency[off].drive-.4);
+     const base=(assignment?.home?homeGuardDepth:scheme.depth)+2.6*(tendency[off].drive-.4);
      const targetDepth=closing?clamp(depth-(scheme.contain?2.2:1.25),ringRadius+.8,base+2):
        clamp(base,ringRadius+.8,Math.max(ringRadius+.8,depth*.74));
      return lanePosition(focus,targetDepth,shoulder??(p.i-3.5)*1.7);
    }
    const star=p.helpTime<=0&&assignment?.star;
-   const goal=goalSide(mark,star?1:cushionFor(scheme,off)+tendency[off].block*.6);
+   const goal=goalSide(mark,star?1:cushionFor(scheme,off)+tendency[off].block*.75);
    if(star&&assignment.bracket){
      return {x:goal.x+(focus.x-mark.x)*.16,y:goal.y+(focus.y-mark.y)*.16};
    }
@@ -2146,7 +2148,10 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  const cutReturn=canThrow&&passCut?.outlet===p&&blue(passCut.player)&&clearance(passCut.player,off)>1.65&&
    passingLane(p,passCut.player,active)>1.3;
  const readCall=canThrow&&!openingPassUsed&&!cornerReturn&&style.reads.includes(plan);
- const calledPass=readCall&&age>=Math.min(readTime,.95)?readOpeningPass(p,active,[plan]):null;
+ const canReadOpening=canThrow&&!openingPassUsed&&!cutOpening&&!cutReturn&&!cornerReturn&&!anchorLeak&&
+   !relay&&!passCut&&!conservative(off)&&!swing&&age>=Math.min(readTime,.95)&&age>=nextOutletRead;
+ const calledPass=canReadOpening?readOpeningPass(p,active,readCall?[plan]:style.reads):null;
+ if(canReadOpening&&readCall&&!calledPass)nextOutletRead=age+.18;
  let quickTarget=null,swingAttack=false;
  if(cutReturn){quickTarget=passCut.player;swing=null}
  else if(calledPass){quickTarget=calledPass.target;swing=null}
@@ -2271,7 +2276,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  // Use a single interception roll per throw across its flight.
  p.stats.att++;pass={thrower:p,wide,passType,quickSwing:Boolean(swing&&!wide),circulating:circulating&&!wide,
    laneRoll:rand(),start,end,target:wide?null:target,elapsed:0,...profile};
- if(cutOpening||readCall)openingPassUsed=true;
+ if(cutOpening||readCall||calledPass)openingPassUsed=true;
  if(wide&&!s.overtime&&!pass.bounceF){
    pass.rescuer=findRescuer(pass,active);
    if(pass.rescuer){
