@@ -193,7 +193,7 @@ The field fills the mobile viewport with black margins and overlaid playback con
 
 A small on-field stamina bar appears under the carrier and any other player below 35% stamina. Green means 70% or higher, yellow means 35% to below 70%, and red means below 35%. Each player has a hidden stamina rating. Heavier players tend to rate a little lower, with individual conditioning varying within each weight class. Sustained running and contact drain stamina. Slower movement and rest recover it, and halftime restores it. Below 55%, fatigue gradually reduces acceleration and speed, with a larger speed effect for ball carriers. Very tired players are slightly more likely to drop a pass in traffic. The free run lane floor still applies before a grab.
 
-Players keep their numbered circles during loose-ball scrambles. Nearby players pursue if they can reach the ball. The others reposition to cover space or offer an outlet for the recovery.
+Missed passes take a low skip before rolling. Nearby players can track a loose ball in the air, then dive and contest the recovery once it is on the turf. Players keep their numbered circles during the scramble. The others reposition to cover space or offer an outlet for the recovery.
 
 ## Calls and stoppages
 
@@ -209,4 +209,4 @@ Sport documents and reference images live in `docs/`. Matchroom source is split 
 
 ## Build record
 
-Built 2026-11-23 06:37 UTC from `src/` and `assets/`.
+Built 2026-11-23 21:21 UTC from `src/` and `assets/`.

@@ -501,6 +501,7 @@ const RELEASE_TRAFFIC=.08;
 const homeGuardDepth=3.2,pressRunCushion=1.6;
 // Field units are yards. Height is measured from the turf to the ball's center.
 const ballRadius=.31,gravity=10.73;
+const onTurf=ball=>ball.z<=ballRadius+1e-8&&ball.vz<=0;
 // A softball-sized rubber ball on turf skips and rebounds, but sheds vertical energy quickly.
 const grass={restitution:.30,grip:.28,roll:4.20};
 const runwayTurf={restitution:.34,grip:.24,roll:3.05};
@@ -537,7 +538,7 @@ function flightAt(flight,t){
  return motion;
 }
 function advanceLooseBall(ball,dt){
- const airborne=ball.z>ballRadius+1e-8||ball.vz>0;
+ const airborne=!onTurf(ball);
  const groundTime=airborne?(ball.vz+Math.sqrt(ball.vz**2+2*gravity*Math.max(0,ball.z-ballRadius)))/gravity:0;
  const airTime=Math.min(dt,groundTime);
  if(airTime>0){
@@ -1741,7 +1742,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
        omega:sign*(bat?11:19)});
    }else{
      const skip=Math.min(speed*.43,9);
-     Object.assign(loose,{vx:dx*skip,vy:dy*skip,vz:Math.min(-.75,motion.vz),omega:12});
+     // Short, scripted pass arcs can end with a steep velocity. Limit the impact so the miss skips low.
+     Object.assign(loose,{vx:dx*skip,vy:dy*skip,vz:clamp(motion.vz,-6,-.75),omega:12});
    }
  }
  function score(p,n){
@@ -2082,7 +2084,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      return;
    }
  }
- const scramblePursuers=loose?loosePursuers(active):null;
+ const pursuers=loose?loosePursuers(active):null;
  for(let p of players){
  p.scrambleTime=Math.max(0,(p.scrambleTime||0)-dt);
  if(p.scrambleTime===0)p.scramblePose=null;
@@ -2101,9 +2103,9 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  if(p.subbing){tx=subs[p.team].exit.x;ty=subs[p.team].exit.y}
  else if(pass?.gamble&&!pass.gamble.done&&pass.gamble.d===p){tx=pass.gamble.spot.x;ty=pass.gamble.spot.y}
  else if(pile&&p.role==='Anchor'){tx=pile.p.x;ty=pile.p.y}
- else if(loose&&scramblePursuers.has(p)){
+ else if(loose&&pursuers.has(p)){
    tx=loose.x+loose.vx*.18;ty=loose.y+loose.vy*.18;
-   if(dist(p,loose)<1.7&&loose.z<.72&&p.scrambleTime<=0){
+   if(dist(p,loose)<1.7&&onTurf(loose)&&p.scrambleTime<=0){
      p.scramblePose=dist(p,loose)<1.05?'dive':'shove';
      p.scrambleAngle=Math.atan2(loose.y-p.y,loose.x-p.x);
      p.scrambleTime=.28+.30*(1-judgment(p));
@@ -2306,7 +2308,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      }
      log('Loose ball out · last-touch ruling');restartAfterPause(awarded,undefined,nearestQuadrant(loose));return
    }
-   const recovery=loose.wait<=0&&!(loose.z>1.45)&&settleLooseBall(active);
+   const recovery=loose.wait<=0&&onTurf(loose)&&settleLooseBall(active);
    if(recovery){
      const {player:q,contested}=recovery;
      const {kind,originTeam,responsible}=loose,spot=loose;
