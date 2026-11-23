@@ -167,7 +167,7 @@ function drawStamina(p,carrier){
 function drawPlayer(p){
  const flagged=sim.penaltyPending&&sim.penalized===p;
  if(flagged)disc(p.x,p.y,1.25,'rgba(255,40,40,.45)','#ff2a2a');
- else if(p.blocked>0)disc(p.x,p.y,1,"#8a7546","#f5d688");
+ else if(p.blocked>0||sim.contact?.pushing?.has(p))disc(p.x,p.y,1,"#8a7546","#f5d688");
  disc(p.x,p.y,.76,flagged?'#ff3b3b':colors[p.team],flagged?'#fff':'#12271e');
  ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
  if(sim.tackled===p){ctx.beginPath();ctx.arc(0,0,.6,0,Math.PI*2);ctx.strokeStyle='#000';ctx.lineWidth=.16;ctx.stroke()}ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
