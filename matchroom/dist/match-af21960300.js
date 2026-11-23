@@ -1734,7 +1734,9 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    else tackleCarrier(p,pressure,active);
  }
  };
- s.ball=()=>s.scoringSpot?{...s.scoringSpot,z:.82}:carrier?
-   {...(stationary?{x:carrier.x,y:carrier.y}:ballAt(carrier)),z:1.03,spin:Math.atan2(carrier.vy,carrier.vx)}:(pass||loose);
+ // During a restart pause nobody holds the ball; keep showing where it last was.
+ let lastBall={x:center.x,y:center.y,z:ballRadius};
+ s.ball=()=>lastBall=(s.scoringSpot?{...s.scoringSpot,z:.82}:carrier?
+   {...(stationary?{x:carrier.x,y:carrier.y}:ballAt(carrier)),z:1.03,spin:Math.atan2(carrier.vy,carrier.vx)}:(pass||loose))||lastBall;
  return s;
 }

@@ -241,7 +241,7 @@ ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace'
  }
  if(sim.contact){let {p,d}=sim.contact;disc((p.x+d.x)/2,(p.y+d.y)/2,1.6,"#a58038","#ffe27d")}
  for(let p of sim.players)if(!p.sidelined)drawPlayer(p);
- drawBall(sim.ball());
+ const ball=sim.ball();if(ball)drawBall(ball);
  drawCallout();
  drawThinBar(view);
  const share=(values)=>{let total=values[0]+values[1];return total?Math.round(100*values[0]/total)+'% / '+Math.round(100*values[1]/total)+'%':'—'};
@@ -416,7 +416,8 @@ function frame(){
    const now=performance.now();
    // The popup clock only runs during playback, so a paused game keeps the call on screen.
    if(playing&&statsMode!=='half')callAge+=now-lastFrame;lastFrame=now;
-   advance(now);draw();renderBox();renderHighlights();
+   // A drawing error must never stop the animation loop, or the field freezes while the log keeps going.
+   try{advance(now);draw();renderBox();renderHighlights()}catch(e){console.error(e)}
    if(now<breakUntil&&!sim.done)el('clock').textContent=stamp(sim)+(sim.penaltyPending?' · Penalty · free run lane pending':sim.stoppagePending?' · Stoppage':tackleBreak?' · Tackle':' · Scoring break');
  }
  requestAnimationFrame(frame);
