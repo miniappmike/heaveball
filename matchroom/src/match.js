@@ -65,6 +65,7 @@ const TRAFFIC_DEFLECT=3,trafficRadius=3;
 // jumps a long pass. GAMBLE_RATE is the attempt chance for an eligible top defender; success runs
 // 30-50% with those ratings. A miss leaves the defender stumbling out of position.
 const GAMBLE_RATE=.5,gambleSkill=68,gambleMiss=1.6,gambleBurst=1.1;
+const RING_GAMBLE_RATE=.80;
 // Extra chance per contested recovery that a fumble squirts loose again (up to six bobbles instead of three).
 const FUMBLE_SCRAMBLE=.14;
 // Smothering: a taller, faster defender pressing the passer widens the throw's scatter, adds a chance
@@ -76,7 +77,7 @@ const RELEASE_TRAFFIC=.08;
 // How far in front of the ring Carrier pressure's stay-home defender sits against run-first offenses.
 const homeGuardDepth=3.2,pressRunCushion=1.6;
 // Field units are yards. Height is measured from the turf to the ball's center.
-const ballRadius=.31,gravity=10.73;
+const ballRadius=.31,gravity=10.73,carriedBallHeight=1.03;
 // A softball-sized rubber ball on turf skips and rebounds, but sheds vertical energy quickly.
 const grass={restitution:.30,grip:.28,roll:4.20};
 const runwayTurf={restitution:.34,grip:.24,roll:3.05};
@@ -133,7 +134,7 @@ function advanceLooseBall(ball,dt){
    ball.vx*=grip;ball.vy*=grip;
    ball.omega=ball.omega*.55+pace/ballRadius*.45;
    ball.z=ballRadius;
-   const rebound=-ball.vz*turf.restitution;
+   const rebound=ball.kind==='fumble'?0:-ball.vz*turf.restitution;
    ball.vz=rebound>.46?rebound:0;
    if(ball.vz>0&&dt>airTime+1e-8){advanceLooseBall(ball,dt-airTime);return}
  }
@@ -753,11 +754,13 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    const thrower=flight?.thrower;
    spill(p,kind,spot.x,spot.y);
    if(thrower)loose.responsible=thrower;
-   const speed=clamp(contact.impact*.85,3.6,10);
+   const fumble=kind==='fumble';
+   const speed=fumble?clamp(contact.impact*.4,1.8,4.7):clamp(contact.impact*.85,3.6,10);
    const sideways=(rand()-.5)*speed;
    Object.assign(loose,{vx:contact.x*speed-contact.y*sideways+p.vx*.28+(flight?.vx??0)*.12,
      vy:contact.y*speed+contact.x*sideways+p.vy*.28+(flight?.vy??0)*.12,
-     z:spot.z??1.2,vz:.75+speed*.11+(flight?.vz??0)*.10,spin:flight?.spin??0,omega:sideways*6,wait:.28});
+     z:spot.z??carriedBallHeight,vz:fumble?-.65:.75+speed*.11+(flight?.vz??0)*.10,
+     spin:flight?.spin??0,omega:sideways*6,wait:.28});
    showImpact(p,d);
  }
  function tackleCarrier(p,d,active){
@@ -1008,7 +1011,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      const push=.55+rand()*.9;
      loose.vx=loose.vx*.16+winner.vx*.12+Math.cos(reachAngle)*push;
      loose.vy=loose.vy*.16+winner.vy*.12+Math.sin(reachAngle)*push;
-     loose.z=ballRadius;loose.vz=.06+rand()*.20;loose.omega+=(rand()-.5)*8;
+     loose.omega+=(rand()-.5)*8;
      loose.bobbles++;loose.wait=fumble?.3+rand()*.3:.22+rand()*.18;loose.last=winner.team;loose.scramble=true;
      log('The ball is still loose under the scramble');
      return null;
@@ -1224,7 +1227,9 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    return true;
  }
  function considerGamble(pass,active,off){
-   if(s.overtime||pass.bounceF||pass.kicker||dist(pass.start,pass.end)<12||noPossession(pass.end))return;
+   if(s.overtime||pass.kicker||!pass.target||noPossession(pass.end))return;
+   const ring=dist(pass.end,center)<=ringRadius;
+   if(!ring&&(pass.bounceF||dist(pass.start,pass.end)<12))return;
    const f=.9,spot=flightAt(pass,pass.duration*f),time=pass.duration*f/ballSpeedMultiplier;
    // Passers with low IQ and Discipline telegraph their throws: more gambles, and earlier reads.
    const thrower=pass.thrower,tell=clamp(1+((70-thrower.ratings[8])+(70-thrower.ratings[7]))/40,.5,2);
@@ -1233,21 +1238,23 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    for(const d of players){
      if(d.team===off||!active(d)||d.blocked>0||d.stumble>0)continue;
      const skill=(d.ratings[8]+d.ratings[6]+d.ratings[3])/3;
-     if(skill<gambleSkill)continue;
+     if(!ring&&skill<gambleSkill)continue;
      // Only tight coverage can gamble: the defender must be close to the intended receiver. Smart, quick
      // defenders read the passer's eyes and break before the release, which adds to the time they have.
      const k=clamp((skill-gambleSkill)/(95-gambleSkill),0,1),read=(.15+.25*k)*tell;
      const gap=dist(d,spot),reachable=topSpeed(d.ratings[3])*gambleBurst*(1-.15*fatigue(d))*(time+read)*.6+.5;
      const reachHeight=d.height/36+.39+d.ratings[4]*.0115;
-     if(!pass.target||dist(d,pass.target)>4.5||gap<1.5||gap>9||gap>reachable||spot.z>reachHeight+.3||legalX(d,spot.x)!==spot.x)continue;
-     if(!best||skill>best.skill)best={d,skill};
+     if(dist(d,pass.target)>(ring?5.5:4.5)||(!ring&&gap<1.5)||gap>9||gap>reachable||
+         spot.z>reachHeight+.3||legalX(d,spot.x)!==spot.x)continue;
+     const readQuality=ring?skill-3*gap:skill;
+     if(!best||readQuality>best.readQuality)best={d,skill,readQuality};
    }
    if(!best)return;
    const k=clamp((best.skill-gambleSkill)/(95-gambleSkill),0,1);
-   if(rand()>=GAMBLE_RATE*(.4+.6*k)*tell)return;
-   pass.gamble={d:best.d,spot,f,success:.30+.20*k,done:false};
+   if(rand()>=(ring?RING_GAMBLE_RATE:GAMBLE_RATE*(.4+.6*k)*tell))return;
+   pass.gamble={d:best.d,spot,f,ring,success:.30+.20*k,done:false};
    s.gambles.attempts++;
-   log(best.d.name+' reads the long pass and jumps the route');
+   log(best.d.name+(ring?' reads the throw to the ring and jumps the route':' reads the long pass and jumps the route'));
  }
  function resolveGamble(f){
    const g=pass.gamble;
@@ -1257,7 +1264,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    if(there&&rand()<g.success){
      s.gambles.wins++;
      if(rand()<clamp(.35+(d.ratings[5]-60)*.01,.2,.6)){intercept(d,true);return true}
-     log(d.name+' gets a hand on the long pass');looseFromPass(d,'bat');return true;
+     log(d.name+(g.ring?' gets a hand on the throw to the ring':' gets a hand on the long pass'));looseFromPass(d,'bat');return true;
    }
    d.stumble=gambleMiss;
    log(d.name+(there?' misses the jump':' cannot get there')+' · caught out of position');
@@ -1816,7 +1823,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  const leavingRing=p.team!==off&&dist(p,center)<=ringRadius;
  if(!leavingRing)p.ringExit=null;
- if(p.team!==off&&!loose){
+ const gambling=pass?.gamble&&!pass.gamble.done&&pass.gamble.d===p;
+ if(p.team!==off&&!loose&&!(gambling&&pass.gamble.ring)){
    if(pass?.target===p&&pass.lookForFive&&pass.duration-pass.elapsed<.58&&!pass.saveExit){
      // Meet a live save on the run, with a destination past the ring.
      pass.saveExit=guardPosition(2*center.x-p.x,2*center.y-p.y,p);
@@ -1831,7 +1839,6 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    tx=exit.x;ty=exit.y;
  }
  tx=legalX(p,tx);
- const gambling=pass?.gamble&&!pass.gamble.done&&pass.gamble.d===p;
  const speed=topSpeed(p.ratings[3])*(gambling?gambleBurst:1);
  const gripping=p===carrier&&lane?.grip;
  const effort=gripping ? .85 : Math.hypot(p.vx,p.vy)/speed;
@@ -1882,7 +1889,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      }
      log('Loose ball out · last-touch ruling');restartAfterPause(awarded,undefined,nearestQuadrant(loose));return
    }
-   const recovery=loose.wait<=0&&!(loose.z>1.45)&&settleLooseBall(active);
+   // A loose-ball pickup happens on the turf, after any pass deflection has finished bouncing.
+   const recovery=loose.wait<=0&&loose.z<=ballRadius&&loose.vz===0&&settleLooseBall(active);
    if(recovery){
      const {player:q,contested}=recovery;
      const {kind,originTeam,responsible}=loose,spot=loose;
@@ -2235,6 +2243,6 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  let lastBall={x:center.x,y:center.y,z:ballRadius};
  s.ballCarrier=()=>carrier;
  s.ball=()=>lastBall=(s.scoringSpot?{...s.scoringSpot,z:.82}:carrier?
-   {...ballAt(carrier),z:1.03,spin:Math.atan2(carrier.vy,carrier.vx)}:(pass||loose))||lastBall;
+   {...ballAt(carrier),z:carriedBallHeight,spin:Math.atan2(carrier.vy,carrier.vx)}:(pass||loose))||lastBall;
  return s;
 }

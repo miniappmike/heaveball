@@ -9,7 +9,7 @@ const fieldTemplates=[
 if(!window.heaveballReady){
 const el=id=>document.getElementById(id),canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),colors=['#ff805d','#69bafa'];
 const tackleDuration=2000,fixedStep=.04,halftimeDuration=15000,scoringDuration=3500,penaltyDuration=3500,stoppageDuration=3500;
-let sim,playing=false,carry=0,wall=performance.now(),speed=1,backgroundTimer=0;
+let sim,playing=false,carry=0,wall=performance.now(),speed=Number(el('pace').value),backgroundTimer=0;
 let statsMode=null,statsPage=0,statsDeadline=0,frozenTime=null,finalStats=null;
 function stamp(s){let n=s.overtime?Math.floor(s.time):Math.ceil(s.time);return (s.overtime?'OT':'H'+s.half)+' · '+Math.floor(n/60)+':'+String(n%60).padStart(2,'0')}
 let tackleBreak=false,boxDirty=true,breakUntil=0,callAge=Infinity,lastFrame=performance.now(),shownHighlights=-1;
