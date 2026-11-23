@@ -128,9 +128,9 @@ canvas{display:block;width:100%;max-width:100%;height:auto;border-radius:14px;ba
 .rail .card{padding:18px 20px}
 .rail h2{font-size:22px}
 #feed{height:260px;overflow:auto;margin-top:12px;padding-right:4px;scrollbar-width:thin}
-#feed p{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px;line-height:1.4}
+#feed p{display:grid;grid-template-columns:max-content minmax(0,1fr);align-items:baseline;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px;line-height:1.4}
 #feed p:first-child{border-top:0}
-#feed time{font:12px/1.4 var(--mono);color:var(--mint);white-space:nowrap}
+#feed time{min-inline-size:10ch;font:12px/1.4 var(--mono);color:var(--mint);white-space:nowrap}
 #control{margin-top:12px;padding:12px;border-radius:var(--r-sm);background:var(--card-2);font:12px/1.6 var(--mono);color:var(--muted)}
 #control:empty{display:none}
 #highlights label{display:block;margin:12px 0 6px;font:600 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -365,11 +365,11 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
    <li><b>Tackled in the runway</b><span class="g-bad">Turnover.</span></li>
    <li><b>Center catch stopped short</b><span>Your team keeps the ball.</span></li>
    <li><b>Incomplete pass</b><span>Still live, unless it lands or rolls out of bounds.</span></li>
-   <li><b>Ball touches dirt</b><span class="g-bad">Out of bounds. Opponent restarts in a quadrant.</span></li>
+   <li><b>Loose ball touches dirt or contact drives the carrier into it</b><span class="g-bad">Turnover. Opponent restarts in the nearest quadrant.</span></li>
    <li><b>3+ seconds unblocked in the ring</b><span class="g-bad">Penalty. Opponent gets a free run lane.</span></li>
   </ul>
   <p class="g-note"><b>Piles</b> last 2 to 25 seconds. Strength, size and teammates push; Tackling and IQ end them. Carriers can pull out, fumble, sneak a handoff or risk a wild pass. Defenders can also strip the ball.</p>
-  <p class="g-note"><b>Free run lane:</b> the lead Anchor screens the help defender to leave the Runner one-on-one. The first defender can grab and wait for help or try a risky lunge. Every penalty (ring time, block in the back, a Runner or Heaver crossing past their own half, or holding the ball on the dirt) awards a free run lane. Scores, penalties and ordinary stoppages freeze play in place for 3.5 seconds so you can read the play log.</p>
+  <p class="g-note"><b>Free run lane:</b> the lead Anchor screens the help defender to leave the Runner one-on-one. The first defender can grab and wait for help or try a risky lunge. Every penalty (ring time, block in the back, a Runner or Heaver crossing past their own half, or carrying the ball onto the dirt on your own) awards a free run lane. Scores, penalties and ordinary stoppages freeze play in place for 3.5 seconds so you can read the play log.</p>
  </section>
 </div>
 <p class="g-links"><a href="summary.md" target="_blank">Build summary</a></p>
@@ -388,7 +388,7 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
    <button type="button" id="expand" class="btn ghost" aria-pressed="false">Full screen</button>
   </div>
   <div class="controls" hidden><button id="toggle" type="button">Pause</button><select id="pace" aria-label="Playback speed"><option value="1" selected>1× speed</option><option value="2">2× speed</option><option value="4">4× speed</option><option value="8">8× speed</option></select></div>
-  <details class="guide"><summary>Field guide</summary><p>Both teams attack the 4-yard ring inside the 10-yard center zone. A tackle short of the ring stops the finish. Watch for Anchors blocking off the ball, slipping toward the ring or drawing a defender away from a cut. Carry in for two or catch in the blue and finish for three. Watch the white ball and its shadow to read the height of a pass or bounce. Gold outlines show blocks and pile drives. On fumbles, only players with a realistic arrival path pursue; nearby markers dive, fall and shove around a grounded ball while distant players preserve team shape. A center catch directly from an airborne kick save earns five. New match draws two fresh squads.</p></details>
+  <details class="guide"><summary>Field guide</summary><p>Both teams attack the 4-yard ring inside the 10-yard center zone. A tackle short of the ring stops the finish. Watch for Anchors blocking off the ball, slipping toward the ring or drawing a defender away from a cut. Carry in for two or catch in the blue and finish for three. Watch the white ball and its shadow to read the height of a pass or bounce. Gold outlines show blocks and pile drives. On fumbles, only players with a realistic arrival path pursue; nearby players contest the ball while the rest reposition to cover space or give the recovering player an outlet. A center catch directly from an airborne kick save earns five. New match draws two fresh squads.</p></details>
   <dialog id="match-stats" aria-labelledby="stats-title">
  <h2 id="stats-title"></h2>
  <div class="score"><span class="red">Ember</span><b id="stats-score"></b><span class="blue">Harbor</span></div>
