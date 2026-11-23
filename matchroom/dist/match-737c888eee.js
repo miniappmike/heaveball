@@ -435,7 +435,7 @@ function match(report){
  }
  function points(p,n,summary){
    const prior=s.score[p.team]-s.score[1-p.team];
-   p.stats.pts+=n;s.score[p.team]+=n;call(n===1?'Takeaway!':'Center!');s.scoreEvents++;s.scoringSpot=ballAt(p);
+   p.stats.pts+=n;s.score[p.team]+=n;call(n===1?'Takeaway!':'Center!',n===1?teams[p.team]+' #'+p.jersey+' '+p.name+' · '+(summary||'Center-zone takeaway')+' · 1 point':null);s.scoreEvents++;s.scoringSpot=ballAt(p);
    if(s.overtime)summary+=' to win in sudden death';
    else if(prior<0&&prior+n===0)summary+=' to tie the game';
    else if(prior<=0&&prior+n>0&&s.score[1-p.team]>0)summary+=' to take the lead';
@@ -847,6 +847,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    return {player:winner,contested:contested||loose.bobbles>0};
  }
  function assign(p,points=2,passYards=null,thrower=null){
+   if(s.tackled&&s.tackled!==p)s.tackled=null;
    scoringPassYards=passYards;scoringThrower=thrower;
    if(carrier&&carrier.team===p.team)previous=carrier;
    if(s.team!==p.team||s.posAge===0){
@@ -918,6 +919,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    log(teams[team]+' sets up · '+plan);
  }
  function restart(team,side,index){
+   s.tackled=null;
    loose=null;s.contact=s.impact=null;s.scramblePursuers=[];pile=null;lane=null;cool=0;
    defensiveAssignments.clear();defenseReadAt=0;
    cornerReturn=anchorLeak=relay=blueTrap=swing=null;

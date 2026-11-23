@@ -124,7 +124,7 @@ function drawPlayer(p){
  else if(p.blocked>0)disc(p.x,p.y,1,"#8a7546","#f5d688");
  disc(p.x,p.y,.76,flagged?'#ff3b3b':colors[p.team],flagged?'#fff':'#12271e');
  ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
- if(sim.tackled===p&&performance.now()<breakUntil){ctx.beginPath();ctx.arc(0,0,.24,0,Math.PI*2);ctx.fillStyle='#000';ctx.fill()}else{ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0)}ctx.restore();
+ if(sim.tackled===p){ctx.beginPath();ctx.arc(0,0,.6,0,Math.PI*2);ctx.strokeStyle='#000';ctx.lineWidth=.16;ctx.stroke()}ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
 }
 // Canvas layout: the canvas matches its on-screen size and the field fills it below a thin score bar.
 // Inline, the canvas height follows its width; in full screen it fills the screen.

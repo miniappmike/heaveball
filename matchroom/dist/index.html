@@ -855,7 +855,7 @@ function match(report){
  }
  function points(p,n,summary){
    const prior=s.score[p.team]-s.score[1-p.team];
-   p.stats.pts+=n;s.score[p.team]+=n;call(n===1?'Takeaway!':'Center!');s.scoreEvents++;s.scoringSpot=ballAt(p);
+   p.stats.pts+=n;s.score[p.team]+=n;call(n===1?'Takeaway!':'Center!',n===1?teams[p.team]+' #'+p.jersey+' '+p.name+' · '+(summary||'Center-zone takeaway')+' · 1 point':null);s.scoreEvents++;s.scoringSpot=ballAt(p);
    if(s.overtime)summary+=' to win in sudden death';
    else if(prior<0&&prior+n===0)summary+=' to tie the game';
    else if(prior<=0&&prior+n>0&&s.score[1-p.team]>0)summary+=' to take the lead';
@@ -1267,6 +1267,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    return {player:winner,contested:contested||loose.bobbles>0};
  }
  function assign(p,points=2,passYards=null,thrower=null){
+   if(s.tackled&&s.tackled!==p)s.tackled=null;
    scoringPassYards=passYards;scoringThrower=thrower;
    if(carrier&&carrier.team===p.team)previous=carrier;
    if(s.team!==p.team||s.posAge===0){
@@ -1338,6 +1339,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    log(teams[team]+' sets up · '+plan);
  }
  function restart(team,side,index){
+   s.tackled=null;
    loose=null;s.contact=s.impact=null;s.scramblePursuers=[];pile=null;lane=null;cool=0;
    defensiveAssignments.clear();defenseReadAt=0;
    cornerReturn=anchorLeak=relay=blueTrap=swing=null;
@@ -2282,7 +2284,7 @@ function drawPlayer(p){
  else if(p.blocked>0)disc(p.x,p.y,1,"#8a7546","#f5d688");
  disc(p.x,p.y,.76,flagged?'#ff3b3b':colors[p.team],flagged?'#fff':'#12271e');
  ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
- if(sim.tackled===p&&performance.now()<breakUntil){ctx.beginPath();ctx.arc(0,0,.24,0,Math.PI*2);ctx.fillStyle='#000';ctx.fill()}else{ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0)}ctx.restore();
+ if(sim.tackled===p){ctx.beginPath();ctx.arc(0,0,.6,0,Math.PI*2);ctx.strokeStyle='#000';ctx.lineWidth=.16;ctx.stroke()}ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
 }
 // Canvas layout: the canvas matches its on-screen size and the field fills it below a thin score bar.
 // Inline, the canvas height follows its width; in full screen it fills the screen.
@@ -2641,7 +2643,7 @@ el('roster').onchange=scout;fresh();requestAnimationFrame(frame);
 window.heaveballReady=true;
 }
 
-})();</script><script src="match-6e3ca21947.js"></script><script src="view-f47883c059.js"></script><script>(()=>{const d=document.getElementById('rules');if(!d)return;
+})();</script><script src="match-737c888eee.js"></script><script src="view-648ef9eb3f.js"></script><script>(()=>{const d=document.getElementById('rules');if(!d)return;
 const toggle=()=>{if(d.open)d.close();else d.showModal()};
 document.querySelectorAll('.rules-open').forEach(b=>b.addEventListener('click',toggle));
 document.getElementById('rules-close').addEventListener('click',()=>d.close());
