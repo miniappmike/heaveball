@@ -114,6 +114,7 @@ main:has(#pregame:not([hidden])) .score{display:none}
 .field-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:4px 6px 0}
 .picker{display:flex;align-items:center;gap:10px;font:600 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .picker select{text-transform:none;letter-spacing:0;font-size:14px;color:var(--text)}
+.coach-line{margin:2px 0 8px;font-size:13px;color:var(--muted)}
 canvas{display:block;width:100%;max-width:100%;height:auto;border-radius:14px;background:#121614}
 .bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .bar .spacer{flex:1}
@@ -368,6 +369,8 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
    <li><b>Loose ball touches dirt or contact drives the carrier into it</b><span class="g-bad">Turnover. Opponent restarts in the nearest quadrant.</span></li>
    <li><b>3+ seconds unblocked in the ring</b><span class="g-bad">Penalty. Opponent gets a free run lane.</span></li>
   </ul>
+  <p class="g-note"><b>Substitutions</b> are live and unlimited, but only for the team with the ball. Each club has 12 players: eight on the field and two substitutes on each of its benches. Heavers and Runners come on from the bench on their own half, and Anchors from either bench. The tired player walks off to the end line by the bench, and the carrier usually waits for the substitute to get set. There are no substitutions in sudden death.</p>
+  <p class="g-note"><b>Coaches</b> review the game every five minutes and at halftime. A coach whose defense is leaking points switches to a counter scheme; one whose offense has stalled changes the playbook from the next restart. Each coach's adaptability rating decides how quickly they notice and how often they pick the right answer. Every offense goes to hurry-up in the last 1:30 of the first half, as does a team trailing by five or more in the last five minutes of the game.</p>
   <p class="g-note"><b>Piles</b> last 2 to 25 seconds. Strength, size and teammates push; Tackling and IQ end them. Carriers can pull out, fumble, sneak a handoff or risk a wild pass. Defenders can also strip the ball.</p>
   <p class="g-note"><b>Free run lane:</b> the lead Anchor screens the help defender to leave the Runner one-on-one. The first defender can grab and wait for help or try a risky lunge. Every penalty (ring time, block in the back, a Runner or Heaver crossing past their own half, or carrying the ball onto the dirt on your own) awards a free run lane. Scores, penalties and ordinary stoppages freeze play in place for 3.5 seconds so you can read the play log.</p>
  </section>

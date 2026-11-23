@@ -21,7 +21,7 @@ function report(s,msg){
  row.append(time,message);
  let end=0;
  for(const match of msg.matchAll(playerNamePattern)){
-   const player=s.players.find(p=>p.name===match[0]);
+   const player=s.players.concat(s.bench).find(p=>p.name===match[0]);
    if(!player)continue;
    const name=document.createElement('span');
    name.style.color=colors[player.team];name.textContent=player.name;
@@ -32,8 +32,19 @@ function report(s,msg){
  el('feed').prepend(row);
  if(el('feed').children.length>80)el('feed').lastChild.remove();
 }
-function scout(){let p=sim.players[+el('roster').value],h=Math.round(p.height);el('build').textContent=p.role+' · '+Math.floor(h/12)+'′'+h%12+'″ · '+Math.round(p.weight)+' lb';el('cards').replaceChildren(...traits.map((name,i)=>{let line=document.createElement('span'),num=document.createElement('b');num.textContent=p.ratings[i];line.append(name,num);return line}))}
-function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;callAge=Infinity;boxDirty=true;el('feed').replaceChildren();sim=match(report);playing=false;carry=0;el('roster').replaceChildren(...sim.players.map((p,i)=>new Option(teams[p.team]+' #'+p.jersey+' · '+p.name,i)));scout();briefing()}
+function scout(){let p=roster()[+el('roster').value],h=Math.round(p.height);el('build').textContent=p.role+' · '+Math.floor(h/12)+'′'+h%12+'″ · '+Math.round(p.weight)+' lb';el('cards').replaceChildren(...traits.map((name,i)=>{let line=document.createElement('span'),num=document.createElement('b');num.textContent=p.ratings[i];line.append(name,num);return line}))}
+const roster=()=>sim.players.concat(sim.bench);
+// Substitutions move players between field slots and bench seats, so the list is rebuilt after each one.
+let shownSubs=0;
+function rosterOptions(){
+ const chosen=roster()[+el('roster').value]?.name;
+ shownSubs=sim.subEvents;
+ const list=roster();
+ el('roster').replaceChildren(...list.map((p,i)=>new Option(teams[p.team]+' #'+p.jersey+' · '+p.name+(p.bench?' · bench':''),i)));
+ const keep=list.findIndex(p=>p.name===chosen);if(keep>=0)el('roster').value=keep;
+ scout();
+}
+function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;callAge=Infinity;boxDirty=true;el('feed').replaceChildren();sim=match(report);playing=false;carry=0;rosterOptions();briefing()}
 function briefing(){
  const average=values=>values.reduce((sum,v)=>sum+v,0)/values.length;
  const squads=teams.map((_,i)=>sim.players.filter(p=>p.team===i));
@@ -44,15 +55,16 @@ function briefing(){
      '<span class="sr-only">'+teams[team]+' </span>'+row[trait].toFixed(1)+'</span>').join('')+'</dd></dl></li>').join('');
  el('ember-overall').textContent=overall[0].toFixed(1);
  el('harbor-overall').textContent=overall[1].toFixed(1);
- // Spread model fitted on 1,000 simulated full matches (see summary.md, "Spread forecast").
+ // Spread model refitted on 339 simulated full matches after the fatigue, defensive-pressure and Carrier pressure changes (see summary.md, "Spread forecast").
  // Expected team points = base + own trait averages + opponent trait averages + own playbook + opponent defense + own defense tempo.
  const forecast=()=>{
-   const W={base:25.9,
-     own:[-.046,.228,.095,-.076,.058,.072,-.03,-.015,.02,.053,.202,0],
-     opp:[.064,-.056,-.061,.059,-.067,-.053,-.087,-.023,.005,.027,-.102,-.106],
-     playbook:[0,1.855,-.893,3.781,3.174],
-     oppDefense:[0,1.126,-1.111,.274,3.585,2.536,-1.364,.037],
-     ownDefense:[0,.59,.648,-.521,.209,4.156,-.023,.032],sd:11.2};
+   // Base raised 0.6 from the fit to account for the first-half hurry-up and coach adjustments (about +1.3 combined).
+   const W={base:29.9,
+     own:[.065,.165,-.024,-.03,.114,.072,-.038,-.068,.091,-.042,.187,.047],
+     opp:[-.002,-.057,-.096,.069,-.176,-.044,-.004,.031,-.057,-.11,-.183,-.09],
+     playbook:[0,1.39,4.85,-2.13,-.398],
+     oppDefense:[0,-.521,1.31,2.58,2.61,2.72,-3.46,.007],
+     ownDefense:[0,-.613,.531,2.69,-.928,5.2,-2.43,-.676],sd:11.8};
    const points=[0,1].map(t=>{const o=1-t;let v=W.base+W.playbook[playbooks.indexOf(sim.playbooks[t])]+W.oppDefense[sim.defenses[o]]+W.ownDefense[sim.defenses[t]];
      for(let j=0;j<12;j++)v+=W.own[j]*(ratings[t][j]-70)+W.opp[j]*(ratings[o][j]-70);return Math.max(0,v)});
    const edge=points[0]-points[1],margin=Math.round(Math.abs(edge)*2)/2;
@@ -67,7 +79,11 @@ function briefing(){
    fieldset.className='tactic-team';
    legend.className=team?'blue':'red';
    legend.textContent=name;
-   fieldset.append(legend);
+   const coach=document.createElement('p'),c=sim.coaches[team];
+   coach.className='coach-line';
+   coach.textContent='Head coach '+c.name+' · Adaptability '+c.adaptability;
+   coach.title='Adaptability sets how quickly the coach notices a losing matchup during the game and how often they pick the right counter.';
+   fieldset.append(legend,coach);
    for(const type of ['offense','defense']){
      const defending=type==='defense',choices=defending?defenses:playbooks;
      const label=document.createElement('label'),select=document.createElement('select'),description=document.createElement('small');
@@ -156,16 +172,17 @@ function drawPlayer(p){
  ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
  if(sim.tackled===p){ctx.beginPath();ctx.arc(0,0,.6,0,Math.PI*2);ctx.strokeStyle='#000';ctx.lineWidth=.16;ctx.stroke()}ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
 }
-// Canvas layout: the canvas matches its on-screen size and the field fills it below a thin score bar.
+// Canvas layout: the canvas matches its on-screen size and the venue (field, benches, coach boxes) fills it below a thin score bar.
 // Inline, the canvas height follows its width; in full screen it fills the screen.
 function layoutView(){
  const expanded=el('field').classList.contains('expanded'),dpr=Math.min(2,window.devicePixelRatio||1),barCss=38;
- if(!expanded){const h=Math.round(canvas.clientWidth*36/52.5)+barCss+'px';if(canvas.style.height!==h)canvas.style.height=h}
+ const v=venue.view;
+ if(!expanded){const h=Math.round(canvas.clientWidth*v.height/v.width)+barCss+'px';if(canvas.style.height!==h)canvas.style.height=h}
  else if(canvas.style.height)canvas.style.height='';
  const W=Math.max(1,Math.round(canvas.clientWidth*dpr)),H=Math.max(1,Math.round(canvas.clientHeight*dpr));
  if(canvas.width!==W||canvas.height!==H){canvas.width=W;canvas.height=H}
- const bar=Math.round(barCss*dpr),s=Math.min(W/52.5,(H-bar)/36);
- return {s,ox:(W-50*s)/2,oy:bar+(H-bar-36*s)/2+s,dpr,bar};
+ const bar=Math.round(barCss*dpr),s=Math.min(W/v.width,(H-bar)/v.height);
+ return {s,ox:(W-v.width*s)/2-v.x*s,oy:bar+(H-bar-v.height*s)/2-v.y*s,dpr,bar};
 }
 // Score bar: a flat broadcast strip in the Matchroom style (dark card, Bebas Neue, shield crests, mint accent).
 const barFont='"Bebas Neue","Oswald","Arial Narrow",Impact,sans-serif';
@@ -275,6 +292,64 @@ function drawCallout(){
  }
  ctx.restore();
 }
+// Surround outside the field: natural park grass or all-weather turf, matching the field's surface.
+// The tileable textures come from tools/generate_surrounds.py; each tile covers 12 yards.
+const surroundTiles={},surroundTextures={},surroundFallback={park:'#5f8a3c',turf:'#457c4d'};
+function surroundPattern(surface){
+ if(!surroundTextures[surface]){
+   const image=surroundTextures[surface]=new Image();
+   image.src=(typeof surroundImages!=='undefined'&&surroundImages[surface])||'surrounds/'+surface+'.webp';
+ }
+ const image=surroundTextures[surface];
+ if(!surroundTiles[surface]&&image.complete&&image.naturalWidth){
+   const p=surroundTiles[surface]=ctx.createPattern(image,'repeat');
+   p.setTransform?.(new DOMMatrix().scaleSelf(12/image.naturalWidth));
+ }
+ return surroundTiles[surface]||surroundFallback[surface];
+}
+function drawSurround(surface){
+ const v=venue.view,p=surroundPattern(surface);
+ ctx.save();
+ ctx.fillStyle=p;ctx.fillRect(v.x,v.y,v.width,v.height);
+ ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(-.25,-.25,venue.field.width+.5,venue.field.height+.5);
+ ctx.restore();
+}
+function drawSeated(p){
+ disc(p.x,p.y,.76,colors[p.team],'#12271e');
+ ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+ ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
+}
+// Benches sit behind each end line, one per team on each half. Coach boxes are white outlines beside a team bench.
+function drawSideline(){
+ const {length,depth}=venue.bench;
+ ctx.save();
+ for(const b of venue.benches){
+   const x=b.x-depth/2+b.side*.25,y=b.y-length/2;
+   ctx.fillStyle='rgba(0,0,0,.25)';ctx.fillRect(x+.18,y+.22,depth,length);
+   ctx.fillStyle='#9b6a3c';ctx.fillRect(x,y,depth,length);
+   ctx.fillStyle='#7a5130';for(let i=1;i<3;i++)ctx.fillRect(x+i*depth/3-.04,y,.08,length);
+   ctx.fillStyle='#555d63';ctx.fillRect(x-.08,y-.12,depth+.16,.18);ctx.fillRect(x-.08,y+length-.06,depth+.16,.18);
+ }
+ for(const p of sim.bench)drawSeated(p);
+ const size=venue.coachBox.size;
+ for(const c of venue.coachBoxes){
+   ctx.strokeStyle='rgba(255,255,255,.92)';ctx.lineWidth=.16;ctx.strokeRect(c.x-size/2,c.y-size/2,size,size);
+   disc(c.x,c.y,.7,colors[c.team],'#12271e');
+   ctx.font='bold .62px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#101c16';ctx.fillText('HC',c.x,c.y+.02);
+ }
+ ctx.restore();
+}
+// The referee: a black-and-white striped disc that works the dirt strip.
+function drawReferee(){
+ const r=sim.referee,rad=venue.referee.radius*1.4;
+ ctx.save();
+ ctx.beginPath();ctx.arc(r.x+.12,r.y+.16,rad,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,.28)';ctx.fill();
+ ctx.beginPath();ctx.arc(r.x,r.y,rad,0,Math.PI*2);ctx.clip();
+ ctx.fillStyle='#f4f4f0';ctx.fillRect(r.x-rad,r.y-rad,2*rad,2*rad);
+ ctx.fillStyle='#151515';for(let i=-3;i<=3;i+=2)ctx.fillRect(r.x+i*rad/4,r.y-rad,rad/4,2*rad);
+ ctx.restore();
+ ctx.beginPath();ctx.arc(r.x,r.y,rad,0,Math.PI*2);ctx.strokeStyle=r.dodging?'#ffd23f':'#111';ctx.lineWidth=r.dodging?.16:.1;ctx.stroke();
+}
 // Field markings are vector paths so they stay sharp at any canvas size.
 function drawFieldLines(){
  ctx.save();ctx.strokeStyle=ctx.fillStyle='rgba(247,249,245,.95)';ctx.lineCap='butt';
@@ -289,6 +364,7 @@ function drawFieldLines(){
  ctx.restore();
 }
 function draw(){const t=selectedField,view=layoutView();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=el('field').classList.contains('mobile-expanded')?'#000':'#121614';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.setTransform(view.s,0,0,view.s,view.ox,view.oy);
+drawSurround(t.surface);drawSideline();
 const image=fieldImage(t);if(image.complete&&image.naturalWidth){ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(image,0,0,50,34)}else{rect(0,0,50,34,t.grass)}
 drawFieldLines();
 ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
@@ -298,11 +374,12 @@ ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace'
    disc(x,y,1.75-time,'#bf7f4a','#ffe0a0');
    ctx.globalAlpha=1;
  }
+ drawReferee();
  if(sim.contact){let {p,d}=sim.contact;disc((p.x+d.x)/2,(p.y+d.y)/2,1.6,"#a58038","#ffe27d")}
  const showStamina=el('pregame').hidden&&!sim.done&&statsMode!=='half';
  const ballCarrier=showStamina?sim.ballCarrier():null;
  for(const p of sim.players)if(!p.sidelined){
-   drawPlayer(p);
+   ctx.globalAlpha=p.subbing?.6:1;drawPlayer(p);ctx.globalAlpha=1;
    if(showStamina)drawStamina(p,ballCarrier);
  }
  const ball=sim.ball();if(ball)drawBall(ball);
@@ -317,7 +394,7 @@ const statLabels=['Points','Pass attempts','Completions','Receptions','Throwing 
 const positions={Heaver:'H',Runner:'R',Anchor:'A'};
 const cells=values=>values.map(n=>'<td>'+n+'</td>').join('');
 function snapshot(){
- const rows=teams.map((_,team)=>sim.players.filter(p=>p.team===team).map(p=>({...p,stats:{...p.stats}})));
+ const rows=teams.map((_,team)=>roster().filter(p=>p.team===team).map(p=>({...p,stats:{...p.stats}})));
  const totals=rows.map(roster=>Object.fromEntries(statKeys.map(k=>[k,roster.reduce((sum,p)=>sum+p.stats[k],0)])));
  const possession=sim.possession.reduce((a,b)=>a+b,0);
  const share=sim.possession.map(n=>possession?Math.round(n/possession*100)+'%':'—');
@@ -485,9 +562,10 @@ function frame(){
    try{
      advance(now);
      // While nothing on the field can change (paused, halftime screen, idle pregame), skip the redraw to save battery.
-     const image=fieldImage(selectedField),key=[sim.players.reduce((a,p)=>a+p.x*3.1+p.y,0).toFixed(3),playing,statsMode,frozenTime,sim.time,sim.posAge,sim.done,sim.half,sim.callEvents,selectedField.id,image.complete,
+     const image=fieldImage(selectedField),key=[sim.players.reduce((a,p)=>a+p.x*3.1+p.y,0).toFixed(3),playing,statsMode,frozenTime,sim.time,sim.posAge,sim.done,sim.half,sim.callEvents,selectedField.id,image.complete,typeof surroundPattern(selectedField.surface),
        canvas.clientWidth,canvas.clientHeight,window.devicePixelRatio,el('field').className,el('pregame').hidden].join('|');
      if(playing||key!==lastDrawKey){draw();lastDrawKey=key}
+     if(sim.subEvents!==shownSubs){rosterOptions();boxDirty=true}
      renderBox();renderHighlights();
    }catch(e){console.error(e)}
    if(now<breakUntil&&!sim.done)el('clock').textContent=stamp(sim)+(sim.penaltyPending?' · Penalty · free run lane pending':sim.stoppagePending?' · Stoppage':tackleBreak?' · Tackle':' · Scoring break');
