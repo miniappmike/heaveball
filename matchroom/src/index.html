@@ -207,7 +207,7 @@ canvas{display:block;width:100%;max-width:100%;height:auto;border-radius:14px;ba
  canvas{border-radius:10px}
  .bar{display:grid;grid-template-columns:auto 1fr;gap:8px}
  .bar .speeds{justify-content:space-between}
- .speeds button{min-width:0;flex:1}
+ .speeds button{min-width:0;flex:1;padding-inline:6px}
  .bar .spacer{display:none}
  .bar #final-box,.bar #fresh,.bar #expand{grid-column:span 1}
  .bar #final-box:not([hidden])~#fresh{grid-column:auto}
@@ -384,13 +384,13 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
   <canvas width="1100" height="900" aria-label="Top-down field with numbered players and a score bar above the field"></canvas>
   <div class="bar" role="toolbar" aria-label="Playback controls">
    <button type="button" id="bar-toggle" class="btn primary">Pause</button>
-   <div id="speeds" class="speeds" role="group" aria-label="Playback speed"><button type="button" data-speed="1">1×</button><button type="button" data-speed="2">2×</button><button type="button" data-speed="4">4×</button><button type="button" data-speed="8">8×</button></div>
+   <div id="speeds" class="speeds" role="group" aria-label="Playback speed"><button type="button" data-speed="1">1×</button><button type="button" data-speed="1.5">1.5×</button><button type="button" data-speed="2">2×</button><button type="button" data-speed="4">4×</button><button type="button" data-speed="8">8×</button></div>
    <span class="spacer" aria-hidden="true"></span>
    <button id="final-box" type="button" class="btn ghost" hidden>Final box score</button>
    <button type="button" class="btn ghost rules-open" id="rules-open-field" aria-haspopup="dialog" aria-controls="rules">Rules</button><button id="fresh" type="button" class="btn ghost">New match</button>
    <button type="button" id="expand" class="btn ghost" aria-pressed="false">Full screen</button>
   </div>
-  <div class="controls" hidden><button id="toggle" type="button">Pause</button><select id="pace" aria-label="Playback speed"><option value="1" selected>1× speed</option><option value="2">2× speed</option><option value="4">4× speed</option><option value="8">8× speed</option></select></div>
+  <div class="controls" hidden><button id="toggle" type="button">Pause</button><select id="pace" aria-label="Playback speed"><option value="1" selected>1× speed</option><option value="1.5">1.5× speed</option><option value="2">2× speed</option><option value="4">4× speed</option><option value="8">8× speed</option></select></div>
   <details class="guide"><summary>Field guide</summary><p>Both teams attack the 4-yard ring inside the 10-yard center zone. A tackle short of the ring stops the finish. Watch for Anchors blocking off the ball, slipping toward the ring or drawing a defender away from a cut. Carry in for two or catch in the blue and finish for three. Watch the white ball and its shadow to read the height of a pass or bounce. Gold outlines show blocks and pile drives. On fumbles, only players with a realistic arrival path pursue; nearby players contest the ball while the rest reposition to cover space or give the recovering player an outlet. A center catch directly from an airborne kick save earns five. New match draws two fresh squads.</p></details>
   <dialog id="match-stats" aria-labelledby="stats-title">
  <h2 id="stats-title"></h2>
@@ -414,7 +414,7 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
  <select id="highlight-filter"><option value="all">All highlights</option><option value="scoring">Scoring plays</option></select>
  <p id="highlight-empty">No highlights yet.</p><ul id="highlight-list"></ul>
 </details></section>
-  <section class="card"><details id="box"><summary>Live box score</summary><div class="box-scroll"><table id="statlines"></table></div><p id="posavg"></p><details><summary>Stat legend</summary><p>POS position · H Heaver · R Runner · A Anchor</p><p>PTS points · ATT hand passes attempted · CMP passes completed · REC catches of teammate passes · TC Throwing Centers (passes caught in the ring for three points) · INT interceptions · TKL completed tackles · FUM fumbles on contact · TO turnovers charged · PEN penalties committed · PBU passes broken up · DRP hand-pass drops · HIT big hits. Average possession uses game-clock time and counts completed possessions.</p></details></details></section>
+  <section class="card"><details id="box"><summary>Live box score</summary><div class="box-scroll"><table id="statlines"></table></div><p id="posavg"></p><details><summary>Stat legend</summary><p>POS position · H Heaver · R Runner · A Anchor</p><p>MIN on-field game-clock time (m:ss). Team totals add player time before rounding down.</p><p>PTS points · ATT hand passes attempted · CMP passes completed · REC catches of teammate passes · TC Throwing Centers (passes caught in the ring for three points) · INT interceptions · TKL completed tackles · FUM fumbles on contact · TO turnovers charged · PEN penalties committed · PBU passes broken up · DRP hand-pass drops · HIT big hits. Average possession uses game-clock time and counts completed possessions.</p></details></details></section>
   <section class="card scout" aria-labelledby="scout-heading"><h2 id="scout-heading">Player scouting</h2><select id="roster" aria-label="Inspect player"></select><p id="build"></p><div id="cards"></div></section>
  </aside>
 </div>

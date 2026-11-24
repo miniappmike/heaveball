@@ -8,11 +8,11 @@ const fieldTemplates=[
 
 if(!window.heaveballReady){
 const el=id=>document.getElementById(id),canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),colors=['#ff805d','#69bafa'];
-const tackleDuration=2000,fixedStep=.04,halftimeDuration=15000,scoringDuration=3500,penaltyDuration=3500,stoppageDuration=3500;
+const tackleDuration=2000,fixedStep=.04,halftimeDuration=15000,callDuration=3500,scoringDuration=3500,penaltyDuration=3500,stoppageDuration=3500;
 let sim,playing=false,carry=0,wall=performance.now(),speed=1,backgroundTimer=0;
 let statsMode=null,statsPage=0,statsDeadline=0,frozenTime=null,finalStats=null;
 function stamp(s){let n=s.overtime?Math.floor(s.time):Math.ceil(s.time);return (s.overtime?'OT':'H'+s.half)+' · '+Math.floor(n/60)+':'+String(n%60).padStart(2,'0')}
-let tackleBreak=false,boxDirty=true,breakUntil=0,callAge=Infinity,lastFrame=performance.now(),shownHighlights=-1;
+let tackleBreak=false,boxDirty=true,breakUntil=0,callAt=-Infinity,shownHighlights=-1;
 const playerNamePattern=new RegExp('\\b('+names.join('|')+')\\b','g');
 function report(s,msg){
  boxDirty=true;
@@ -44,7 +44,7 @@ function rosterOptions(){
  const keep=list.findIndex(p=>p.name===chosen);if(keep>=0)el('roster').value=keep;
  scout();
 }
-function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;callAge=Infinity;boxDirty=true;el('feed').replaceChildren();sim=match(report);playing=false;carry=0;rosterOptions();briefing()}
+function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;callAt=-Infinity;boxDirty=true;el('feed').replaceChildren();sim=match(report);playing=false;carry=0;rosterOptions();briefing()}
 function briefing(){
  const average=values=>values.reduce((sum,v)=>sum+v,0)/values.length;
  const squads=teams.map((_,i)=>sim.players.filter(p=>p.team===i));
@@ -227,10 +227,12 @@ function drawThinBar(v){
  }
  // Left: possession or ruling.
  if(!narrow){
-   const status=sim.penaltyPending?'FREE RUN LANE':sim.done?'FINAL':teams[poss].toUpperCase()+' BALL';
+   const strategy=sim.conservative?' · RUN CLOCK':sim.urgent?' · HURRY-UP':'';
+   const status=sim.penaltyPending?'FREE RUN LANE':sim.done?'FINAL':teams[poss].toUpperCase()+' BALL'+strategy;
+   const maxWidth=lpc-bw/2-7-abbrW-gap-crestW-pad-20;
    if(!sim.done&&!sim.penaltyPending){ctx.beginPath();ctx.arc(pad+4,cy-1,4,0,Math.PI*2);ctx.fillStyle=teamInk[poss];ctx.fill()}
    ctx.font=label+'px '+barFont;ctx.textAlign='left';ctx.fillStyle=sim.penaltyPending?'#ffd47d':ink;
-   ctx.fillText(status,pad+(sim.done||sim.penaltyPending?0:14),cy);
+   ctx.fillText(status,pad+(sim.done||sim.penaltyPending?0:14),cy,Math.max(80,maxWidth));
  }
  // Right: clock, period and the possession clock pill.
  let r=w-pad;
@@ -249,7 +251,8 @@ function drawThinBar(v){
 }
 // Shockwave call popup: white rings burst from the center ring, then the call pill pops in and pulses.
 function drawCallout(){
- if(!sim.call||callAge>=3500)return;
+ const callAge=(playing?performance.now():wall)-callAt;
+ if(!sim.call||callAge>=callDuration)return;
  const boundaryTone=['#eef2f0','#1a201d','238,242,240'];
  const tones={Turnover:['#ff4d4d','#fff','255,77,77'],Penalty:['#ffd23f','#2a2100','255,210,63'],'Center!':['#2f8cff','#fff','47,140,255'],'Takeaway!':['#ffa31a','#2a1600','255,163,26'],'Ball Out of Bounds':boundaryTone,'No Possession Zone':boundaryTone},[bg,fg,glow]=tones[sim.call];
  const t=callAge/1000,cx=25,cy=16.2;
@@ -334,8 +337,11 @@ function drawSideline(){
  const size=venue.coachBox.size;
  for(const c of venue.coachBoxes){
    ctx.strokeStyle='rgba(255,255,255,.92)';ctx.lineWidth=.16;ctx.strokeRect(c.x-size/2,c.y-size/2,size,size);
-   disc(c.x,c.y,.7,colors[c.team],'#12271e');
-   ctx.font='bold .62px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#101c16';ctx.fillText('HC',c.x,c.y+.02);
+   const age=sim.gameClock()-sim.coaches[c.team].lastChange;
+   const step=.36*Math.min(clamp(age/.35,0,1),clamp((2.1-age)/.55,0,1));
+   const x=c.x+Math.sign(center.x-c.x)*step,y=c.y+Math.sign(center.y-c.y)*step;
+   disc(x,y,.7,colors[c.team],'#12271e');
+   ctx.font='bold .62px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#101c16';ctx.fillText('HC',x,y+.02);
  }
  ctx.restore();
 }
@@ -386,10 +392,10 @@ ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace'
  drawCallout();
  drawThinBar(view);
  const share=(values)=>{let total=values[0]+values[1];return total?Math.round(100*values[0]/total)+'% / '+Math.round(100*values[1]/total)+'%':'—'};
- el('control').textContent='Current possession '+Math.floor(sim.posAge/60)+':'+String(Math.floor(sim.posAge)%60).padStart(2,'0')+' · Ember / Harbor · Possession '+share(sim.possession)+' · Runway ball control '+share(sim.runway);
+ el('control').textContent='Current possession '+Math.floor(sim.posAge/60)+':'+String(Math.floor(sim.posAge)%60).padStart(2,'0')+' · Ember / Harbor · Possession '+share(sim.possession);
  el('points').textContent=sim.score.join(' – ');el('clock').textContent=sim.done?'FULL TIME':statsMode==='half'?'HALFTIME':stamp(sim)+' · '+teams[sim.team]+(sim.urgent?' · Hurry-up':sim.conservative?' · Protecting lead':'')+(sim.press?' · '+teams[1-sim.team]+' pressing':'');el('toggle').textContent=sim.done?'Full time':playing?'Pause':'Resume';el('toggle').disabled=sim.done||!el('pregame').hidden;el('bar-toggle').textContent=el('toggle').textContent;el('bar-toggle').disabled=el('toggle').disabled}
-const statKeys=['pts','att','cmp','rec','tc','int','tkl','fum','to','pen','pbu','drp','hit'];
-const statLabels=['Points','Pass attempts','Completions','Receptions','Throwing Centers','Interceptions',
+const statKeys=['min','pts','att','cmp','rec','tc','int','tkl','fum','to','pen','pbu','drp','hit'];
+const statLabels=['Minutes played','Points','Pass attempts','Completions','Receptions','Throwing Centers','Interceptions',
   'Tackles','Fumbles','Turnovers','Penalties','Passes broken up','Drops','Big hits'];
 const positions={Heaver:'H',Runner:'R',Anchor:'A'};
 const cells=values=>values.map(n=>'<td>'+n+'</td>').join('');
@@ -401,13 +407,18 @@ function snapshot(){
  const average=sim.stints.map(a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length)+'s':'—');
  return {rows,totals,share,average,score:sim.score.slice()};
 }
+function playerStat(key,value){
+ if(key!=='min')return value;
+ const seconds=Math.floor(value+1e-6);
+ return Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
+}
 function playerTable(data){
  return '<thead><tr><th scope="col">Player</th><th scope="col" class="position"><abbr title="Position">POS</abbr></th>'+
    statKeys.map((k,i)=>'<th scope="col"><abbr title="'+statLabels[i]+'">'+k.toUpperCase()+'</abbr></th>').join('')+'</tr></thead>'+
-   teams.map((name,i)=>'<tbody><tr><th scope="row" colspan="2">'+name+'</th>'+cells(statKeys.map(k=>data.totals[i][k]))+'</tr>'+
+   teams.map((name,i)=>'<tbody><tr><th scope="row" colspan="2">'+name+'</th>'+cells(statKeys.map(k=>playerStat(k,data.totals[i][k])))+'</tr>'+
      data.rows[i].map(p=>'<tr><th scope="row">#'+p.jersey+' <span style="color:'+colors[p.team]+'">'+p.name+'</span></th>'+
        '<td class="position"><abbr title="'+p.role+'" aria-label="'+p.role+'">'+positions[p.role]+'</abbr></td>'+
-       cells(statKeys.map(k=>p.stats[k]))+'</tr>').join('')+'</tbody>').join('');
+       cells(statKeys.map(k=>playerStat(k,p.stats[k])))+'</tr>').join('')+'</tbody>').join('');
 }
 function renderHighlights(){
  if(!el('highlights').open||shownHighlights===sim.highlights.length)return;
@@ -513,7 +524,7 @@ el('stats-freeze').onclick=()=>{
 el('final-box').onclick=()=>showStats('final',finalStats,performance.now());
 
 function advance(now){
- if(!playing||sim.done){wall=now;return}
+ if(!playing||sim.done)return;
  // Keep real time in reserve when the browser throttles or suspends the tab.
  let steps=2400;
  while(wall<now&&steps>0&&!sim.done){
@@ -529,8 +540,11 @@ function advance(now){
    }
    wall+=stepTime;carry=0;steps--;
    const tackles=sim.tackleEvents,calls=sim.callEvents,scores=sim.scoreEvents,penalties=sim.penaltyEvents,stoppages=sim.stoppageEvents,priorHalftime=sim.halftime;
+   const second=Math.ceil(sim.time);
    tackleBreak=false;sim.step(fixedStep);
-   if(sim.callEvents!==calls)callAge=0;
+   if(Math.ceil(sim.time)!==second)boxDirty=true;
+   const newCall=sim.callEvents!==calls;
+   if(newCall)callAt=wall;
    if(sim.done){
      finalStats=snapshot();
      el('final-box').hidden=false;
@@ -538,6 +552,7 @@ function advance(now){
    }else if(sim.halftime&&!priorHalftime)showStats('half',snapshot(),wall);
    else if(sim.penaltyEvents!==penalties)breakUntil=wall+penaltyDuration;
    else if(sim.scoreEvents!==scores)breakUntil=wall+scoringDuration;
+   else if(newCall&&sim.call==='Turnover')breakUntil=callAt+callDuration;
    else if(sim.stoppageEvents!==stoppages)breakUntil=wall+stoppageDuration;
    else if(sim.tackleEvents!==tackles){breakUntil=wall+tackleDuration;tackleBreak=true}
  }
@@ -556,8 +571,6 @@ let lastDrawKey='';
 function frame(){
  if(!document.hidden){
    const now=performance.now();
-   // The popup clock only runs during playback, so a paused game keeps the call on screen.
-   if(playing&&statsMode!=='half')callAge+=now-lastFrame;lastFrame=now;
    // A drawing error must never stop the animation loop, or the field freezes while the log keeps going.
    try{
      advance(now);
@@ -568,7 +581,8 @@ function frame(){
      if(sim.subEvents!==shownSubs){rosterOptions();boxDirty=true}
      renderBox();renderHighlights();
    }catch(e){console.error(e)}
-   if(now<breakUntil&&!sim.done)el('clock').textContent=stamp(sim)+(sim.penaltyPending?' · Penalty · free run lane pending':sim.stoppagePending?' · Stoppage':tackleBreak?' · Tackle':' · Scoring break');
+   const displayTime=playing?now:wall;
+   if(displayTime<breakUntil&&!sim.done)el('clock').textContent=stamp(sim)+(sim.penaltyPending?' · Penalty · free run lane pending':sim.call==='Turnover'&&displayTime-callAt<callDuration?' · Turnover':sim.stoppagePending?' · Stoppage':tackleBreak?' · Tackle':' · Scoring break');
  }
  requestAnimationFrame(frame);
 }
@@ -621,7 +635,12 @@ document.addEventListener('keydown',e=>{
 });
 el('toggle').onclick=()=>{
  const now=performance.now();
- advance(now);
+ if(playing)advance(now);
+ else{
+   const pausedFor=now-wall;
+   callAt+=pausedFor;
+   breakUntil+=pausedFor;
+ }
  playing=!playing;wall=now;
  scheduleBackground();
 };el('fresh').onclick=()=>{
