@@ -69,7 +69,7 @@ const GAMBLE_RATE=.5,gambleSkill=68,gambleMiss=1.6,gambleBurst=1.1;
 const FUMBLE_SCRAMBLE=.14;
 // Smothering: a taller, faster defender pressing the passer widens the throw's scatter, adds a chance
 // of an errant throw, and may tip the ball at release. Each value applies at full smother level.
-const SMOTHER_ERROR=.6,SMOTHER_WIDE=.04,SMOTHER_TIP=.2;
+const SMOTHER_ERROR=.6,SMOTHER_MISS=.04,SMOTHER_TIP=.2;
 // Throwing out of a crowd: each defender within 2.5 yards of the passer beyond the first adds this
 // chance that one of them tips the ball at release (lobs and line drives; capped at 35%).
 const RELEASE_TRAFFIC=.08;
@@ -2246,16 +2246,15 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  if(circulating&&Math.abs(target.y-17)>5){
    end.y=target.y<17?Math.min(10.5,end.y):Math.max(23.5,end.y);
  }
- if(passType==='overthrow'){
+ const strategyRisk=s.playbooks[off].risk*(defenses[s.defenses[off]].ownRisk||1);
+ const missChance=(110-p.ratings[1])*(protect(off)?.000055:.00048)*strategyRisk+
+   SMOTHER_MISS*(smother?.level||0);
+ // A bad release can carry past the receiver along the throwing lane.
+ const overthrown=passType==='overthrow'||(passType==='lob'||passType==='line')&&rand()<missChance;
+ if(overthrown){
    const gap=dist(p,target)||1,extra=1.25+accuracyGap*.045+rand()*1.2;
    end.x+=((target.x-p.x)/gap)*extra;
    end.y+=((target.y-p.y)/gap)*extra;
- }
- const strategyRisk=s.playbooks[off].risk*(defenses[s.defenses[off]].ownRisk||1);
- // An accuracy miss can sail wide, with no extra hang time for a pursuer.
- if(rand()<(110-p.ratings[1])*(protect(off)?.000055:.00048)*strategyRisk+SMOTHER_WIDE*(smother?.level||0)){
-   end={x:clamp(end.x,.8,49.2),y:target.y<17?-1:35};
-   if(passType!=='line'&&passType!=='overthrow')passType='lob';
  }
  const wide=end.x<0||end.x>50||end.y<0||end.y>34;
  const start={x:p.x,y:p.y};
@@ -2266,10 +2265,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    laneRoll:rand(),start,end,target:wide?null:target,elapsed:0,...profile};
  if(wide&&!s.overtime&&!pass.bounceF){
    pass.rescuer=findRescuer(pass,active);
-   if(pass.rescuer){
-     pass.target=pass.rescuer;
-     log(pass.rescuer.name+' chases an airborne save');
-   }
+   if(pass.rescuer)pass.target=pass.rescuer;
  }
  Object.assign(pass,flightAt(pass,0));carrier=null;
  // A tall, fast defender in the passer's face can get a hand on it right out of the hand.
@@ -2280,7 +2276,11 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  if(crowding.length>1&&passType!=='underhand'&&passType!=='bounce'&&rand()<Math.min(.35,RELEASE_TRAFFIC*(crowding.length-1))){
    s.releaseTips++;log(crowding[0].name+' tips the pass out of the crowd');looseFromPass(crowding[0],'tip');return;
  }
- if(wide)return;
+ if(wide){
+   log(p.name+' misses '+target.name+' wide');
+   if(pass.rescuer)log(pass.rescuer.name+' chases an airborne save');
+   return;
+ }
  considerGamble(pass,active,p.team);
  if(swingAttack)log(p.name+' attacks the ring by air with a quick pass to '+target.name);
  else if(movement==='quick swing')log(p.name+' swings quickly to '+target.name+' in Q'+(nearestQuadrant(target)+1));
@@ -2290,7 +2290,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  else if(movement==='swing')log(p.name+' changes the point of attack through '+target.name);
  else if(movement==='reset')log(p.name+' resets through '+target.name);
  else if(passType==='shortHop')log(p.name+' leaves '+target.name+' a difficult short throw');
- else if(passType==='overthrow')log(p.name+' sends it beyond '+target.name);
+ else if(overthrown)log(p.name+' sends it beyond '+target.name);
  else log(p.name+' connects with '+target.name);
  return}
  if(stationary)return;
