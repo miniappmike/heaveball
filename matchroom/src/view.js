@@ -8,11 +8,11 @@ const fieldTemplates=[
 
 if(!window.heaveballReady){
 const el=id=>document.getElementById(id),canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),colors=['#ff805d','#69bafa'];
-const tackleDuration=2000,fixedStep=.04,halftimeDuration=15000,scoringDuration=3500,penaltyDuration=3500,stoppageDuration=3500;
+const tackleDuration=2000,fixedStep=.04,halftimeDuration=15000,callDuration=3500,scoringDuration=3500,penaltyDuration=3500,stoppageDuration=3500;
 let sim,playing=false,carry=0,wall=performance.now(),speed=1,backgroundTimer=0;
 let statsMode=null,statsPage=0,statsDeadline=0,frozenTime=null,finalStats=null;
 function stamp(s){let n=s.overtime?Math.floor(s.time):Math.ceil(s.time);return (s.overtime?'OT':'H'+s.half)+' · '+Math.floor(n/60)+':'+String(n%60).padStart(2,'0')}
-let tackleBreak=false,boxDirty=true,breakUntil=0,callAge=Infinity,lastFrame=performance.now(),shownHighlights=-1;
+let tackleBreak=false,boxDirty=true,breakUntil=0,callAt=-Infinity,shownHighlights=-1;
 const playerNamePattern=new RegExp('\\b('+names.join('|')+')\\b','g');
 function report(s,msg){
  boxDirty=true;
@@ -44,7 +44,7 @@ function rosterOptions(){
  const keep=list.findIndex(p=>p.name===chosen);if(keep>=0)el('roster').value=keep;
  scout();
 }
-function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;callAge=Infinity;boxDirty=true;el('feed').replaceChildren();sim=match(report);playing=false;carry=0;rosterOptions();briefing()}
+function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;callAt=-Infinity;boxDirty=true;el('feed').replaceChildren();sim=match(report);playing=false;carry=0;rosterOptions();briefing()}
 function briefing(){
  const average=values=>values.reduce((sum,v)=>sum+v,0)/values.length;
  const squads=teams.map((_,i)=>sim.players.filter(p=>p.team===i));
@@ -251,7 +251,8 @@ function drawThinBar(v){
 }
 // Shockwave call popup: white rings burst from the center ring, then the call pill pops in and pulses.
 function drawCallout(){
- if(!sim.call||callAge>=3500)return;
+ const callAge=(playing?performance.now():wall)-callAt;
+ if(!sim.call||callAge>=callDuration)return;
  const boundaryTone=['#eef2f0','#1a201d','238,242,240'];
  const tones={Turnover:['#ff4d4d','#fff','255,77,77'],Penalty:['#ffd23f','#2a2100','255,210,63'],'Center!':['#2f8cff','#fff','47,140,255'],'Takeaway!':['#ffa31a','#2a1600','255,163,26'],'Ball Out of Bounds':boundaryTone,'No Possession Zone':boundaryTone},[bg,fg,glow]=tones[sim.call];
  const t=callAge/1000,cx=25,cy=16.2;
@@ -520,7 +521,7 @@ el('stats-freeze').onclick=()=>{
 el('final-box').onclick=()=>showStats('final',finalStats,performance.now());
 
 function advance(now){
- if(!playing||sim.done){wall=now;return}
+ if(!playing||sim.done)return;
  // Keep real time in reserve when the browser throttles or suspends the tab.
  let steps=2400;
  while(wall<now&&steps>0&&!sim.done){
@@ -539,7 +540,8 @@ function advance(now){
    const second=Math.ceil(sim.time);
    tackleBreak=false;sim.step(fixedStep);
    if(Math.ceil(sim.time)!==second)boxDirty=true;
-   if(sim.callEvents!==calls)callAge=0;
+   const newCall=sim.callEvents!==calls;
+   if(newCall)callAt=wall;
    if(sim.done){
      finalStats=snapshot();
      el('final-box').hidden=false;
@@ -547,6 +549,7 @@ function advance(now){
    }else if(sim.halftime&&!priorHalftime)showStats('half',snapshot(),wall);
    else if(sim.penaltyEvents!==penalties)breakUntil=wall+penaltyDuration;
    else if(sim.scoreEvents!==scores)breakUntil=wall+scoringDuration;
+   else if(newCall&&sim.call==='Turnover')breakUntil=callAt+callDuration;
    else if(sim.stoppageEvents!==stoppages)breakUntil=wall+stoppageDuration;
    else if(sim.tackleEvents!==tackles){breakUntil=wall+tackleDuration;tackleBreak=true}
  }
@@ -565,8 +568,6 @@ let lastDrawKey='';
 function frame(){
  if(!document.hidden){
    const now=performance.now();
-   // The popup clock only runs during playback, so a paused game keeps the call on screen.
-   if(playing&&statsMode!=='half')callAge+=now-lastFrame;lastFrame=now;
    // A drawing error must never stop the animation loop, or the field freezes while the log keeps going.
    try{
      advance(now);
@@ -577,7 +578,8 @@ function frame(){
      if(sim.subEvents!==shownSubs){rosterOptions();boxDirty=true}
      renderBox();renderHighlights();
    }catch(e){console.error(e)}
-   if(now<breakUntil&&!sim.done)el('clock').textContent=stamp(sim)+(sim.penaltyPending?' · Penalty · free run lane pending':sim.stoppagePending?' · Stoppage':tackleBreak?' · Tackle':' · Scoring break');
+   const displayTime=playing?now:wall;
+   if(displayTime<breakUntil&&!sim.done)el('clock').textContent=stamp(sim)+(sim.penaltyPending?' · Penalty · free run lane pending':sim.call==='Turnover'&&displayTime-callAt<callDuration?' · Turnover':sim.stoppagePending?' · Stoppage':tackleBreak?' · Tackle':' · Scoring break');
  }
  requestAnimationFrame(frame);
 }
@@ -630,7 +632,12 @@ document.addEventListener('keydown',e=>{
 });
 el('toggle').onclick=()=>{
  const now=performance.now();
- advance(now);
+ if(playing)advance(now);
+ else{
+   const pausedFor=now-wall;
+   callAt+=pausedFor;
+   breakUntil+=pausedFor;
+ }
  playing=!playing;wall=now;
  scheduleBackground();
 };el('fresh').onclick=()=>{

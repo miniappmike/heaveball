@@ -167,7 +167,7 @@ function acceleration(rating){return (3+rating*.09)*playerSpeedMultiplier}
 function fatigue(p){return clamp((.55-p.energy)/.55,0,1)}
 // Energy drain. The hidden stamina rating (40-95) sets how fast a player tires: a 40 drains about
 // three times as fast as a 95, so low-stamina players are the ones who need substitutes.
-const FATIGUE_RATE=.0102*1.05,STAMINA_SPREAD=3.6;
+const FATIGUE_RATE=.0102*1.05**2,STAMINA_SPREAD=3.6;
 function updateStamina(p,effort,gameDt){
  const endurance=(p.stamina-70)/100;
  const load=clamp((effort-.40)/.60,0,1);
@@ -1610,7 +1610,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    }
  }
  if(clockStep>0){
-   for(const p of players)if(!p.sidelined&&(!p.entering||p.x>=0&&p.x<=venue.field.width)){
+   for(const p of players)if(!p.sidelined&&(!(p.entering||p.subbing)||p.x>=0&&p.x<=venue.field.width)){
      p.stats.min+=clockStep;
    }
  }
