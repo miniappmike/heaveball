@@ -299,6 +299,7 @@ function match(report){
  for(const p of players.concat(bench))p.stats={min:0,pts:0,att:0,cmp:0,rec:0,tc:0,int:0,tkl:0,fum:0,to:0,pen:0,pbu:0,drp:0,hit:0};
  let s={tackleEvents:0,tackled:null,callEvents:0,call:null,penalized:null,scoreEvents:0,penaltyEvents:0,stoppageEvents:0,penaltyPending:false,stoppagePending:false,scramblePursuers:[],highlights:[],stints:[[],[]],posAge:0,players,bench,refereeHits:0,referee:{x:center.x,y:venue.referee.home[0],vx:0,vy:0,dodging:false},score:[0,0],half:1,time:1200,overtime:false,done:false},opening=Math.floor(rand()*2),carrier,pass,age,hold,cutter,run,worth,scoringPassYards=null,scoringThrower=null,cool=0;
  const subs=[null,null],pendingPlaybook=[null,null];
+ const available=p=>!p.sidelined&&!p.subbing&&!p.entering&&!(p.edgeTime>0);
  let retreat=null,nextRead=0,nextOutletRead=0;
  let buildup=0, neutralUntil=0, openingCall=null, plan="", previous=null;
  let cornerReturn=null,anchorLeak=null,relay=null,blueTrap=null,swing=null,swingChecked=false;
@@ -843,7 +844,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    log(d.name+' wraps up '+p.name+' · pile drive');
  }
  function clearance(q,team){
-   return Math.min(...players.filter(d=>d.team!==team&&!d.sidelined&&!(d.edgeTime>0)).map(d=>dist(q,d)));
+   return Math.min(...players.filter(d=>d.team!==team&&available(d)).map(d=>dist(q,d)));
  }
  function passingLane(from,to,active){
    const dx=to.x-from.x,dy=to.y-from.y,lengthSquared=dx*dx+dy*dy||1;
@@ -1052,7 +1053,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    p.carryHand=p.i%3===0?-1:1;
    p.carryOffset=catchSpot?{x:catchSpot.x-p.x,y:catchSpot.y-p.y}:handOffset(p.carryHeading,p.carryHand);
    if(s.overtime){run=true;return}
-   const outlets=players.filter(q=>q.team===p.team&&q!==p&&!(q.edgeTime>0)&&!noPossession(q));
+   const outlets=players.filter(q=>q.team===p.team&&q!==p&&available(q)&&!noPossession(q));
    const outletValue=q=>q.role==='Anchor' ? -.85 : 0;
    const designedRun=plan==='Drive and kick'||plan==='Runway power'||plan==='Last-step handoff';
    run=style.groundFirst
@@ -1165,7 +1166,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  function activateOpeningCall(off){
    if(openingCall==='Anchor leak'){
-     const outlets=players.filter(p=>p.team===off&&p.role==='Anchor'&&p!==carrier&&!(p.edgeTime>0));
+     const outlets=players.filter(p=>p.team===off&&p.role==='Anchor'&&p!==carrier&&available(p));
      if(outlets.length){
        anchorLeak={player:outlets.reduce((a,b)=>a.ratings[5]>b.ratings[5]?a:b),released:false};
        readTime=Math.max(readTime,age+2.8);
@@ -1173,7 +1174,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      }
    }else{
      const side=carrier.x<center.x?-1:1;
-     const trailers=players.filter(p=>p.team===off&&p.i<5&&p!==carrier&&p.side===side&&!(p.edgeTime>0));
+     const trailers=players.filter(p=>p.team===off&&p.i<5&&p!==carrier&&p.side===side&&available(p));
      if(trailers.length){
        relay={player:trailers.reduce((a,b)=>a.ratings[5]+a.ratings[3]>b.ratings[5]+b.ratings[3]?a:b),used:false};
        stationary=false;
@@ -1370,9 +1371,9 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  };
  // Substitutions are live and unlimited, and only the team with the ball may make them.
  // Heavers and Runners enter from the bench on their own half; Anchors may enter from either bench.
- // The player coming off runs until they are off the playing surface by the bench; only then does the
- // substitute sprint on from the bench. The carrier usually holds the ball until the substitute is set.
- // Bench players recover energy while they sit.
+ // The replacement waits for the outgoing player to cross the end line.
+ const subOutEnergy=.35,subInEnergy=.80;
+ const returnSlots=new Map();
  s.subEvents=0;s.subCount=[0,0];s.gambles={attempts:0,resolved:0,wins:0};s.smotherTips=0;s.releaseTips=0;
  const personal=['name','jersey','role','height','weight','ratings','stamina','energy','stats'];
  const benchOf=b=>venue.benches.filter(v=>v.team===b.team)[(b.i-8)>>1];
@@ -1380,6 +1381,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  function swapIn(sub){
    const {out,seat}=sub;
    const leaving=out.name;
+   if(sub.reason==='fatigue'||out.energy<=subOutEnergy)returnSlots.set(seat,out);
+   else returnSlots.delete(seat);
    for(const k of personal)[out[k],seat[k]]=[seat[k],out[k]];
    // The substitute starts from the bench seat; the player coming off takes that seat.
    Object.assign(out,{lapse:0,subbing:false,entering:true,x:seat.x,y:seat.y,vx:0,vy:0});
@@ -1390,30 +1393,51 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  function requestSub(out,seat,reason){
    const bench=benchOf(seat);
    out.subbing=true;
+   if(cornerReturn?.outlet===out||cornerReturn?.passer===out)cornerReturn=null;
+   if(anchorLeak?.player===out)anchorLeak=null;
+   if(relay?.player===out)relay=null;
+   if(swing?.cutter===out)swing=null;
+   if(blockFor===out||blockAnchor===out)blockFor=blockAnchor=null;
+   if(decoy===out)decoy=null;
    subs[out.team]={out,seat,reason,phase:'off',age:0,
      exit:{x:bench.side<0?-2.5:venue.field.width+2.5,y:clamp(bench.y,1,33)}};
  }
  function finishSubsNow(){
-   for(const sub of subs)if(sub?.phase==='off'){swapIn(sub);const p=sub.out;p.x=p.hx;p.y=p.hy;p.entering=false}
+   for(const sub of subs)if(sub){
+     if(sub.phase==='off')swapIn(sub);
+     sub.out.entering=false;
+   }
    subs[0]=subs[1]=null;
  }
  function manageSubs(dt,off){
-   for(const b of bench)updateStamina(b,0,dt);
    for(const sub of subs)if(sub){
      sub.age+=dt;
-     const off=sub.out.x<0||sub.out.x>venue.field.width;
-     if(sub.phase==='off'&&(off||sub.age>9))swapIn(sub);
-     else if(sub.phase==='on'&&(dist(sub.out,{x:sub.out.hx,y:sub.out.hy})<2||sub.age>6))subs[sub.out.team]=null;
+     const outside=sub.out.x<0||sub.out.x>venue.field.width;
+     if(sub.phase==='off'&&outside)swapIn(sub);
+     else if(sub.phase==='on'&&!sub.out.entering)subs[sub.out.team]=null;
    }
    const sub=subs[off];
-   // The carrier usually lets the substitute get set before starting the offense.
-   if(sub&&carrier?.team===off&&stationary&&!urgent(off))readTime=Math.max(readTime,age+.3);
-   if(sub||s.overtime||urgent(off)||!carrier||carrier.team!==off||!stationary||pile||lane||pass||loose||s.penaltyPending)return;
+   if(sub&&carrier?.team===off&&stationary&&!urgent(off)&&
+      (sub.phase==='off'?sub.age<9:sub.age<6))readTime=Math.max(readTime,age+.3);
+   if(sub||s.overtime||!carrier||carrier.team!==off||pile||lane||s.penaltyPending||
+      !stationary&&(clearance(carrier,off)<3.2||run&&dist(carrier,center)<8))return;
+   const ready=bench.filter(seat=>seat.team===off&&seat.energy>=subInEnergy);
+   if(!ready.length)return;
+   const canLeave=p=>p.team===off&&p!==carrier&&available(p);
    let best=null;
-   for(const field of players)if(field.team===off&&field!==carrier&&!field.sidelined&&!(field.edgeTime>0)&&field.energy<.5)
-     for(const seat of bench)if(seat.team===off&&eligible(field,seat)&&seat.energy-field.energy>.3&&
-       (!best||field.energy<best.field.energy||field===best.field&&seat.energy>best.seat.energy))best={field,seat};
-   if(best)requestSub(best.field,best.seat,'fatigue');
+   for(const field of players)if(canLeave(field)&&field.energy<=subOutEnergy){
+     for(const seat of ready)if(eligible(field,seat)){
+       const gap=dist(field,seat);
+       if(!best||field.energy<best.field.energy||field.energy===best.field.energy&&gap<best.gap){
+         best={field,seat,gap};
+       }
+     }
+   }
+   if(best){requestSub(best.field,best.seat,'fatigue');return}
+   for(const seat of ready){
+     const field=returnSlots.get(seat);
+     if(field&&canLeave(field)){requestSub(field,seat,'recovered');return}
+   }
  }
  // Coach adjustments. Every five minutes of game clock and at halftime each coach reviews the stretch
  // since their last change. Adaptability sets whether they notice (stubborn coaches mostly wait for
@@ -1539,8 +1563,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    const start={x:p.x,y:p.y},end={...center};
    const duration=Math.max(.46,dist(start,end)/handPassSpeed(p.ratings[0])*1.28);
    if(s.time>duration/(fieldSecondsPerSecond*ballSpeedMultiplier)+2)return;
-   const target=players.filter(q=>q!==p&&q.team===p.team&&!q.sidelined&&
-     !q.subbing&&!q.entering&&!q.edgeTime)
+   const target=players.filter(q=>q!==p&&q.team===p.team&&available(q))
      .reduce((best,q)=>!best||dist(q,end)<dist(best,end)?q:best,null);
    p.stats.att++;
    pass={thrower:p,start,end,target,desperation:true,passType:'lob',laneRoll:rand(),
@@ -1617,6 +1640,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  s.urgent=hurry;s.conservative=safe;s.press=latePress(1-s.team);s.coachingTeam=s.team;
  s.posAge+=clockStep;s.possession[s.team]+=clockStep;
+ for(const b of bench)updateStamina(b,0,clockStep);
  if(hold>0){
    hold=Math.max(0,hold-dt);
    for(const p of players)if(!p.sidelined)updateStamina(p,0,dt);
@@ -1625,7 +1649,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  let focus=carrier||pass||loose,off=s.team;
  const style=s.playbooks[off];
  manageSubs(dt,s.team);
- const active=p=>!p.sidelined&&!p.subbing&&!p.entering&&!(p.edgeTime>0)&&(!lane||(p.team===off?(p.i===4||p.i===5):p.i>=6));
+ const active=p=>available(p)&&(!lane||(p.team===off?(p.i===4||p.i===5):p.i>=6));
  if(!pass?.desperation||s.time>0){
    if(ringPenalty(dt,active)||restrictedPenalty(active,dt))return;
  }
@@ -2158,7 +2182,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  let target=quickTarget||cutter, movement=quickTarget?(swing?'quick swing':'quick outlet'):null;
  const circulating=circulate(off)&&!anchorLeak;
  const powerReset=style.groundFirst&&!hurry&&!safe&&!quickTarget&&!cornerReturn&&!anchorLeak;
- if(!quickTarget&&(hurry||powerReset||protect(off)||retreat||cutter?.edgeTime>0||!cutter||clearance(cutter,off)<1.2)){
+ if(!quickTarget&&(hurry||powerReset||protect(off)||retreat||!cutter||!active(cutter)||clearance(cutter,off)<1.2)){
    const options=players.filter(q=>q.team===off&&q!==p&&active(q)&&!noPossession(q)&&q.y>=0&&q.y<=34);
    const safe=options.filter(q=>Math.abs(q.y-17)>6.8&&Math.abs(q.x-25)>6.8);
    if(!powerReset&&protect(off)&&safe.length)options.splice(0,options.length,...safe);
@@ -2186,7 +2210,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      target=choice.q;movement=choice.move||movement;
    }
  }
- if(!target)return;
+ if(!target||!active(target))return;
  if(cornerReturn?.phase==='outlet'){
    if(dist(cornerReturn.outlet,cornerReturn.spot)>2.2)return;
    target=cornerReturn.outlet;cornerReturn.phase='outbound';
