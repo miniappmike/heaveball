@@ -91,7 +91,7 @@ In a 20-match check, teams made about five substitutions a game in total, and sc
 
 ## Coaches and in-game adjustments
 
-Each club has a head coach with a name and a hidden **adaptability** rating from 25 to 98, clustered around 65. The pregame handbook shows both coaches under their club's tactics. The broadcast does not show the rating. The coach boxes hold the head coaches.
+Each club has a head coach with a name and a hidden **adaptability** rating from 25 to 98, clustered around 65. The pregame handbook shows both coaches under their club's tactics. The broadcast does not show the rating. When a coach changes tactics, their field marker takes a brief step toward the field inside the coach box and then returns to its starting spot. The movement follows the match clock.
 
 - **Reviews.** Coaches review the stretch since their last change every five minutes of game clock (`reviewEvery`) and at halftime. They need at least four possessions to judge (`coachMinPossessions`).
 - **Defense.** If the opponent is scoring more than 1.05 points a possession (`leakyDefense`), the coach may switch schemes at once. The counter comes from `defenseCounter`: Carrier pressure against Patient passing, Switch coverage against Balanced and Quick swing, Runway contain against Runway power, and Balanced against Free flow.

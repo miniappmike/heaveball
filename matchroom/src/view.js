@@ -337,8 +337,11 @@ function drawSideline(){
  const size=venue.coachBox.size;
  for(const c of venue.coachBoxes){
    ctx.strokeStyle='rgba(255,255,255,.92)';ctx.lineWidth=.16;ctx.strokeRect(c.x-size/2,c.y-size/2,size,size);
-   disc(c.x,c.y,.7,colors[c.team],'#12271e');
-   ctx.font='bold .62px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#101c16';ctx.fillText('HC',c.x,c.y+.02);
+   const age=sim.gameClock()-sim.coaches[c.team].lastChange;
+   const step=.36*Math.min(clamp(age/.35,0,1),clamp((2.1-age)/.55,0,1));
+   const x=c.x+Math.sign(center.x-c.x)*step,y=c.y+Math.sign(center.y-c.y)*step;
+   disc(x,y,.7,colors[c.team],'#12271e');
+   ctx.font='bold .62px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#101c16';ctx.fillText('HC',x,y+.02);
  }
  ctx.restore();
 }

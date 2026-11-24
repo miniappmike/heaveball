@@ -323,7 +323,7 @@ function match(report){
  // Adaptability (25-98, most near 65) is hidden from the broadcast; it shows in the pregame handbook.
  const coachPool=coachNames.slice();
  s.coaches=teams.map(()=>({name:coachPool.splice(Math.floor(rand()*coachPool.length),1)[0],
-   adaptability:clamp(Math.round(65+15*(rand()+rand()+rand()-1.5)),25,98),changes:0}));
+   adaptability:clamp(Math.round(65+15*(rand()+rand()+rand()-1.5)),25,98),changes:0,lastChange:-Infinity}));
  s.defenses=teams.map(()=>Math.floor(rand()*defenses.length));
  // Each side's best Runner and Heaver on the field; recomputed after substitutions.
  const findStars=()=>teams.map((_,team)=>['Runner','Heaver'].map(role=>{
@@ -1446,9 +1446,10 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  const coachWindow=teams.map(()=>({score:[0,0],poss:[0,0]}));
  let reviewMark=0;
  const stretch=(team,t)=>({pts:s.score[t]-coachWindow[team].score[t],poss:s.stints[t].length-coachWindow[team].poss[t]});
- const lastChange=[-Infinity,-Infinity],overreactions=[0,0];let seenScore=[0,0],overreactHalf=1;
+ const overreactions=[0,0];let seenScore=[0,0],overreactHalf=1;
  const gameClock=()=>s.overtime?2400+s.time:(s.half-1)*1200+1200-s.time;
- function noteChange(team){lastChange[team]=gameClock()}
+ s.gameClock=gameClock;
+ function noteChange(team){s.coaches[team].lastChange=gameClock()}
  function coachOverreact(){
    if(s.overtime)return;
    if(s.half!==overreactHalf){overreactHalf=s.half;overreactions[0]=overreactions[1]=0}
@@ -1456,7 +1457,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      const o=1-team,scored=s.score[o]-seenScore[o];
      if(scored<2)continue;
      const c=s.coaches[team],a=c.adaptability/100;
-     if(overreactions[team]>=overreactPerHalf||gameClock()-lastChange[team]<overreactCooldown)continue;
+     if(overreactions[team]>=overreactPerHalf||gameClock()-c.lastChange<overreactCooldown)continue;
      if(rand()>=OVERREACT_RATE*(1-a)**2)continue;
      // A knee-jerk switch is a guess more often than not; the stretch was not actually reviewed.
      const counter=defenseCounter[playbooks.indexOf(s.playbooks[o])];
