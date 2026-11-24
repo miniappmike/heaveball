@@ -530,7 +530,8 @@ function match(report){
  const deficit=team=>s.score[1-team]-s.score[team];
  function urgent(team){
    const gap=deficit(team);
-   if(secondHalfWithin(420))return gap>=1&&gap<=12||gap===0&&s.time<=300;
+   if(secondHalfWithin(300))return gap>=0&&gap<=12;
+   if(secondHalfWithin(420))return gap>=6&&gap<=12;
    return (!s.overtime&&s.half===1&&s.time<=firstHalfHurry)||
      (secondHalfWithin(600)&&gap>=10);
  }
