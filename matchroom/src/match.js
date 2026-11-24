@@ -530,8 +530,9 @@ function match(report){
  const deficit=team=>s.score[1-team]-s.score[team];
  function urgent(team){
    const gap=deficit(team);
+   if(secondHalfWithin(420))return gap>=1&&gap<=12||gap===0&&s.time<=300;
    return (!s.overtime&&s.half===1&&s.time<=firstHalfHurry)||
-     (secondHalfWithin(600)&&gap>=10)||(secondHalfWithin(300)&&gap>=0&&gap<=7);
+     (secondHalfWithin(600)&&gap>=10);
  }
  function conservative(team){
    const lead=-deficit(team);
