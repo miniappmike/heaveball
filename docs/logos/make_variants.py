@@ -94,7 +94,9 @@ def transparent_png(rgb, bg, palette):
     fg_cols = cols[1:]
     d = ((rgb[:, :, None, :] - fg_cols[None, None]) ** 2).sum(-1)
     f = fg_cols[d.argmin(-1)]
-    a = np.clip((np.abs(rgb - bgcol) / np.maximum(np.abs(f - bgcol), 1)).max(-1), 0, 1)
+    # alpha = how far the pixel sits along the line from background to f
+    fb = f - bgcol
+    a = np.clip(((rgb - bgcol) * fb).sum(-1) / np.maximum((fb * fb).sum(-1), 1), 0, 1)
     alpha = np.where(bg, 0.0, 1.0)
     alpha = np.where(rim, a, alpha)
     # ... then take the background out of each rim pixel, keeping its own colour

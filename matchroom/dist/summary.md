@@ -209,4 +209,4 @@ Sport documents and reference images live in `docs/`. Matchroom source is split 
 
 ## Build record
 
-Built 2026-11-25 02:43 UTC from `src/` and `assets/`.
+Built 2026-11-25 02:46 UTC from `src/` and `assets/`.
