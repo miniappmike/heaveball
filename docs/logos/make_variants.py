@@ -1,63 +1,73 @@
 """Make a transparent PNG and a traced SVG from a flat-color logo.
 
-Usage: python3 -I docs/logos/make_variants.py input.png out_transparent.png out.svg "Club Name"
-Needs only Pillow and numpy. Edit PALETTE to the logo's flat colours first
-(white must stay first), and adjust the layer list in main() if the logo's
-colours stack differently from the Southie Dockers boat.
+Needs only Pillow and numpy. The background colour is the median of the image's
+edge pixels. Pass the logo's flat colours with --colors and say how to stack them
+into SVG layers with --layer FILL=NAMES (drawn in order, NAMES joined by +).
+The special name "holes" means background-coloured pixels enclosed by the
+logo, such as the Dockers' windows.
+
+  python3 -I docs/logos/make_variants.py docs/logos/southie-dockers.png \
+    docs/logos/southie-dockers-transparent.png docs/logos/southie-dockers.svg \
+    "Southie Dockers" --colors black=1f1b15,gray=4d5059,blue=0136a5 \
+    --layer 0136a5=blue --layer 1f1b15=black+gray+holes \
+    --layer 4d5059=gray --layer ffffff=holes
+
+  python3 -I docs/logos/make_variants.py docs/logos/dorchester-dirts.png \
+    docs/logos/dorchester-dirts-transparent.png docs/logos/dorchester-dirts.svg \
+    "Dorchester Dirts" --colors brown=3a1003 --layer 3a1003=brown --clear-holes
+
+--clear-holes makes enclosed background (the inside of the D) transparent too.
 """
-import sys
+import argparse
 from collections import defaultdict
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
-PALETTE = {  # name: RGB, sampled from the logo
-    "white": (255, 255, 255),
-    "black": (31, 27, 21),
-    "gray": (77, 80, 89),
-    "blue": (1, 54, 165),
-}
+BG_TOLERANCE = 55  # max per-channel difference from the background colour
 
 
-def background_mask(rgb):
-    """True where a pixel is white-ish AND connected to the image border."""
+def hex_rgb(h):
+    h = h.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def background_mask(rgb, bgcol, include_enclosed=False):
+    """True where a pixel is background-coloured and, unless include_enclosed,
+    connected to the image border."""
     h, w, _ = rgb.shape
-    whiteish = (rgb.min(axis=2) > 200).astype(np.uint8) * 255
-    m = Image.fromarray(whiteish, "L").copy()  # fromarray images can be read-only
+    near = np.abs(rgb - np.array(bgcol, float)).max(-1) < BG_TOLERANCE
+    if include_enclosed:
+        return near
+    m = Image.fromarray(near.astype(np.uint8) * 255, "L").copy()  # fromarray images can be read-only
     for xy in [(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)]:
         if m.getpixel(xy) == 255:
             ImageDraw.floodfill(m, xy, 128)
     return np.asarray(m) == 128
 
 
-def labels(rgb):
-    names = list(PALETTE)
-    cols = np.array([PALETTE[n] for n in names], float)
+def labels(rgb, palette):
+    names = list(palette)
+    cols = np.array([palette[n] for n in names], float)
     d = ((rgb[:, :, None, :] - cols[None, None]) ** 2).sum(-1)
     return names, d.argmin(-1)
 
 
-def transparent_png(rgb, bg):
-    """Alpha 0 on the outside background, unmixed alpha on the anti-aliased rim."""
-    names, lab = labels(rgb)
-    cols = np.array([PALETTE[n] for n in names], float)
-    # Rim = background pixels that are not pure white, plus foreground pixels touching background.
-    bgimg = Image.fromarray(bg.astype(np.uint8) * 255)
-    near_bg = np.asarray(bgimg.filter(ImageFilter.MaxFilter(5))) > 0
+def transparent_png(rgb, bg, palette):
+    """Alpha 0 on the background, unmixed alpha on the anti-aliased rim.
+    palette's first entry is the background colour."""
+    cols = np.array(list(palette.values()), float)
+    bgcol = cols[0]
+    near_bg = np.asarray(Image.fromarray(bg.astype(np.uint8) * 255).filter(ImageFilter.MaxFilter(5))) > 0
     alpha = np.where(bg, 0.0, 1.0)
-    out = rgb.copy()
-    rim = near_bg
-    # For rim pixels, the foreground colour is the nearest non-white palette colour.
+    # On the rim, the foreground colour is the nearest non-background palette colour.
     fg_cols = cols[1:]
     d = ((rgb[:, :, None, :] - fg_cols[None, None]) ** 2).sum(-1)
     f = fg_cols[d.argmin(-1)]
-    with np.errstate(divide="ignore", invalid="ignore"):
-        a = ((255.0 - rgb) / np.maximum(255.0 - f, 1)).max(-1)
-    a = np.clip(a, 0, 1)
-    alpha = np.where(rim, a, alpha)
-    out = np.where(rim[..., None], f, out)
-    rgba = np.dstack([out, alpha * 255]).round().clip(0, 255).astype(np.uint8)
-    return rgba
+    a = (np.abs(rgb - bgcol) / np.maximum(np.abs(f - bgcol), 1)).max(-1)
+    alpha = np.where(near_bg, np.clip(a, 0, 1), alpha)
+    out = np.where(near_bg[..., None], f, rgb)
+    return np.dstack([out, alpha * 255]).round().clip(0, 255).astype(np.uint8)
 
 
 # ---------- marching-squares tracer ----------
@@ -167,38 +177,52 @@ def path_d(mask, eps=0.6, min_area=30):
     return "".join(parts).replace(".0 ", " ").replace(".0Z", "Z").replace(".0,", ",")
 
 
-def main(src, out_png, out_svg, title):
-    rgb = np.asarray(Image.open(src).convert("RGB")).astype(float)
-    h, w, _ = rgb.shape
-    bg = background_mask(rgb)
-    Image.fromarray(transparent_png(rgb, bg), "RGBA").save(out_png, optimize=True)
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("src")
+    ap.add_argument("out_png")
+    ap.add_argument("out_svg")
+    ap.add_argument("title")
+    ap.add_argument("--colors", required=True, help="name=hex,name=hex")
+    ap.add_argument("--layer", action="append", required=True, help="FILL=name+name (repeatable)")
+    ap.add_argument("--clear-holes", action="store_true")
+    args = ap.parse_args()
 
-    names, lab = labels(rgb)
-    is_ = lambda n: lab == names.index(n)
-    fg = ~bg
-    windows = is_("white") & fg          # enclosed whites stay white
-    boat = (is_("black") | is_("gray") | windows) & fg
-    layers = [
-        ("#0136a5", is_("blue") & fg),
-        ("#1f1b15", boat),
-        ("#4d5059", is_("gray") & fg),
-        ("#ffffff", windows),
-    ]
-    # crop to content with a small margin so the viewBox hugs the logo
-    ys, xs = np.nonzero(fg)
+    rgb = np.asarray(Image.open(args.src).convert("RGB")).astype(float)
+    h, w, _ = rgb.shape
+    border = np.concatenate([rgb[0], rgb[-1], rgb[:, 0], rgb[:, -1]])
+    bgcol = tuple(int(v) for v in np.median(border, axis=0))
+    palette = {"bg": bgcol}
+    for item in args.colors.split(","):
+        name, hx = item.split("=")
+        palette[name.strip()] = hex_rgb(hx)
+
+    outside = background_mask(rgb, bgcol)
+    bg = background_mask(rgb, bgcol, include_enclosed=True) if args.clear_holes else outside
+    Image.fromarray(transparent_png(rgb, bg, palette), "RGBA").save(args.out_png, optimize=True)
+
+    names, lab = labels(rgb, palette)
+    fg = ~outside
+    masks = {n: (lab == names.index(n)) & fg for n in names if n != "bg"}
+    masks["holes"] = (lab == names.index("bg")) & fg
+    ys, xs = np.nonzero(~bg)
     m = 8
     x0, y0 = max(xs.min() - m, 0), max(ys.min() - m, 0)
     x1, y1 = min(xs.max() + m, w), min(ys.max() + m, h)
     paths = []
-    for colour, mask in layers:
+    for spec in args.layer:
+        fill, parts = spec.split("=")
+        mask = np.zeros_like(fg)
+        for n in parts.split("+"):
+            mask |= masks[n]
         d = path_d(mask)
         if d:
-            paths.append(f'<path fill="{colour}" fill-rule="evenodd" d="{d}"/>')
+            paths.append(f'<path fill="#{fill.lstrip("#")}" fill-rule="evenodd" d="{d}"/>')
     svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x0} {y0} {x1 - x0} {y1 - y0}">'
-           f'<title>{title}</title>' + "".join(paths) + "</svg>\n")
-    open(out_svg, "w").write(svg)
+           f'<title>{args.title}</title>' + "".join(paths) + "</svg>\n")
+    open(args.out_svg, "w").write(svg)
     print("svg bytes", len(svg), "viewBox", x0, y0, x1 - x0, y1 - y0)
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:5])
+    main()
