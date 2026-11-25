@@ -437,7 +437,7 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
  <select id="highlight-filter"><option value="all">All highlights</option><option value="scoring">Scoring plays</option></select>
  <p id="highlight-empty">No highlights yet.</p><ul id="highlight-list"></ul>
 </details></section>
-  <section class="card"><details id="box"><summary>Live box score</summary><div class="box-scroll"><table id="statlines"></table></div><p id="posavg"></p><details><summary>Stat legend</summary><p>POS position · H Heaver · R Runner · A Anchor</p><p>PTS points · ATT hand passes attempted · CMP passes completed · REC catches of teammate passes · TC Throwing Centers (passes caught in the ring for three points) · INT interceptions · TKL completed tackles · FUM fumbles on contact · TO turnovers charged · PEN penalties committed · PBU passes broken up · DRP hand-pass drops · HIT big hits. Average possession uses game-clock time and counts completed possessions.</p></details></details></section>
+  <section class="card"><details id="box"><summary>Live box score</summary><div class="box-scroll"><table id="statlines"></table></div><p id="posavg"></p><details><summary>Stat legend</summary><p>POS position · H Heaver · R Runner · A Anchor</p><p>MIN minutes played (game clock, on the field) · PTS points · ATT hand passes attempted · CMP passes completed · REC catches of teammate passes · TC Throwing Centers (passes caught in the ring for three points) · INT interceptions · TKL completed tackles · FUM fumbles on contact · TO turnovers charged · PEN penalties committed · PBU passes broken up · DRP hand-pass drops · HIT big hits. Average possession uses game-clock time and counts completed possessions.</p></details></details></section>
   <section class="card scout" aria-labelledby="scout-heading"><h2 id="scout-heading">Player scouting</h2><select id="roster" aria-label="Inspect player"></select><p id="build"></p><div id="cards"></div></section>
  </aside>
 </div>
@@ -782,7 +782,8 @@ function match(report,clubPick){
    }}
    }
  }
- for(const p of players.concat(bench))p.stats={pts:0,att:0,cmp:0,rec:0,tc:0,int:0,tkl:0,fum:0,to:0,pen:0,pbu:0,drp:0,hit:0};
+ // sec is time on the field in game-clock seconds (the box score shows it as minutes).
+ for(const p of players.concat(bench))p.stats={sec:0,pts:0,att:0,cmp:0,rec:0,tc:0,int:0,tkl:0,fum:0,to:0,pen:0,pbu:0,drp:0,hit:0};
  let s={tackleEvents:0,tackled:null,callEvents:0,call:null,penalized:null,scoreEvents:0,penaltyEvents:0,stoppageEvents:0,penaltyPending:false,stoppagePending:false,scramblePursuers:[],highlights:[],stints:[[],[]],posAge:0,players,bench,refereeHits:0,referee:{x:center.x,y:venue.referee.home[0],vx:0,vy:0,dodging:false},score:[0,0],half:1,time:1200,overtime:false,done:false},opening=Math.floor(rand()*2),carrier,pass,age,hold,cutter,run,worth,scoringPassYards=null,scoringThrower=null,cool=0;
  const subs=[null,null],pendingPlaybook=[null,null];
  let retreat=null,nextRead=0,nextOutletRead=0;
@@ -2015,6 +2016,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  if(delayedRestart){const r=delayedRestart;delayedRestart=null;restart(r.team,r.side,r.index);return}
  if(scoringRestart){restart(scoringRestart.team,undefined,scoringRestart.index);scoringRestart=null;s.scoringSpot=null}
+ // Playing time follows the game clock: field slots hold whoever is on, and stats move with the athlete on a substitution.
+ for(const p of players)p.stats.sec+=dt;
  if(s.overtime)s.time+=dt;
  else if((s.time-=dt)>0&&(s.half-1)*1200+1200-s.time>=reviewMark+reviewEvery){
    reviewMark+=reviewEvery;coachReview(false);
@@ -3244,14 +3247,15 @@ ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace'
  const share=(values)=>{let total=values[0]+values[1];return total?Math.round(100*values[0]/total)+'% / '+Math.round(100*values[1]/total)+'%':'—'};
  el('control').textContent='Current possession '+Math.floor(sim.posAge/60)+':'+String(Math.floor(sim.posAge)%60).padStart(2,'0')+' · '+teams.join(' / ')+' · Possession '+share(sim.possession)+' · Runway ball control '+share(sim.runway);
  el('points').textContent=sim.score.join(' – ');el('clock').textContent=sim.done?'FULL TIME':statsMode==='half'?'HALFTIME':stamp(sim)+' · '+teams[sim.team]+(sim.urgent?' · Hurry-up':sim.conservative?' · Protecting lead':'')+(sim.press?' · '+teams[1-sim.team]+' pressing':'');el('toggle').textContent=sim.done?'Full time':playing?'Pause':'Resume';el('toggle').disabled=sim.done||!el('pregame').hidden;el('bar-toggle').textContent=el('toggle').textContent;el('bar-toggle').disabled=el('toggle').disabled}
-const statKeys=['pts','att','cmp','rec','tc','int','tkl','fum','to','pen','pbu','drp','hit'];
-const statLabels=['Points','Pass attempts','Completions','Receptions','Throwing Centers','Interceptions',
+const statKeys=['min','pts','att','cmp','rec','tc','int','tkl','fum','to','pen','pbu','drp','hit'];
+const statLabels=['Minutes played','Points','Pass attempts','Completions','Receptions','Throwing Centers','Interceptions',
   'Tackles','Fumbles','Turnovers','Penalties','Passes broken up','Drops','Big hits'];
 const positions={Heaver:'H',Runner:'R',Anchor:'A'};
 const cells=values=>values.map(n=>'<td>'+n+'</td>').join('');
 function snapshot(){
- const rows=teams.map((_,team)=>roster().filter(p=>p.team===team).map(p=>({...p,stats:{...p.stats}})));
- const totals=rows.map(roster=>Object.fromEntries(statKeys.map(k=>[k,roster.reduce((sum,p)=>sum+p.stats[k],0)])));
+ // Minutes are whole game-clock minutes on the field; the team total rounds the summed seconds once.
+ const rows=teams.map((_,team)=>roster().filter(p=>p.team===team).map(p=>({...p,stats:{...p.stats,min:Math.round(p.stats.sec/60)}})));
+ const totals=rows.map(roster=>Object.fromEntries(statKeys.map(k=>[k,k==='min'?Math.round(roster.reduce((sum,p)=>sum+p.stats.sec,0)/60):roster.reduce((sum,p)=>sum+p.stats[k],0)])));
  const possession=sim.possession.reduce((a,b)=>a+b,0);
  const share=sim.possession.map(n=>possession?Math.round(n/possession*100)+'%':'—');
  const average=sim.stints.map(a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length)+'s':'—');

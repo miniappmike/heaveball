@@ -516,14 +516,15 @@ ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace'
  const share=(values)=>{let total=values[0]+values[1];return total?Math.round(100*values[0]/total)+'% / '+Math.round(100*values[1]/total)+'%':'—'};
  el('control').textContent='Current possession '+Math.floor(sim.posAge/60)+':'+String(Math.floor(sim.posAge)%60).padStart(2,'0')+' · '+teams.join(' / ')+' · Possession '+share(sim.possession)+' · Runway ball control '+share(sim.runway);
  el('points').textContent=sim.score.join(' – ');el('clock').textContent=sim.done?'FULL TIME':statsMode==='half'?'HALFTIME':stamp(sim)+' · '+teams[sim.team]+(sim.urgent?' · Hurry-up':sim.conservative?' · Protecting lead':'')+(sim.press?' · '+teams[1-sim.team]+' pressing':'');el('toggle').textContent=sim.done?'Full time':playing?'Pause':'Resume';el('toggle').disabled=sim.done||!el('pregame').hidden;el('bar-toggle').textContent=el('toggle').textContent;el('bar-toggle').disabled=el('toggle').disabled}
-const statKeys=['pts','att','cmp','rec','tc','int','tkl','fum','to','pen','pbu','drp','hit'];
-const statLabels=['Points','Pass attempts','Completions','Receptions','Throwing Centers','Interceptions',
+const statKeys=['min','pts','att','cmp','rec','tc','int','tkl','fum','to','pen','pbu','drp','hit'];
+const statLabels=['Minutes played','Points','Pass attempts','Completions','Receptions','Throwing Centers','Interceptions',
   'Tackles','Fumbles','Turnovers','Penalties','Passes broken up','Drops','Big hits'];
 const positions={Heaver:'H',Runner:'R',Anchor:'A'};
 const cells=values=>values.map(n=>'<td>'+n+'</td>').join('');
 function snapshot(){
- const rows=teams.map((_,team)=>roster().filter(p=>p.team===team).map(p=>({...p,stats:{...p.stats}})));
- const totals=rows.map(roster=>Object.fromEntries(statKeys.map(k=>[k,roster.reduce((sum,p)=>sum+p.stats[k],0)])));
+ // Minutes are whole game-clock minutes on the field; the team total rounds the summed seconds once.
+ const rows=teams.map((_,team)=>roster().filter(p=>p.team===team).map(p=>({...p,stats:{...p.stats,min:Math.round(p.stats.sec/60)}})));
+ const totals=rows.map(roster=>Object.fromEntries(statKeys.map(k=>[k,k==='min'?Math.round(roster.reduce((sum,p)=>sum+p.stats.sec,0)/60):roster.reduce((sum,p)=>sum+p.stats[k],0)])));
  const possession=sim.possession.reduce((a,b)=>a+b,0);
  const share=sim.possession.map(n=>possession?Math.round(n/possession*100)+'%':'—');
  const average=sim.stints.map(a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length)+'s':'—');
