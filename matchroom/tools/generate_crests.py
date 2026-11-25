@@ -5,13 +5,11 @@ card, canvas score bar): each transparent logo cropped to its artwork, at most
 300 px on its long side. Logos whose outer edge is mostly dark would vanish on
 the dark site, so they get a thin light keyline around their outline.
 
-Crests are the small round versions used on the field (and nowhere a mark fits):
-
-The Matchroom shows crests in round badges, so each crest is fitted to a circle:
-the smallest circle around the logo's artwork is centred on a square canvas and
-scaled to fill it (192 px). Wide marks such as the Routers' UC then fill the badge
-as fully as round ones. The badge is light, so a club whose logo is light-on-dark
-uses its dark variant instead.
+Crests are the versions painted at center field for the home club, inside the
+round ring area: the smallest circle around the logo's artwork is centred on a
+square canvas and scaled to fill it (192 px), so wide marks such as the Routers'
+UC fill the space as fully as round ones. A club whose logo is light-on-dark uses
+its dark variant, which reads better on the turf.
 
 Needs numpy and Pillow. Run from the repository root:
 

@@ -91,7 +91,7 @@ const defenses=[
 ];
 // Calibrated against a ten-yard run from rest with Speed and Agility at 60.
 const fieldSecondsPerSecond=.63;
-const playerSpeedMultiplier=1.02*1.10;
+const playerSpeedMultiplier=1.02*1.10*1.10;
 const ballSpeedMultiplier=.98;
 const lobSpeedMultiplier=1.10;
 const passDeflectionMultiplier=1.15;

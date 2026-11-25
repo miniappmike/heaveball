@@ -448,22 +448,8 @@ function drawCenterCrest(){
  if(!image.complete||!image.naturalWidth)return;
  ctx.save();ctx.globalAlpha=.3;ctx.drawImage(image,center.x-size/2,center.y-size/2,size,size);ctx.restore();
 }
-// Each club's crest is painted on the grass beyond its own touchline (home at the bottom, away at the top,
-// the same halves as its benches and coach box), outside the field of play.
-const paintedCrests=[{team:0,x:25,y:36.6},{team:1,x:25,y:-2.6}],paintedRadius=2.05;
-function drawPaintedCrests(){
- ctx.save();
- for(const c of paintedCrests){
-   const image=crestImage(matchup[c.team]);
-   ctx.globalAlpha=.32;disc(c.x,c.y,paintedRadius,'#f4f6f2');
-   ctx.globalAlpha=.85;ctx.beginPath();ctx.arc(c.x,c.y,paintedRadius,0,Math.PI*2);ctx.lineWidth=.16;ctx.strokeStyle=kit(c.team).fill;ctx.stroke();
-   if(image.complete&&image.naturalWidth){const s=paintedRadius*1.72;ctx.globalAlpha=.9;ctx.drawImage(image,c.x-s/2,c.y-s/2,s,s)}
- }
- ctx.restore();
-}
 function drawSideline(){
  const {length,depth}=venue.bench;
- drawPaintedCrests();
  ctx.save();
  for(const b of venue.benches){
    const x=b.x-depth/2+b.side*.25,y=b.y-length/2;
