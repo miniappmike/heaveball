@@ -2,13 +2,13 @@
 
 src/      hand-edited page (index.html), engine (match.js) and renderer (view.js)
 assets/   field textures (fields/*.webp), surround textures (surrounds/*.webp)
-          and club crests (crests/*.webp, from tools/generate_crests.py)
+          and club crests and marks (crests/*.webp, marks/*.webp, from tools/generate_crests.py)
 dist/     generated here; never edit by hand
 
 The game scripts are inlined into dist/index.html so the page also runs in
 previews that receive the HTML without its sibling files. The default field
 texture is embedded too; the other fields load from dist/fields on first use.
-Club crests are small, so all of them are embedded.
+Club crests and marks are small, so all of them are embedded.
 """
 import base64
 import json
@@ -41,6 +41,8 @@ bundle = "const fieldImages=" + json.dumps(embedded) + ";\n"
 bundle += "const surroundImages=" + json.dumps(surrounds) + ";\n"
 crests = {path.stem: data_uri(path) for path in sorted((assets / "crests").glob("*.webp"))}
 bundle += "const crestImages=" + json.dumps(crests) + ";\n"
+marks = {path.stem: data_uri(path) for path in sorted((assets / "marks").glob("*.webp"))}
+bundle += "const markImages=" + json.dumps(marks) + ";\n"
 bundle += (src / "match.js").read_text() + "\n" + (src / "view.js").read_text()
 
 html = (src / "index.html").read_text()

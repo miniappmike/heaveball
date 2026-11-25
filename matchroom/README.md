@@ -9,7 +9,7 @@ This directory is the source for the live [Heaveball Matchroom](https://heavebal
 - `src/view.js` renders the field, markings, players and call popups, and connects the engine to the pregame screen, playback controls, play log, scouting, halftime screen and box scores.
 - `assets/fields/*.webp` are the field textures. Field markings are not part of the textures; `view.js` draws them as vector paths so they stay sharp.
 - `tools/build.py` generates `dist/` from `src/` and `assets/`.
-- `assets/crests/*.webp` are the club crests, built from `docs/logos` by `tools/generate_crests.py` (needs `numpy` and `Pillow`) and embedded in the page by the build.
+- `assets/marks/*.webp` (large background-free club logos) and `assets/crests/*.webp` (round field crests) are built from `docs/logos` by `tools/generate_crests.py` (needs `numpy` and `Pillow`) and embedded in the page by the build.
 - `tools/generate_fields.py` regenerates the field textures (needs `numpy` and `Pillow`). It samples colors from the original artwork in `tools/field-palettes/`.
 - `dist/` is generated. Never edit it by hand. It holds `index.html` with the game inlined and the default field embedded, the other field textures in `dist/fields/`, and `summary.md` with a build record.
 - `summary.md` is the authoritative contributor guide.

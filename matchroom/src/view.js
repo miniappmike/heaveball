@@ -41,7 +41,13 @@ function chooseKits(field){
 }
 let kits=[],kitKey='';
 function kit(team){const key=matchup[0].id+'|'+matchup[1].id+'|'+selectedField.id;if(key!==kitKey){kitKey=key;kits=chooseKits(selectedField)}return kits[team]}
-const crestCache={};
+const crestCache={},markCache={};
+// Marks: the club's full logo with no background (a light keyline where its edge is dark), for the pregame
+// matchup, the score card and the canvas score bar.
+function markImage(club){
+ if(!markCache[club.id]){const image=markCache[club.id]=new Image();image.src=(typeof markImages!=='undefined'&&markImages[club.id])||'marks/'+club.id+'.webp'}
+ return markCache[club.id];
+}
 function crestImage(club){
  if(!crestCache[club.id]){const image=crestCache[club.id]=new Image();image.src=(typeof crestImages!=='undefined'&&crestImages[club.id])||'crests/'+club.id+'.webp'}
  return crestCache[club.id];
@@ -54,7 +60,7 @@ function applyBranding(){
  });
  for(const node of document.querySelectorAll('[data-team]')){
    const club=matchup[+node.dataset.team];
-   if(node.tagName==='IMG'){node.src=crestImage(club).src;continue}
+   if(node.tagName==='IMG'){node.src=(node.dataset.art==='mark'?markImage(club):crestImage(club)).src;continue}
    const field=node.dataset.field;
    node.textContent=field==='short'?club.short:field==='meta'?club.abbr+' · '+club.home+' · Est. '+club.since:field==='history'?club.history:club.name;
  }
@@ -302,13 +308,12 @@ function layoutView(){
 // Score bar: a flat broadcast strip in the Matchroom style (dark card, Bebas Neue, club crests, mint accent).
 const barFont='"Bebas Neue","Oswald","Arial Narrow",Impact,sans-serif';
 document.fonts?.load?.('20px "Bebas Neue"').catch(()=>{});
-// A club crest on a light badge ringed in the club's primary colour (the same badge as the page's crests).
-function crestBadge(cx,cy,r,team){
- const club=matchup[team],image=crestImage(club);
- ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
- const g=ctx.createRadialGradient(cx-r*.3,cy-r*.4,r*.1,cx,cy,r);g.addColorStop(0,'#fff');g.addColorStop(.7,'#e6eae8');g.addColorStop(1,'#cdd4d0');
- ctx.fillStyle=g;ctx.fill();ctx.lineWidth=Math.max(1.2,r*.14);ctx.strokeStyle=club.kit[0];ctx.stroke();
- if(image.complete&&image.naturalWidth){const s=r*1.7;ctx.drawImage(image,cx-s/2,cy-s/2,s,s)}
+// A club mark fitted inside a w×h box, keeping its shape.
+function drawMark(x,y,w,h,team,align){
+ const image=markImage(matchup[team]);
+ if(!image.complete||!image.naturalWidth)return;
+ const s=Math.min(w/image.naturalWidth,h/image.naturalHeight),dw=image.naturalWidth*s,dh=image.naturalHeight*s;
+ ctx.drawImage(image,align==='right'?x+w-dw:x,y+(h-dh)/2,dw,dh);
 }
 function drawThinBar(v){
  const w=canvas.width/v.dpr,h=v.bar/v.dpr,poss=sim.team,live=!sim.done,narrow=w<640,tiny=w<440,mid=narrow?null:w/2;
@@ -321,7 +326,7 @@ function drawThinBar(v){
  ctx.font=big+'px '+barFont;
  const scoreW=Math.max(ctx.measureText(String(sim.score[0])).width,ctx.measureText(String(sim.score[1])).width,ctx.measureText('00').width);
  ctx.font=label+'px '+barFont;const abbrW=Math.max(...abbr.map(a=>ctx.measureText(a).width));
- const crestW=tiny?0:h*.66,gap=narrow?6:9,bw=scoreW+16,dash=narrow?9:11;
+ const crestW=tiny?0:h*1.3,gap=narrow?6:9,bw=scoreW+16,dash=narrow?9:11;
  const extent=dash+bw+7+abbrW+(tiny?0:gap+crestW);
  const cx=mid??pad+extent;
  const lpc=cx-dash-bw/2,rpc=cx+dash+bw/2;
@@ -337,9 +342,9 @@ function drawThinBar(v){
  ctx.textAlign='right';ctx.fillText(abbr[0],lpc-bw/2-7,cy);
  ctx.textAlign='left';ctx.fillText(abbr[1],rpc+bw/2+7,cy);
  if(!tiny){
-   const r=crestW/2;
-   crestBadge(lpc-bw/2-7-abbrW-gap-r,h/2,r,0);
-   crestBadge(rpc+bw/2+7+abbrW+gap+r,h/2,r,1);
+   const mh=h*.74;
+   drawMark(lpc-bw/2-7-abbrW-gap-crestW,(h-mh)/2,crestW,mh,0,'right');
+   drawMark(rpc+bw/2+7+abbrW+gap,(h-mh)/2,crestW,mh,1,'left');
  }
  // Left: possession or ruling.
  if(!narrow){
@@ -699,7 +704,7 @@ function frame(){
    try{
      advance(now);
      // While nothing on the field can change (paused, halftime screen, idle pregame), skip the redraw to save battery.
-     const image=fieldImage(selectedField),key=[sim.players.reduce((a,p)=>a+p.x*3.1+p.y,0).toFixed(3),playing,statsMode,frozenTime,sim.time,sim.posAge,sim.done,sim.half,sim.callEvents,selectedField.id,image.complete,typeof surroundPattern(selectedField.surface),matchup.map(c=>c.id+crestImage(c).complete).join(),clubField,
+     const image=fieldImage(selectedField),key=[sim.players.reduce((a,p)=>a+p.x*3.1+p.y,0).toFixed(3),playing,statsMode,frozenTime,sim.time,sim.posAge,sim.done,sim.half,sim.callEvents,selectedField.id,image.complete,typeof surroundPattern(selectedField.surface),matchup.map(c=>c.id+crestImage(c).complete+markImage(c).complete).join(),clubField,
        canvas.clientWidth,canvas.clientHeight,window.devicePixelRatio,el('field').className,el('pregame').hidden].join('|');
      if(playing||key!==lastDrawKey){draw();lastDrawKey=key}
      if(sim.subEvents!==shownSubs){rosterOptions();boxDirty=true}
