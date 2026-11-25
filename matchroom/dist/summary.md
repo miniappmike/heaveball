@@ -4,7 +4,7 @@ Heaveball is a spectator-first fictional sports league built around a physical s
 
 ## Contributor orientation
 
-The current release is a browser-local exhibition between Ember and Harbor. Open the [live Matchroom](https://heaveball-matchroom.hardyburl128.chatgpt.site) to generate squads and watch a match. Reloading starts a fresh session. The public GitHub repository contains the rules, playbook, player-generation spec, history and visual references. Club logos live in `docs/logos/`, one PNG per club named after the team (for example `southie-dockers.png`), and the league's teams spreadsheet links to them by their raw GitHub URLs. Matchroom’s simulation, renderer and release script live in its separate Sites source repository.
+The current release is a browser-local exhibition between Ember and Harbor. Open the [live Matchroom](https://heaveball-matchroom.hardyburl128.chatgpt.site) to generate squads and watch a match. Reloading starts a fresh session. The public GitHub repository contains the rules, playbook, player-generation spec, history and visual references. Club logos live in `docs/logos/`, named after the team. Each club has the original PNG (for example `southie-dockers.png`), which the league's teams spreadsheet links to by its raw GitHub URL, plus a transparent-background PNG (`-transparent.png`) and a traced SVG for future in-game crests. `docs/logos/make_variants.py` makes the last two from the original. Matchroom’s simulation, renderer and release script live in its separate Sites source repository.
 
 For gameplay changes, edit `src/match.js`. `src/view.js` draws the field and players and handles the handbook and controls. `src/index.html` provides layout and styles. Never edit `dist/`; `tools/build.py` regenerates it. The two textured dirt strips above and below the blue center square identify the no-possession area. Compare rule changes against the current handbook and this summary, especially the four-yard ring and the out-of-bounds ruling when a carried or grounded ball enters a dirt strip. Airborne passes may travel over dirt.
 
@@ -209,4 +209,4 @@ Sport documents and reference images live in `docs/`. Matchroom source is split 
 
 ## Build record
 
-Built 2026-11-25 01:20 UTC from `src/` and `assets/`.
+Built 2026-11-25 01:28 UTC from `src/` and `assets/`.
