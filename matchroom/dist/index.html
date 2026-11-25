@@ -512,6 +512,8 @@ const playbookCounter=[1,0,2,3,3,3,0,2];
 // Overreaction: after the opponent scores, a coach may make a knee-jerk defensive switch. The chance per
 // score is OVERREACT_RATE × (1 − adaptability)², at most four per half, and not within one minute of a change.
 const OVERREACT_RATE=.5915,overreactCooldown=60,overreactPerHalf=4;
+// Close-game hurry-up (any deficit, last two minutes) and the last-play window for the desperation heave.
+const closeGameHurry=120,desperationWindow=8;
 const firstHalfHurry=90,reviewEvery=300,coachMinPossessions=4,leakyDefense=1.05,stalledOffense=.6;
 const center={x:25,y:17}, blue=p=>Math.abs(p.x-25)<=5&&Math.abs(p.y-17)<=5;
 const ringRadius=2;
@@ -1006,9 +1008,16 @@ function match(report,clubPick){
    blockAnchor=anchors[0];decoy=anchors[1];
  }
 
- // Trailing by 5+ in the last five minutes of the game: hurry-up on offense, a press on defense.
+ // Trailing late in the second half: hurry-up on offense, a press on defense. A deficit of 5+ triggers it in the
+ // last five minutes; any deficit triggers it in the last two.
  function trailingLate(team){
-   return !s.overtime&&s.half===2&&s.time<=300&&s.score[1-team]-s.score[team]>=5;
+   const deficit=s.score[1-team]-s.score[team];
+   return !s.overtime&&s.half===2&&(deficit>=5&&s.time<=300||deficit>0&&s.time<=closeGameHurry);
+ }
+ // Last play: trailing with the clock about to expire, the offense skips every patient option and throws
+ // straight at the ring (the desperation heave), or keeps driving at it from the runway.
+ function desperate(team){
+   return !s.overtime&&s.half===2&&s.time<=desperationWindow&&s.score[1-team]>s.score[team];
  }
  // Hurry-up offense: when trailing late, and for every offense in the last 1:30 of the first half.
  function urgent(team){
@@ -2528,7 +2537,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  let p=carrier;if(worth===0&&!blue(p))worth=2;if(worth>0&&blue(p)&&insideRing(p)){score(p,worth);return}
  if(lane?.grip){updateStamina(lane.grip.d,.85,gameDt);advanceLaneGrip(p,dt);return}
  const plannedProbe=plan==='Drive and kick'||style.groundFirst;
- if(run&&!stationary&&!lane&&!s.overtime&&!retreat&&worth===2&&age>=nextRead&&(plannedProbe||!relay)){
+ if(run&&!stationary&&!lane&&!s.overtime&&!retreat&&worth===2&&age>=nextRead&&(plannedProbe||!relay)&&!desperate(off)){
    nextRead=age+.6;
    const entry={x:25+(p.x<25?-6:6),y:17};
    const ahead={x:(p.x+entry.x)/2,y:(p.y+entry.y)/2};
@@ -2573,11 +2582,19 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    }
    nextOutletRead=age+.18;
  }
- if(canThrow&&(quickTarget||!swing&&age>readTime)){
+ const heave=canThrow&&desperate(off);
+ if(heave){swing=null;cornerReturn=null;anchorLeak=null;quickTarget=null}
+ if(canThrow&&(heave||quickTarget||!swing&&age>readTime)){
  let target=quickTarget||cutter, movement=quickTarget?(swing?'quick swing':'quick outlet'):null;
  const circulating=circulate(off)&&!anchorLeak;
  const powerReset=style.groundFirst&&!quickTarget&&!cornerReturn&&!anchorLeak;
- if(!quickTarget&&(powerReset||protect(off)||retreat||cutter?.edgeTime>0||!cutter||clearance(cutter,off)<1.2)){
+ if(heave){
+   // Desperation heave: the teammate closest to the ring, preferring anyone already in the blue, covered or not.
+   const options=players.filter(q=>q.team===off&&q!==p&&active(q)&&!noPossession(q)&&q.y>=0&&q.y<=34);
+   const reach=q=>dist(q,center)-(blue(q)?4:0);
+   if(options.length){target=options.reduce((a,b)=>reach(a)<=reach(b)?a:b);movement=null}
+   if(target)log(p.name+' heaves it toward the ring for '+target.name+' with '+Math.ceil(s.time)+' seconds left');
+ }else if(!quickTarget&&(powerReset||protect(off)||retreat||cutter?.edgeTime>0||!cutter||clearance(cutter,off)<1.2)){
    const options=players.filter(q=>q.team===off&&q!==p&&active(q)&&!noPossession(q)&&q.y>=0&&q.y<=34);
    const safe=options.filter(q=>Math.abs(q.y-17)>6.8&&Math.abs(q.x-25)>6.8);
    if(!powerReset&&protect(off)&&safe.length)options.splice(0,options.length,...safe);
@@ -2623,7 +2640,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  stationary=false;previous=p;
  const closeSafe=dist(p,target)<=4&&players.every(q=>q.team===off||!active(q)||q.blocked||
    dist(q,p)>=3.2&&dist(q,target)>=3.2);
- if(closeSafe&&dist(p,target)<=1.65&&rand()<.58){
+ if(!heave&&closeSafe&&dist(p,target)<=1.65&&rand()<.58){
    log(p.name+' gives safely to '+target.name);
    assign(target);run=false;cool=.24;return;
  }
