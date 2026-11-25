@@ -2567,7 +2567,9 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      swingAttack=Boolean(quickTarget);
      if(runwayOpening(p,active)&&(!quickTarget||shortRunSupport(p)>0&&rand()<.55||
        dist(p,center)<12&&rand()<.35)){
-       swing=null;plan='Drive and kick';buildup=0;run=true;stationary=false;
+       // Clear any pull-out target: it outranks the run when choosing where the carrier moves, and a carrier who is
+       // both running and retreating can neither reach the ring nor throw, which stalled possessions for minutes.
+       swing=null;plan='Drive and kick';buildup=0;run=true;stationary=false;retreat=null;
        log(p.name+' attacks the ring off the quick swing');
        return;
      }
