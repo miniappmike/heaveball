@@ -1,7 +1,44 @@
 const rand=Math.random, clamp=(n,a,b)=>Math.min(b,Math.max(a,n)), dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const tackling=11;
 const traits=['Arm Strength','Throw Accuracy','Strength','Speed','Jump','Hands','Reaction','Discipline','IQ','Kicking','Agility','Tackling'];
-const teams=['Ember','Harbor'], names=['Reed','Ellis','Cruz','Park','Quinn','Cole','Lee','Lane','Silva','Hart','Fox','West','Shaw','Bell','Khan','Avery','Gale','Lowe','Page','Frost','Moss','Rowe','Nash','Ford','Wade','Ruiz','Kemp','Tate'];
+// The pre-modern Boston clubs (1977-1982), from the league's teams sheet (Program ID U-PRE-1..10).
+// short is the scoreboard name used in the play-by-play; strength is the sheet's target roster strength;
+// history is the sheet's program history.
+// kit lists the club's colours as extracted from its logo (docs/logos): primary first, then alternates
+// worn when the primary clashes with the field or the opponent. Crests are assets/crests/<id>.webp.
+const clubs=[
+ {id:'dorchester-dirts',name:'Dorchester Dirts',short:'Dirts',abbr:'DD',home:'Dorchester',since:1978,strength:72,kit:['#3a1003','#ebf6ff'],
+  history:'Scrappy Dorchester sandlot and vacant-lot club known for rough-and-tumble play and fierce neighborhood rivalries before folding in 1981.'},
+ {id:'southie-dockers',name:'Southie Dockers',short:'Dockers',abbr:'SD',home:'South Boston',since:1977,strength:78,kit:['#0136a5','#1f1b15','#4d5059'],
+  history:'Dominant waterfront club formed by South Boston dockworkers; set the physical standard of the resurgence through the final 1982 season.'},
+ {id:'roxbury-iron',name:'Roxbury Iron',short:'Iron',abbr:'ROX',home:'Roxbury',since:1977,strength:74,kit:['#3a6440','#d96a2c'],
+  history:'Hard-nosed founding Roxbury squad built on speed and physical toughness; played two intense seasons before disbanding after 1978.'},
+ {id:'our-lady-of-the-harbor',name:'Our Lady of the Harbor',short:'Our Lady',abbr:'OLH',home:'East Boston',since:1977,strength:68,kit:['#00e0ff','#141b26','#feebff'],
+  history:'Tight-knit East Boston parish squad organized in church halls; proud harbor underdogs who traveled across Boston until folding in 1979.'},
+ {id:'muddy-river-hens',name:'Muddy River Hens',short:'Hens',abbr:'MRH',home:'Fenway',since:1978,strength:72,kit:['#fca900','#be0032','#008fcf'],
+  history:'Fenway park rec club known for sloppy, wet-turf games along the Muddy River and improvised protective gear during the resurgence.'},
+ {id:'charlestown-beacons',name:'Charlestown Beacons',short:'Beacons',abbr:'CHB',home:'Charlestown',since:1977,strength:75,kit:['#e3271c','#120e2c','#fc8e00'],
+  history:'Gritty Charlestown hilltop and Navy Yard-adjacent club known for physical, hard-hitting play and fierce harbor rivalries against Southie and East Boston until disbanding after 1980.'},
+ {id:'st-anthonys-knights',name:'St. Anthony\'s Knights',short:'Knights',abbr:'SAK',home:'North End',since:1977,strength:74,kit:['#7d00ff','#010101','#b9babf'],
+  history:'Tight-knit North End parish and feast-society squad organized through local church halls; held their own against larger waterfront clubs before folding in 1979.'},
+ {id:'copley-stacks',name:'Copley Stacks',short:'Stacks',abbr:'CPL',home:'Back Bay',since:1978,strength:70,kit:['#f82929','#0d101b'],
+  history:'Quirky Back Bay club formed by branch-library pages and night-school regulars; relied on clever formations and rulebook savvy to survive through the final 1982 sandlot season.'},
+ {id:'uphams-corner-routers',name:'Uphams Corner Routers',short:'Routers',abbr:'UCR',home:'Dorchester',since:1979,strength:68,kit:['#6a0205','#fedc00'],
+  history:'Beloved Dorchester underdog squad recruited off Uphams Corner branch library corkboards; wore mismatched gear and lasted through the end of the neighborhood era in 1982.'},
+ {id:'brighton-hill',name:'Brighton Hill',short:'Brighton',abbr:'BRH',home:'Brighton',since:1979,strength:73,kit:['#7aa921','#01040a'],
+  history:'Second-wave Brighton neighborhood and park club that stepped in as early 1978-1979 squads folded, bringing steady weekend turnout through the final 1982 season.'}
+];
+// The two clubs in the current match (index 0 is the home side) and their scoreboard names.
+// match() draws a new pairing each time; the rest of the engine and the view read teams[team].
+const matchup=[clubs[0],clubs[1]], teams=matchup.map(c=>c.short);
+// pick holds an optional club id per side (home, away); a missing or repeated id means a random club.
+function drawMatchup(pick=[]){
+ const chosen=[0,1].map(i=>clubs.find(c=>c.id===pick[i])||null);
+ if(chosen[0]&&chosen[0]===chosen[1])chosen[1]=null;
+ for(const i of [0,1])if(!chosen[i]){const pool=clubs.filter(c=>c!==chosen[1-i]);chosen[i]=pool[Math.floor(rand()*pool.length)]}
+ for(const i of [0,1]){matchup[i]=chosen[i];teams[i]=chosen[i].short}
+}
+const names=['Reed','Ellis','Cruz','Park','Quinn','Cole','Lee','Lane','Silva','Hart','Fox','West','Shaw','Bell','Khan','Avery','Gale','Lowe','Page','Frost','Moss','Rowe','Nash','Ford','Wade','Ruiz','Kemp','Tate'];
 // Venue layout in yards, shared by the overhead view and the planned 3D stadium.
 // Origin is the field's top-left corner; x runs along the 50-yard length, y across the 34-yard width.
 const venue={
@@ -266,7 +303,8 @@ function benchPlayer(team,slot,name){
  const seat=(slot%2?.5:-.5)*venue.bench.seatGap;
  return Object.assign(p,{i:8+slot,bench:true,side:bench.side,hx:bench.x,hy:bench.y+seat,x:bench.x,y:bench.y+seat});
 }
-function match(report){
+function match(report,clubPick){
+ drawMatchup(clubPick);
  let pool=names.slice(),pick=()=>pool.splice(Math.floor(rand()*pool.length),1)[0];
  let players=Array.from({length:16},(_,i)=>player(i>>3,i%8,pick()));
  const bench=Array.from({length:8},(_,i)=>benchPlayer(i>>2,i%4,pick()));
@@ -285,9 +323,9 @@ function match(report){
    }
  }
  // Fit the actual integer ratings to the roster target while preserving skill order.
- const home=55+Math.floor(rand()*36);
- const away=rand()<.85?clamp(home+Math.floor(rand()*11)-5,55,90):55+Math.floor(rand()*36);
- for(const [team,target] of [home,away].entries()){
+ // Each club's target is its strength from the teams sheet, give or take about three points per season's squad.
+ const targets=matchup.map(c=>clamp(c.strength+Math.round(3*(rand()+rand()+rand()-1.5)),55,90));
+ for(const [team,target] of targets.entries()){
    for(const squad of [players.filter(p=>p.team===team),bench.filter(p=>p.team===team)]){
    let delta=target*squad.length*traits.length-squad.reduce((sum,p)=>sum+p.ratings.reduce((a,b)=>a+b,0),0);
    while(delta){for(const p of squad)for(let j=0;j<p.ratings.length&&delta;j++){

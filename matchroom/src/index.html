@@ -2,7 +2,7 @@
 /* Matchroom: dark broadcast bento. Cards on a near-black pitch-green ground, condensed display type, one mint accent. */
 :root{
  --bg:#0b0e0d;--card:#151917;--card-2:#1d2220;--card-3:#252b28;--line:rgba(255,255,255,.07);--line-2:rgba(255,255,255,.12);
- --text:#f2f5f3;--muted:#99a49d;--mint:#2fe39a;--mint-ink:#04200f;--ember:#ff7f5c;--harbor:#5db4ff;--gold:#f2d21b;
+ --text:#f2f5f3;--muted:#99a49d;--mint:#2fe39a;--mint-ink:#04200f;--team0:#ff7f5c;--team1:#5db4ff;--team0-primary:#ff7f5c;--team1-primary:#5db4ff;--gold:#f2d21b;
  --display:"Bebas Neue","Oswald","Arial Narrow",Impact,sans-serif;--body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--r:20px;--r-sm:12px;--gap:20px;
  color-scheme:dark;
@@ -11,12 +11,13 @@
 html{background:var(--bg)}
 body{margin:0;color:var(--text);font:15px/1.5 var(--body);background:
  radial-gradient(900px 520px at 85% -8%,rgba(47,227,154,.09),transparent 60%),
- radial-gradient(700px 420px at -10% 30%,rgba(93,180,255,.05),transparent 60%),var(--bg);min-height:100vh}
+ radial-gradient(700px 420px at -10% 30%,color-mix(in srgb,var(--team0-primary) 9%,transparent),transparent 60%),
+ radial-gradient(700px 420px at 110% 60%,color-mix(in srgb,var(--team1-primary) 7%,transparent),transparent 60%),var(--bg);min-height:100vh}
 main{max-width:1240px;margin:0 auto;padding-block:24px 32px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));display:grid;gap:var(--gap)}
 h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:.04em;text-transform:uppercase;margin:0;line-height:1}
 h2{font-size:24px}h3{font-size:21px}
 p{margin:0}
-.red{color:var(--ember)}.blue{color:var(--harbor)}.accent{color:var(--mint)}
+.t0{color:var(--team0)}.t1{color:var(--team1)}.accent{color:var(--mint)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 .eyebrow{font:15px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 section,aside,article,.grid>*{min-width:0}
@@ -53,19 +54,33 @@ details[open]>summary::after{transform:rotate(-135deg)}
 .live-chip .dot{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 4px rgba(47,227,154,.15)}
 .live-chip:has(small:empty){display:none}
 
-/* Crests (placeholders until club marks exist) */
-.crest{display:grid;place-items:center;width:64px;height:72px;font:34px/1 var(--display);color:#fff;
- clip-path:polygon(50% 0,100% 14%,100% 62%,50% 100%,0 62%,0 14%)}
-.ember .crest{background:linear-gradient(160deg,#ff9c7f,#b8452e)}
-.harbor .crest{background:linear-gradient(160deg,#8fd0ff,#2f63a3)}
+/* Club crests: each club's logo on a light badge ringed in its primary colour, so dark marks read on the dark site */
+.crest{display:block;flex:none;width:64px;height:64px;padding:5px;border-radius:50%;object-fit:contain;
+ background:radial-gradient(circle at 35% 30%,#fff,#e6eae8 68%,#cdd4d0);box-shadow:0 0 0 3px var(--ring,#2a302d),0 12px 26px -12px rgba(0,0,0,.9)}
+.team-0 .crest{--ring:var(--team0-primary)}.team-1 .crest{--ring:var(--team1-primary)}
+.team-0 .tname{color:var(--team0)}.team-1 .tname{color:var(--team1)}
+/* Marks: each club's full logo with no background; a light keyline is baked in where the logo's edge is dark */
+.mark-logo{display:block;flex:none;width:150px;height:118px;object-fit:contain;filter:drop-shadow(0 12px 18px rgba(0,0,0,.55))}
+.score .mark-logo{width:96px;height:64px}
+.club-meta{font:12px/1.3 var(--body);color:var(--muted)}
+.club-history{font:12.5px/1.45 var(--body);color:var(--muted);max-width:34ch}
+.club-history:empty{display:none}
+.club-pickers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.club-pickers label{display:grid;gap:6px;font:600 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase}
+.club-pickers .team-0 span{color:var(--team0)}.club-pickers .team-1 span{color:var(--team1)}
+.club-pickers select{width:100%}
+.club-pickers .team-0 select{border-color:color-mix(in srgb,var(--team0-primary) 60%,transparent)}
+.club-pickers .team-1 select{border-color:color-mix(in srgb,var(--team1-primary) 60%,transparent)}
 .tname{font:22px/1 var(--display);letter-spacing:.06em;text-transform:uppercase}
 
 /* Live score hero */
 .score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:18px 26px;
- background:radial-gradient(500px 200px at 50% 0,rgba(47,227,154,.12),transparent 70%),linear-gradient(180deg,#191e1b,#131715)}
+ background:radial-gradient(420px 180px at 0 50%,color-mix(in srgb,var(--team0-primary) 24%,transparent),transparent 70%),
+  radial-gradient(420px 180px at 100% 50%,color-mix(in srgb,var(--team1-primary) 24%,transparent),transparent 70%),
+  radial-gradient(500px 200px at 50% 0,rgba(47,227,154,.12),transparent 70%),linear-gradient(180deg,#191e1b,#131715)}
 .score .team{display:flex;align-items:center;gap:14px}
-.score .harbor{flex-direction:row-reverse}
-.score .crest{width:52px;height:58px;font-size:28px}
+.score .team-1{flex-direction:row-reverse;text-align:right}
+.score .crest{width:58px;height:58px;padding:5px}
 .score .tname{font-size:26px}
 .tally{display:grid;justify-items:center;gap:6px}
 .tally b{font:400 clamp(44px,6vw,64px)/.9 var(--display);letter-spacing:.06em;font-variant-numeric:tabular-nums}
@@ -114,6 +129,8 @@ main:has(#pregame:not([hidden])) .score{display:none}
 .field-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:4px 6px 0}
 .picker{display:flex;align-items:center;gap:10px;font:600 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .picker select{text-transform:none;letter-spacing:0;font-size:14px;color:var(--text)}
+.field-options{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.club-toggle{min-height:44px;cursor:pointer}.club-toggle input{width:18px;height:18px;margin:0;accent-color:var(--mint);cursor:pointer}
 .coach-line{margin:2px 0 8px;font-size:13px;color:var(--muted)}
 canvas{display:block;width:100%;max-width:100%;height:auto;border-radius:14px;background:#121614}
 .bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -193,12 +210,14 @@ canvas{display:block;width:100%;max-width:100%;height:auto;border-radius:14px;ba
  .card{padding:16px;border-radius:18px}
  .brand h1{font-size:28px}
  .score{grid-template-columns:1fr auto 1fr;padding:14px;gap:8px}
- .score .team{flex-direction:column;gap:6px}.score .harbor{flex-direction:column}
- .score .crest{width:40px;height:46px;font-size:22px}
+ .score .team{flex-direction:column;gap:6px}.score .team-1{flex-direction:column}
+ .score .crest{width:44px;height:44px;padding:4px}
+ .score .mark-logo{width:72px;height:46px}
+ .mark-logo{width:118px;height:92px}
  .score .tname{font-size:16px;text-align:center}
  .tally b{font-size:44px}
  .versus{padding:14px 8px;gap:6px}
- .crest{width:48px;height:54px;font-size:26px}
+ .crest{width:52px;height:52px;padding:4px}
  .side strong{font-size:36px}
  .line strong{font-size:30px}
  #averages{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -296,24 +315,28 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
  <div class="top-actions"><button type="button" class="btn ghost rules-open" id="rules-open" aria-haspopup="dialog" aria-controls="rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></svg>How to play</button><span class="chip live-chip"><span class="dot" aria-hidden="true"></span><small class="live" id="clock"></small></span></div>
 </header>
 <div class="score card" aria-live="polite">
- <div class="team ember"><span class="crest" aria-hidden="true">E</span><span class="tname">Ember Club</span></div>
+ <div class="team team-0"><img class="mark-logo" data-team="0" data-art="mark" alt=""><span class="tname" data-team="0"></span></div>
  <div class="tally"><span class="eyebrow">Heaveball League · <span class="accent">Live</span></span><b id="points"></b></div>
- <div class="team harbor"><span class="crest" aria-hidden="true">H</span><span class="tname">Harbor Club</span></div>
+ <div class="team team-1"><img class="mark-logo" data-team="1" data-art="mark" alt=""><span class="tname" data-team="1"></span></div>
 </div>
 <section id="pregame" class="bento" aria-labelledby="handbook">
  <article class="card matchup">
   <p class="eyebrow">Match preview · <span class="accent">Pregame</span></p>
-  <h2 id="handbook">Ember vs Harbor</h2>
+  <div class="club-pickers">
+   <label class="team-0"><span>Home club</span><select id="home-club"></select></label>
+   <label class="team-1"><span>Away club</span><select id="away-club"></select></label>
+  </div>
+  <h2 id="handbook">Matchup</h2>
   <div class="versus matchup-overview" aria-live="polite">
-   <div class="side ember"><span class="crest" aria-hidden="true">E</span><span class="tname">Ember</span><strong class="red" id="ember-overall"></strong><small>Overall</small></div>
+   <div class="side team-0"><img class="mark-logo" data-team="0" data-art="mark" alt=""><span class="tname" data-team="0"></span><small class="club-meta" data-team="0" data-field="meta"></small><strong class="t0" id="overall-0"></strong><small>Overall</small><p class="club-history" data-team="0" data-field="history"></p></div>
    <div class="line" title="Forecast from ratings and both teams' tactics, fitted on simulated matches"><span class="label">Projected spread</span><strong id="spread"></strong><small id="spread-detail" class="spread-detail"></small></div>
-   <div class="side harbor"><span class="crest" aria-hidden="true">H</span><span class="tname">Harbor</span><strong class="blue" id="harbor-overall"></strong><small>Overall</small></div>
+   <div class="side team-1"><img class="mark-logo" data-team="1" data-art="mark" alt=""><span class="tname" data-team="1"></span><small class="club-meta" data-team="1" data-field="meta"></small><strong class="t1" id="overall-1"></strong><small>Overall</small><p class="club-history" data-team="1" data-field="history"></p></div>
   </div>
   <div class="actions"><button id="start" class="btn primary" type="button">Play match</button><button id="reroll" class="btn ghost" type="button">Generate new rosters</button></div>
  </article>
  <article class="card tactics-panel" aria-labelledby="tactics-heading"><h3 id="tactics-heading">Team tactics</h3><div id="tactics"></div></article>
  <article class="card averages" aria-labelledby="average-heading">
-  <div class="average-heading"><h3 id="average-heading">Team averages</h3><div class="team-key" aria-hidden="true"><span class="red">Ember</span><span class="blue">Harbor</span></div></div>
+  <div class="average-heading"><h3 id="average-heading">Team averages</h3><div class="team-key" aria-hidden="true"><span class="t0" data-team="0" data-field="short"></span><span class="t1" data-team="1" data-field="short"></span></div></div>
   <ul id="averages" aria-labelledby="average-heading"></ul>
  </article>
 </section>
@@ -380,7 +403,7 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
 </dialog>
 <div class="grid">
  <section id="field" class="card field-card">
-  <div class="field-head"><h2>Match field</h2><label class="picker">Field <select id="field-picker" aria-label="Field template"></select></label></div>
+  <div class="field-head"><h2>Match field</h2><div class="field-options"><label class="picker club-toggle"><input type="checkbox" id="club-field" checked> Club colors</label><label class="picker">Field <select id="field-picker" aria-label="Field template"></select></label></div></div>
   <canvas width="1100" height="900" aria-label="Top-down field with numbered players and a score bar above the field"></canvas>
   <div class="bar" role="toolbar" aria-label="Playback controls">
    <button type="button" id="bar-toggle" class="btn primary">Pause</button>
@@ -394,7 +417,7 @@ html:fullscreen:has(#field.mobile-expanded){overflow:auto}
   <details class="guide"><summary>Field guide</summary><p>Both teams attack the 4-yard ring inside the 10-yard center zone. A tackle short of the ring stops the finish. Watch for Anchors blocking off the ball, slipping toward the ring or drawing a defender away from a cut. Carry in for two or catch in the blue and finish for three. Watch the white ball and its shadow to read the height of a pass or bounce. Gold outlines show blocks and pile drives. On fumbles, only players with a realistic arrival path pursue; nearby players contest the ball while the rest reposition to cover space or give the recovering player an outlet. A center catch directly from an airborne kick save earns five. New match draws two fresh squads.</p></details>
   <dialog id="match-stats" aria-labelledby="stats-title">
  <h2 id="stats-title"></h2>
- <div class="score"><span class="red">Ember</span><b id="stats-score"></b><span class="blue">Harbor</span></div>
+ <div class="score"><span class="t0" data-team="0" data-field="short"></span><b id="stats-score"></b><span class="t1" data-team="1" data-field="short"></span></div>
  <h3 id="stats-page">Team stats</h3>
  <table id="stats-team" aria-label="Team stats"></table>
  <table id="stats-leaders" aria-label="First-half stat leaders" hidden></table>

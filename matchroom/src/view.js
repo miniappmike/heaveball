@@ -8,6 +8,74 @@ const fieldTemplates=[
 
 if(!window.heaveballReady){
 const el=id=>document.getElementById(id),canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),colors=['#ff805d','#69bafa'];
+// Club branding. colors[team] is the club's primary colour, lightened just enough to read as text on the dark
+// site (4.5:1 contrast). Jerseys (kit) use the primary itself unless it clashes with the field or the home kit;
+// then the club's next logo colour, then white or black.
+const hexRgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+const toHex=c=>'#'+c.map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
+const mixColor=(a,b,t)=>{const x=hexRgb(a),y=hexRgb(b);return toHex(x.map((v,i)=>v+(y[i]-v)*t))};
+const luminance=h=>{const [r,g,b]=hexRgb(h).map(v=>{v/=255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4});return .2126*r+.7152*g+.0722*b};
+const contrast=(a,b)=>{const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+// Perceptual distance ("redmean"). Against the grass, about 100 or less disappears.
+const colorGap=(a,b)=>{const [r1,g1,b1]=hexRgb(a),[r2,g2,b2]=hexRgb(b),m=(r1+r2)/2;return Math.sqrt((2+m/256)*(r1-r2)**2+4*(g1-g2)**2+(2+(255-m)/256)*(b1-b2)**2)};
+const fieldClash=100,kitClash=120,kitFamily=230,darkInk='#101c16';
+const hue=h=>{const [r,g,b]=hexRgb(h).map(v=>v/255),mx=Math.max(r,g,b),d=mx-Math.min(r,g,b);if(!d)return null;
+ return 60*(mx===r?((g-b)/d+6)%6:mx===g?(b-r)/d+2:(r-g)/d+4)};
+// Two kits clash when they are nearly the same colour, or fairly close and within 40 degrees of hue.
+function kitsClash(a,b){
+ const gap=colorGap(a,b);if(gap<kitClash)return true;if(gap>=kitFamily)return false;
+ const x=hue(a),y=hue(b);if(x===null||y===null)return false;const d=Math.abs(x-y);return Math.min(d,360-d)<40;
+}
+function readable(hex,bg='#151917'){let c=hex;for(let t=.05;contrast(c,bg)<4.5&&t<=1;t+=.05)c=mixColor(hex,'#ffffff',t);return c}
+function chooseKits(field){
+ const pitch=[field.grass,field.stripe,field.runway,field.center];
+ const clear=(c,others)=>pitch.every(p=>colorGap(c,p)>=fieldClash)&&others.every(o=>!kitsClash(c,o));
+ const pick=(club,others)=>club.kit.concat('#f4f4f0','#16181a').find(c=>clear(c,others))||club.kit[0];
+ const fills=[pick(matchup[0],[])];fills.push(pick(matchup[1],fills));
+ return fills.map((fill,team)=>{
+   const ink=contrast(fill,'#ffffff')>=contrast(fill,darkInk)?'#ffffff':darkInk;
+   // Trim: the club colour that stands out most against the jersey, or the number colour.
+   const trim=matchup[team].kit.filter(c=>c!==fill).sort((a,b)=>contrast(b,fill)-contrast(a,fill))[0];
+   return {fill,ink,trim:trim&&contrast(trim,fill)>=2?trim:ink,dark:luminance(fill)<.06};
+ });
+}
+let kits=[],kitKey='';
+function kit(team){const key=matchup[0].id+'|'+matchup[1].id+'|'+selectedField.id;if(key!==kitKey){kitKey=key;kits=chooseKits(selectedField)}return kits[team]}
+const crestCache={},markCache={};
+// Marks: the club's full logo with no background (a light keyline where its edge is dark), for the pregame
+// matchup, the score card and the canvas score bar.
+function markImage(club){
+ if(!markCache[club.id]){const image=markCache[club.id]=new Image();image.src=(typeof markImages!=='undefined'&&markImages[club.id])||'marks/'+club.id+'.webp'}
+ return markCache[club.id];
+}
+function crestImage(club){
+ if(!crestCache[club.id]){const image=crestCache[club.id]=new Image();image.src=(typeof crestImages!=='undefined'&&crestImages[club.id])||'crests/'+club.id+'.webp'}
+ return crestCache[club.id];
+}
+function applyBranding(){
+ const style=document.documentElement.style;
+ matchup.forEach((club,team)=>{
+   colors[team]=readable(club.kit[0]);
+   style.setProperty('--team'+team,colors[team]);style.setProperty('--team'+team+'-primary',club.kit[0]);
+ });
+ for(const node of document.querySelectorAll('[data-team]')){
+   const club=matchup[+node.dataset.team];
+   if(node.tagName==='IMG'){node.src=(node.dataset.art==='mark'?markImage(club):crestImage(club)).src;continue}
+   const field=node.dataset.field;
+   node.textContent=field==='short'?club.short:field==='meta'?club.abbr+' · '+club.home+' · Est. '+club.since:field==='history'?club.history:club.name;
+ }
+ el('handbook').textContent=matchup[0].name+' vs '+matchup[1].name;
+ document.title=matchup[0].short+' vs '+matchup[1].short+' · Heaveball Matchroom';
+}
+// Pregame club pickers: Random club or a fixed club per side. New rosters keep fixed clubs and redraw random ones;
+// choosing the club already on the other side swaps the two.
+const clubPickers=[el('home-club'),el('away-club')];
+for(const picker of clubPickers){picker.replaceChildren(new Option('Random club',''),...clubs.map(c=>new Option(c.name,c.id)));picker.dataset.last=''}
+clubPickers.forEach((picker,i)=>picker.onchange=()=>{
+ const other=clubPickers[1-i];
+ if(picker.value&&picker.value===other.value){other.value=picker.dataset.last;other.dataset.last=other.value}
+ picker.dataset.last=picker.value;fresh();
+});
 const tackleDuration=2000,fixedStep=.04,halftimeDuration=15000,scoringDuration=3500,penaltyDuration=3500,stoppageDuration=3500;
 let sim,playing=false,carry=0,wall=performance.now(),speed=1,backgroundTimer=0;
 let statsMode=null,statsPage=0,statsDeadline=0,frozenTime=null,finalStats=null;
@@ -44,17 +112,17 @@ function rosterOptions(){
  const keep=list.findIndex(p=>p.name===chosen);if(keep>=0)el('roster').value=keep;
  scout();
 }
-function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;callAge=Infinity;boxDirty=true;el('feed').replaceChildren();sim=match(report);playing=false;carry=0;rosterOptions();briefing()}
+function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;callAge=Infinity;boxDirty=true;el('feed').replaceChildren();sim=match(report,clubPickers.map(p=>p.value));applyBranding();playing=false;carry=0;rosterOptions();briefing()}
 function briefing(){
  const average=values=>values.reduce((sum,v)=>sum+v,0)/values.length;
  const squads=teams.map((_,i)=>sim.players.filter(p=>p.team===i));
  const ratings=squads.map(rows=>traits.map((_,j)=>average(rows.map(p=>p.ratings[j]))));
  const overall=ratings.map(average);
  el('averages').innerHTML=traits.map((label,trait)=>'<li><dl class="rating-card"><dt>'+label+'</dt><dd>'+
-   ratings.map((row,team)=>'<span class="rating-value '+(team?'blue':'red')+'" style="--rating:'+row[trait]+'%">'+
+   ratings.map((row,team)=>'<span class="rating-value t'+team+'" style="--rating:'+row[trait]+'%">'+
      '<span class="sr-only">'+teams[team]+' </span>'+row[trait].toFixed(1)+'</span>').join('')+'</dd></dl></li>').join('');
- el('ember-overall').textContent=overall[0].toFixed(1);
- el('harbor-overall').textContent=overall[1].toFixed(1);
+ el('overall-0').textContent=overall[0].toFixed(1);
+ el('overall-1').textContent=overall[1].toFixed(1);
  // Spread model refitted on 339 simulated full matches after the fatigue, defensive-pressure and Carrier pressure changes (see summary.md, "Spread forecast").
  // Expected team points = base + own trait averages + opponent trait averages + own playbook + opponent defense + own defense tempo.
  const forecast=()=>{
@@ -77,7 +145,7 @@ function briefing(){
  const options=teams.map((name,team)=>{
    const fieldset=document.createElement('fieldset'),legend=document.createElement('legend');
    fieldset.className='tactic-team';
-   legend.className=team?'blue':'red';
+   legend.className='t'+team;
    legend.textContent=name;
    const coach=document.createElement('p'),c=sim.coaches[team];
    coach.className='coach-line';
@@ -137,6 +205,57 @@ function fieldImage(template){
  if(!template.image){template.image=new Image();template.image.src=(typeof fieldImages!=='undefined'&&fieldImages[template.id])||'fields/'+template.id+'.webp'}
  return template.image;
 }
+// Field branding: the home club's colours on the clay strips and, on all-weather fields, the center turf.
+// Grass and runways always keep their greens. Every pixel keeps its texture: the brand colour is scaled by how
+// light or dark the original pixel is against its zone's average, so grain, rows and mowing stripes survive.
+// Brand colours are muted slightly and held inside the brightness range of real clay and turf, so players and
+// the ball stay readable on them. One branded copy is kept, for the current field and home club.
+let clubField=true,brandedField={key:'',canvas:null};
+try{clubField=localStorage.getItem('heaveball-club-field')!=='off'}catch{}
+const saturation=h=>{const c=hexRgb(h),mx=Math.max(...c),mn=Math.min(...c);return mx?(mx-mn)/mx:0};
+const greens=fieldTemplates.flatMap(t=>[t.grass,t.stripe,t.runway]);
+// Clay: the club's most characteristic colour that is not lost against grass. Center turf: its next such colour.
+function fieldPalette(club){
+ const safe=c=>greens.every(g=>colorGap(c,g)>=110);
+ const clay=club.kit.find(c=>saturation(c)>=.35&&safe(c))||club.kit.find(safe)||club.kit[0];
+ return {clay,zone:club.kit.find(c=>c!==clay&&safe(c))||clay};
+}
+function surfaceTone(hex,lo,hi){
+ // Vivid colours are muted more, the way coloured clay and infill read against the logo they come from.
+ let c=mixColor(hex,'#808078',.16+.24*saturation(hex));
+ for(let i=0;i<24&&luminance(c)>hi;i++)c=mixColor(c,'#000000',.07);
+ for(let i=0;i<24&&luminance(c)<lo;i++)c=mixColor(c,'#ffffff',.07);
+ return c;
+}
+function fieldSurface(template){
+ const image=fieldImage(template);
+ if(!image.complete||!image.naturalWidth)return null;
+ if(!clubField)return image;
+ const club=matchup[0],key=template.id+'|'+club.id;
+ if(brandedField.key===key)return brandedField.canvas;
+ const surface=document.createElement('canvas');surface.width=image.naturalWidth;surface.height=image.naturalHeight;
+ const g=surface.getContext('2d',{willReadFrequently:true});g.drawImage(image,0,0);
+ const k=surface.width/venue.field.width,{x,width,gap}=venue.strip,{clay,zone}=fieldPalette(club);
+ const paint=(rects,hex)=>{
+   const target=hexRgb(hex);
+   const blocks=rects.map(r=>r.map(v=>Math.round(v*k))).map(([a,b,w,h])=>[a,b,g.getImageData(a,b,w,h)]);
+   let sum=0,n=0;
+   for(const [,,img] of blocks){const d=img.data;for(let i=0;i<d.length;i+=4){sum+=d[i]*.299+d[i+1]*.587+d[i+2]*.114;n++}}
+   const mean=sum/n;
+   for(const [a,b,img] of blocks){
+     const d=img.data;
+     for(let i=0;i<d.length;i+=4){const f=(d[i]*.299+d[i+1]*.587+d[i+2]*.114)/mean;d[i]=target[0]*f;d[i+1]=target[1]*f;d[i+2]=target[2]*f}
+     g.putImageData(img,a,b);
+   }
+ };
+ paint([[x,0,width,gap[0]],[x,gap[1],width,venue.field.height-gap[1]]],surfaceTone(clay,.07,.22));
+ if(template.surface==='turf')paint([[x,gap[0],width,gap[1]-gap[0]]],surfaceTone(zone,.05,.17));
+ brandedField={key,canvas:surface};
+ return surface;
+}
+const clubFieldToggle=el('club-field');
+clubFieldToggle.checked=clubField;
+clubFieldToggle.addEventListener('change',()=>{clubField=clubFieldToggle.checked;try{localStorage.setItem('heaveball-club-field',clubField?'on':'off')}catch{}});
 function drawBall(ball){
  const height=Math.max(0,(ball.z??ballRadius)-ballRadius);
  const x=ball.x,y=ball.y-height*.67;
@@ -168,9 +287,11 @@ function drawPlayer(p){
  const flagged=sim.penaltyPending&&sim.penalized===p;
  if(flagged)disc(p.x,p.y,1.25,'rgba(255,40,40,.45)','#ff2a2a');
  else if(p.blocked>0)disc(p.x,p.y,1,"#8a7546","#f5d688");
- disc(p.x,p.y,.76,flagged?'#ff3b3b':colors[p.team],flagged?'#fff':'#12271e');
+ const k=kit(p.team);
+ disc(p.x,p.y,.76,flagged?'#ff3b3b':k.fill,flagged?'#fff':k.trim);
  ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
- if(sim.tackled===p){ctx.beginPath();ctx.arc(0,0,.6,0,Math.PI*2);ctx.strokeStyle='#000';ctx.lineWidth=.16;ctx.stroke()}ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
+ // The tackled player's inner ring is black, or white on a dark jersey.
+ if(sim.tackled===p){ctx.beginPath();ctx.arc(0,0,.6,0,Math.PI*2);ctx.strokeStyle=k.dark&&!flagged?'#fff':'#000';ctx.lineWidth=.16;ctx.stroke()}ctx.fillStyle=flagged?darkInk:k.ink;ctx.fillText(p.jersey,0,0);ctx.restore();
 }
 // Canvas layout: the canvas matches its on-screen size and the venue (field, benches, coach boxes) fills it below a thin score bar.
 // Inline, the canvas height follows its width; in full screen it fills the screen.
@@ -184,19 +305,19 @@ function layoutView(){
  const bar=Math.round(barCss*dpr),s=Math.min(W/v.width,(H-bar)/v.height);
  return {s,ox:(W-v.width*s)/2-v.x*s,oy:bar+(H-bar-v.height*s)/2-v.y*s,dpr,bar};
 }
-// Score bar: a flat broadcast strip in the Matchroom style (dark card, Bebas Neue, shield crests, mint accent).
+// Score bar: a flat broadcast strip in the Matchroom style (dark card, Bebas Neue, club crests, mint accent).
 const barFont='"Bebas Neue","Oswald","Arial Narrow",Impact,sans-serif';
 document.fonts?.load?.('20px "Bebas Neue"').catch(()=>{});
-function shield(x,y,w,h,team){
- ctx.beginPath();ctx.moveTo(x+w/2,y);ctx.lineTo(x+w,y+h*.14);ctx.lineTo(x+w,y+h*.62);ctx.lineTo(x+w/2,y+h);ctx.lineTo(x,y+h*.62);ctx.lineTo(x,y+h*.14);ctx.closePath();
- const g=ctx.createLinearGradient(x,y,x+w,y+h);
- if(team){g.addColorStop(0,'#8fd0ff');g.addColorStop(1,'#2f63a3')}else{g.addColorStop(0,'#ff9c7f');g.addColorStop(1,'#b8452e')}
- ctx.fillStyle=g;ctx.fill();
- ctx.fillStyle='#fff';ctx.font=Math.round(h*.62)+'px '+barFont;ctx.textAlign='center';ctx.fillText(team?'H':'E',x+w/2,y+h*.5);
+// A club mark fitted inside a w×h box, keeping its shape.
+function drawMark(x,y,w,h,team,align){
+ const image=markImage(matchup[team]);
+ if(!image.complete||!image.naturalWidth)return;
+ const s=Math.min(w/image.naturalWidth,h/image.naturalHeight),dw=image.naturalWidth*s,dh=image.naturalHeight*s;
+ ctx.drawImage(image,align==='right'?x+w-dw:x,y+(h-dh)/2,dw,dh);
 }
 function drawThinBar(v){
  const w=canvas.width/v.dpr,h=v.bar/v.dpr,poss=sim.team,live=!sim.done,narrow=w<640,tiny=w<440,mid=narrow?null:w/2;
- const ink='#f2f5f3',muted='#99a49d',mint='#2fe39a',teamInk=['#ff7f5c','#5db4ff'];
+ const ink='#f2f5f3',muted='#99a49d',mint='#2fe39a',abbr=matchup.map(c=>c.abbr);
  ctx.save();ctx.setTransform(v.dpr,0,0,v.dpr,0,0);ctx.textBaseline='middle';
  ctx.fillStyle='#171c19';ctx.fillRect(0,0,w,h);
  ctx.fillStyle='rgba(255,255,255,.07)';ctx.fillRect(0,h-1,w,1);
@@ -204,8 +325,8 @@ function drawThinBar(v){
  // Center group: crest, abbreviation, score, divider, score, abbreviation, crest.
  ctx.font=big+'px '+barFont;
  const scoreW=Math.max(ctx.measureText(String(sim.score[0])).width,ctx.measureText(String(sim.score[1])).width,ctx.measureText('00').width);
- ctx.font=label+'px '+barFont;const abbrW=ctx.measureText('HAR').width;
- const crestW=tiny?0:h*.5,gap=narrow?6:9,bw=scoreW+16,dash=narrow?9:11;
+ ctx.font=label+'px '+barFont;const abbrW=Math.max(...abbr.map(a=>ctx.measureText(a).width));
+ const crestW=tiny?0:h*1.3,gap=narrow?6:9,bw=scoreW+16,dash=narrow?9:11;
  const extent=dash+bw+7+abbrW+(tiny?0:gap+crestW);
  const cx=mid??pad+extent;
  const lpc=cx-dash-bw/2,rpc=cx+dash+bw/2;
@@ -218,17 +339,17 @@ function drawThinBar(v){
  ctx.fillStyle=muted;ctx.font=label+'px '+barFont;ctx.textAlign='center';ctx.fillText('–',cx,cy);
  scoreBox(0,lpc);scoreBox(1,rpc);
  ctx.font=label+'px '+barFont;ctx.fillStyle=ink;
- ctx.textAlign='right';ctx.fillText('EMB',lpc-bw/2-7,cy);
- ctx.textAlign='left';ctx.fillText('HAR',rpc+bw/2+7,cy);
+ ctx.textAlign='right';ctx.fillText(abbr[0],lpc-bw/2-7,cy);
+ ctx.textAlign='left';ctx.fillText(abbr[1],rpc+bw/2+7,cy);
  if(!tiny){
-   const ch=h*.62,cw=crestW;
-   shield(lpc-bw/2-7-abbrW-gap-cw,(h-ch)/2,cw,ch,0);
-   shield(rpc+bw/2+7+abbrW+gap,(h-ch)/2,cw,ch,1);
+   const mh=h*.74;
+   drawMark(lpc-bw/2-7-abbrW-gap-crestW,(h-mh)/2,crestW,mh,0,'right');
+   drawMark(rpc+bw/2+7+abbrW+gap,(h-mh)/2,crestW,mh,1,'left');
  }
  // Left: possession or ruling.
  if(!narrow){
    const status=sim.penaltyPending?'FREE RUN LANE':sim.done?'FINAL':teams[poss].toUpperCase()+' BALL';
-   if(!sim.done&&!sim.penaltyPending){ctx.beginPath();ctx.arc(pad+4,cy-1,4,0,Math.PI*2);ctx.fillStyle=teamInk[poss];ctx.fill()}
+   if(!sim.done&&!sim.penaltyPending){ctx.beginPath();ctx.arc(pad+4,cy-1,4,0,Math.PI*2);ctx.fillStyle=colors[poss];ctx.fill()}
    ctx.font=label+'px '+barFont;ctx.textAlign='left';ctx.fillStyle=sim.penaltyPending?'#ffd47d':ink;
    ctx.fillText(status,pad+(sim.done||sim.penaltyPending?0:14),cy);
  }
@@ -315,13 +436,34 @@ function drawSurround(surface){
  ctx.restore();
 }
 function drawSeated(p){
- disc(p.x,p.y,.76,colors[p.team],'#12271e');
+ const k=kit(p.team);
+ disc(p.x,p.y,.76,k.fill,k.trim);
  ctx.save();ctx.translate(p.x,p.y);ctx.font='bold .84px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
- ctx.fillStyle='#101c16';ctx.fillText(p.jersey,0,0);ctx.restore();
+ ctx.fillStyle=k.ink;ctx.fillText(p.jersey,0,0);ctx.restore();
 }
 // Benches sit behind each end line, one per team on each half. Coach boxes are white outlines beside a team bench.
+// The home club's crest is painted at center field, under the field lines and the ring.
+function drawCenterCrest(){
+ const image=crestImage(matchup[0]),size=7.6;
+ if(!image.complete||!image.naturalWidth)return;
+ ctx.save();ctx.globalAlpha=.3;ctx.drawImage(image,center.x-size/2,center.y-size/2,size,size);ctx.restore();
+}
+// Each club's crest is painted on the grass beyond its own touchline (home at the bottom, away at the top,
+// the same halves as its benches and coach box), outside the field of play.
+const paintedCrests=[{team:0,x:25,y:36.6},{team:1,x:25,y:-2.6}],paintedRadius=2.05;
+function drawPaintedCrests(){
+ ctx.save();
+ for(const c of paintedCrests){
+   const image=crestImage(matchup[c.team]);
+   ctx.globalAlpha=.32;disc(c.x,c.y,paintedRadius,'#f4f6f2');
+   ctx.globalAlpha=.85;ctx.beginPath();ctx.arc(c.x,c.y,paintedRadius,0,Math.PI*2);ctx.lineWidth=.16;ctx.strokeStyle=kit(c.team).fill;ctx.stroke();
+   if(image.complete&&image.naturalWidth){const s=paintedRadius*1.72;ctx.globalAlpha=.9;ctx.drawImage(image,c.x-s/2,c.y-s/2,s,s)}
+ }
+ ctx.restore();
+}
 function drawSideline(){
  const {length,depth}=venue.bench;
+ drawPaintedCrests();
  ctx.save();
  for(const b of venue.benches){
    const x=b.x-depth/2+b.side*.25,y=b.y-length/2;
@@ -334,8 +476,8 @@ function drawSideline(){
  const size=venue.coachBox.size;
  for(const c of venue.coachBoxes){
    ctx.strokeStyle='rgba(255,255,255,.92)';ctx.lineWidth=.16;ctx.strokeRect(c.x-size/2,c.y-size/2,size,size);
-   disc(c.x,c.y,.7,colors[c.team],'#12271e');
-   ctx.font='bold .62px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#101c16';ctx.fillText('HC',c.x,c.y+.02);
+   const k=kit(c.team);disc(c.x,c.y,.7,k.fill,k.trim);
+   ctx.font='bold .62px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=k.ink;ctx.fillText('HC',c.x,c.y+.02);
  }
  ctx.restore();
 }
@@ -365,8 +507,8 @@ function drawFieldLines(){
 }
 function draw(){const t=selectedField,view=layoutView();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=el('field').classList.contains('mobile-expanded')?'#000':'#121614';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.setTransform(view.s,0,0,view.s,view.ox,view.oy);
 drawSurround(t.surface);drawSideline();
-const image=fieldImage(t);if(image.complete&&image.naturalWidth){ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(image,0,0,50,34)}else{rect(0,0,50,34,t.grass)}
-drawFieldLines();
+const surface=fieldSurface(t);if(surface){ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(surface,0,0,50,34)}else{rect(0,0,50,34,t.grass)}
+drawCenterCrest();drawFieldLines();
 ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace';ctx.fillStyle='#acc4a3';for(let [x,y,q] of [[2,2,2],[48,2,1],[2,32,3],[48,32,4]])ctx.fillText('Q'+q,x,y);
  if(sim.impact){
    const {x,y,time}=sim.impact;
@@ -386,7 +528,7 @@ ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 1.3px monospace'
  drawCallout();
  drawThinBar(view);
  const share=(values)=>{let total=values[0]+values[1];return total?Math.round(100*values[0]/total)+'% / '+Math.round(100*values[1]/total)+'%':'—'};
- el('control').textContent='Current possession '+Math.floor(sim.posAge/60)+':'+String(Math.floor(sim.posAge)%60).padStart(2,'0')+' · Ember / Harbor · Possession '+share(sim.possession)+' · Runway ball control '+share(sim.runway);
+ el('control').textContent='Current possession '+Math.floor(sim.posAge/60)+':'+String(Math.floor(sim.posAge)%60).padStart(2,'0')+' · '+teams.join(' / ')+' · Possession '+share(sim.possession)+' · Runway ball control '+share(sim.runway);
  el('points').textContent=sim.score.join(' – ');el('clock').textContent=sim.done?'FULL TIME':statsMode==='half'?'HALFTIME':stamp(sim)+' · '+teams[sim.team]+(sim.urgent?' · Hurry-up':sim.conservative?' · Protecting lead':'')+(sim.press?' · '+teams[1-sim.team]+' pressing':'');el('toggle').textContent=sim.done?'Full time':playing?'Pause':'Resume';el('toggle').disabled=sim.done||!el('pregame').hidden;el('bar-toggle').textContent=el('toggle').textContent;el('bar-toggle').disabled=el('toggle').disabled}
 const statKeys=['pts','att','cmp','rec','tc','int','tkl','fum','to','pen','pbu','drp','hit'];
 const statLabels=['Points','Pass attempts','Completions','Receptions','Throwing Centers','Interceptions',
@@ -418,7 +560,7 @@ function renderHighlights(){
    const row=document.createElement('li'),time=document.createElement('time');
    const title=document.createElement('strong'),summary=document.createElement('span');
    time.textContent=stamp(entry);
-   title.className=entry.team?'blue':'red';
+   title.className='t'+entry.team;
    title.textContent=teams[entry.team]+' '+entry.player;
    summary.textContent=entry.summary+(entry.points?' · +'+entry.points+' · '+entry.score.join(' – '):'');
    row.append(time,title,summary);
@@ -443,7 +585,7 @@ function teamTable(data){
    ['Possession',data.share],['Average possession',data.average],['Tackles',pick('tkl')],['Interceptions',pick('int')],
    ['Passes broken up',pick('pbu')],['Big hits',pick('hit')],['Fumbles',pick('fum')],['Turnovers',pick('to')],['Penalties',pick('pen')]
  ];
- return '<thead><tr><th scope="col">Stat</th><th scope="col" class="red">Ember</th><th scope="col" class="blue">Harbor</th></tr></thead>'+
+ return '<thead><tr><th scope="col">Stat</th><th scope="col" class="t0">'+teams[0]+'</th><th scope="col" class="t1">'+teams[1]+'</th></tr></thead>'+
    '<tbody>'+summary.map(([label,values])=>'<tr><th scope="row">'+label+'</th>'+cells(values)+'</tr>').join('')+'</tbody>';
 }
 function leadersTable(data){
@@ -452,7 +594,7 @@ function leadersTable(data){
    const high=Math.max(...roster.map(p=>p.stats[key]));
    return high?roster.filter(p=>p.stats[key]===high).map(p=>'#'+p.jersey+' <span style="color:'+colors[p.team]+'">'+p.name+'</span>').join(', ')+' · '+high:'—';
  }
- return '<thead><tr><th scope="col">Stat</th><th scope="col" class="red">Ember</th><th scope="col" class="blue">Harbor</th></tr></thead>'+
+ return '<thead><tr><th scope="col">Stat</th><th scope="col" class="t0">'+teams[0]+'</th><th scope="col" class="t1">'+teams[1]+'</th></tr></thead>'+
    '<tbody>'+leaders.map(([label,key])=>'<tr><th scope="row">'+label+'</th>'+cells(data.rows.map(roster=>names(roster,key)))+'</tr>').join('')+'</tbody>';
 }
 function showStatsPage(second){
@@ -562,7 +704,7 @@ function frame(){
    try{
      advance(now);
      // While nothing on the field can change (paused, halftime screen, idle pregame), skip the redraw to save battery.
-     const image=fieldImage(selectedField),key=[sim.players.reduce((a,p)=>a+p.x*3.1+p.y,0).toFixed(3),playing,statsMode,frozenTime,sim.time,sim.posAge,sim.done,sim.half,sim.callEvents,selectedField.id,image.complete,typeof surroundPattern(selectedField.surface),
+     const image=fieldImage(selectedField),key=[sim.players.reduce((a,p)=>a+p.x*3.1+p.y,0).toFixed(3),playing,statsMode,frozenTime,sim.time,sim.posAge,sim.done,sim.half,sim.callEvents,selectedField.id,image.complete,typeof surroundPattern(selectedField.surface),matchup.map(c=>c.id+crestImage(c).complete+markImage(c).complete).join(),clubField,
        canvas.clientWidth,canvas.clientHeight,window.devicePixelRatio,el('field').className,el('pregame').hidden].join('|');
      if(playing||key!==lastDrawKey){draw();lastDrawKey=key}
      if(sim.subEvents!==shownSubs){rosterOptions();boxDirty=true}
