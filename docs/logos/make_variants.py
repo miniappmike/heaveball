@@ -18,6 +18,15 @@ logo, such as the Dockers' windows.
 
 --clear-holes makes enclosed background (the inside of the D) transparent too.
 
+--gradient FILL=Y1:HEX,Y2:HEX swaps a layer's flat fill for a vertical gradient
+(Y in image pixels). Brighton Hill's B, as the largest lime/green piece:
+
+  python3 -I docs/logos/make_variants.py docs/logos/brighton-hill.png \
+    docs/logos/brighton-hill-transparent.png docs/logos/brighton-hill.svg \
+    "Brighton Hill" --colors black=01040a,lime=a2c826,mid=7aa921,green=26842a \
+    --layer 01040a=all --layer a2c826=lime+mid@100 --layer 26842a=green@100 \
+    --layer b0b0b0=lime+mid+green^ --gradient b0b0b0=345:a3c11c,575:569821
+
 For textured logos, add @MIN_AREA to a layer to drop specks and pinholes
 smaller than that many square pixels (outlines and holes are both loops),
 and ~CLOSE to close gaps up to that many pixels and let the layer grow out to
@@ -222,6 +231,8 @@ def main():
     ap.add_argument("--colors", required=True, help="name=hex,name=hex")
     ap.add_argument("--layer", action="append", required=True, help="FILL=name+name[/grow+into][@MIN_AREA][~CLOSE][^] (repeatable)")
     ap.add_argument("--clear-holes", action="store_true")
+    ap.add_argument("--gradient", action="append", default=[],
+                    help="FILL=Y1:HEX,Y2:HEX paints layer FILL with a vertical gradient (repeatable)")
     args = ap.parse_args()
 
     rgb = np.asarray(Image.open(args.src).convert("RGB")).astype(float)
@@ -274,8 +285,18 @@ def main():
         d = path_d(mask, min_area=float(min_area or 30))
         if d:
             paths.append(f'<path fill="#{fill.lstrip("#")}" fill-rule="evenodd" d="{d}"/>')
+    defs = ""
+    for i, spec in enumerate(args.gradient):
+        fill, stops = spec.split("=")
+        (ya, ca), (yb, cb) = (st.split(":") for st in stops.split(","))
+        gid = f"g{i}"
+        defs += (f'<linearGradient id="{gid}" gradientUnits="userSpaceOnUse" x1="0" y1="{ya}" x2="0" y2="{yb}">'
+                 f'<stop offset="0" stop-color="#{ca}"/><stop offset="1" stop-color="#{cb}"/></linearGradient>')
+        paths = [pth.replace(f'fill="#{fill.lstrip("#")}"', f'fill="url(#{gid})"') for pth in paths]
+    if defs:
+        defs = f"<defs>{defs}</defs>"
     svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x0} {y0} {x1 - x0} {y1 - y0}">'
-           f'<title>{args.title}</title>' + "".join(paths) + "</svg>\n")
+           f'<title>{args.title}</title>' + defs + "".join(paths) + "</svg>\n")
     open(args.out_svg, "w").write(svg)
     print("svg bytes", len(svg), "viewBox", x0, y0, x1 - x0, y1 - y0)
 
