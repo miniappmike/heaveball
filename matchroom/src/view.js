@@ -147,7 +147,9 @@ function briefing(){
      for(let j=0;j<12;j++)v+=W.own[j]*(ratings[t][j]-70)+W.opp[j]*(ratings[o][j]-70);return Math.max(0,v)});
    const edge=points[0]-points[1],margin=Math.round(Math.abs(edge)*2)/2;
    const erf=x=>{const t=1/(1+.3275911*Math.abs(x)),y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x);return x<0?-y:y};
-   const win=.5*(1+erf(Math.abs(edge)/(W.sd*Math.SQRT2)));
+   // Momentum surges widen results beyond what ratings predict (residual SD 12.1 → 13.2 in 400-match checks).
+   const sd=W.sd*(sim.momentumOn?1.09:1);
+   const win=.5*(1+erf(Math.abs(edge)/(sd*Math.SQRT2)));
    el('spread').textContent=margin?teams[edge>0?0:1]+' −'+margin:'Pick’em';
    el('spread-detail').textContent=(margin?teams[edge>0?0:1]+' win '+Math.round(win*100)+'%':'50/50')+' · Total '+(Math.round((points[0]+points[1])*2)/2);
  };
@@ -197,7 +199,7 @@ function briefing(){
 
 el('reroll').onclick=fresh;
 const momentumToggle=el('momentum-toggle');momentumToggle.checked=momentumOn;
-momentumToggle.addEventListener('change',()=>{momentumOn=momentumToggle.checked;sim.setMomentum(momentumOn);try{localStorage.setItem('heaveball-momentum',momentumOn?'on':'off')}catch{}});
+momentumToggle.addEventListener('change',()=>{momentumOn=momentumToggle.checked;sim.setMomentum(momentumOn);briefing();try{localStorage.setItem('heaveball-momentum',momentumOn?'on':'off')}catch{}});
 el('start').onclick=()=>{el('pregame').hidden=true;wall=performance.now();playing=true;scheduleBackground()};
 const syncSpeeds=()=>document.querySelectorAll('#speeds button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.speed===el('pace').value)));
 el('pace').onchange=()=>{advance(performance.now());speed=Number(el('pace').value);syncSpeeds()};
@@ -337,10 +339,14 @@ function drawThinBar(v){
  ctx.fillStyle='rgba(255,255,255,.07)';ctx.fillRect(0,h-1,w,1);
  // Momentum: a thin strip along the bottom edge that grows from the middle toward the club with momentum
  // (home to the left), in that club's colour. Ticks mark the dead zone where neither club gains anything.
+ // During a surge the strip thickens, pulses and shrinks toward the middle as the surge's time runs out.
  if(sim.momentumOn){
-   const half=w/2,lean=sim.momentum,len=Math.abs(lean)/100*half,mh=3;
+   const half=w/2,lean=sim.momentum,len=Math.abs(lean)/100*half,surge=sim.surge,mh=surge?5:3;
    ctx.fillStyle='rgba(255,255,255,.05)';ctx.fillRect(0,h-mh,w,mh);
-   if(len>=.5){ctx.globalAlpha=Math.abs(lean)<momentumDeadZone?.45:1;ctx.fillStyle=colors[lean>0?0:1];ctx.fillRect(lean>0?half-len:half,h-mh,len,mh);ctx.globalAlpha=1}
+   if(len>=.5){
+     ctx.globalAlpha=surge?.7+.3*Math.sin(performance.now()/160):Math.abs(lean)<momentumDeadZone?.45:1;
+     ctx.fillStyle=colors[lean>0?0:1];ctx.fillRect(lean>0?half-len:half,h-mh,len,mh);ctx.globalAlpha=1;
+   }
    ctx.fillStyle='rgba(255,255,255,.35)';
    for(const x of [half-half*momentumDeadZone/100,half,half+half*momentumDeadZone/100])ctx.fillRect(Math.round(x)-.5,h-mh-(x===half?2:0),1,mh+(x===half?2:0));
  }
@@ -375,6 +381,11 @@ function drawThinBar(v){
    if(!sim.done&&!sim.penaltyPending){ctx.beginPath();ctx.arc(pad+4,cy-1,4,0,Math.PI*2);ctx.fillStyle=colors[poss];ctx.fill()}
    ctx.font=label+'px '+barFont;ctx.textAlign='left';ctx.fillStyle=sim.penaltyPending?'#ffd47d':ink;
    ctx.fillText(status,pad+(sim.done||sim.penaltyPending?0:14),cy);
+   if(sim.surge&&!sim.done){
+     const x=pad+(sim.penaltyPending?0:14)+ctx.measureText(status).width+10,tag=teams[sim.surge.team].toUpperCase()+' SURGE',tw=ctx.measureText(tag).width+16,ph=h-11;
+     ctx.beginPath();ctx.roundRect(x,5,tw,ph,ph/2);ctx.fillStyle=colors[sim.surge.team];ctx.globalAlpha=.85+.15*Math.sin(performance.now()/160);ctx.fill();ctx.globalAlpha=1;
+     ctx.fillStyle='#0c0f0d';ctx.textAlign='center';ctx.fillText(tag,x+tw/2,cy);ctx.textAlign='left';
+   }
  }
  // Right: clock, period and the possession clock pill.
  let r=w-pad;
