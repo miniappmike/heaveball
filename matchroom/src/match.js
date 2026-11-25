@@ -3,30 +3,30 @@ const tackling=11;
 const traits=['Arm Strength','Throw Accuracy','Strength','Speed','Jump','Hands','Reaction','Discipline','IQ','Kicking','Agility','Tackling'];
 // The pre-modern Boston clubs (1977-1982), from the league's teams sheet (Program ID U-PRE-1..10).
 // short is the scoreboard name used in the play-by-play; strength is the sheet's target roster strength;
-// history is the sheet's program history (blank where the sheet has none).
+// history is the sheet's program history.
 // kit lists the club's colours as extracted from its logo (docs/logos): primary first, then alternates
 // worn when the primary clashes with the field or the opponent. Crests are assets/crests/<id>.webp.
 const clubs=[
  {id:'dorchester-dirts',name:'Dorchester Dirts',short:'Dirts',abbr:'DD',home:'Dorchester',since:1978,strength:72,kit:['#3a1003','#ebf6ff'],
-  history:''},
+  history:'Scrappy Dorchester sandlot and vacant-lot club known for rough-and-tumble play and fierce neighborhood rivalries before folding in 1981.'},
  {id:'southie-dockers',name:'Southie Dockers',short:'Dockers',abbr:'SD',home:'South Boston',since:1977,strength:78,kit:['#0136a5','#1f1b15','#4d5059'],
-  history:''},
+  history:'Dominant waterfront club formed by South Boston dockworkers; set the physical standard of the resurgence through the final 1982 season.'},
  {id:'roxbury-iron',name:'Roxbury Iron',short:'Iron',abbr:'ROX',home:'Roxbury',since:1977,strength:74,kit:['#3a6440','#d96a2c'],
-  history:''},
+  history:'Hard-nosed founding Roxbury squad built on speed and physical toughness; played two intense seasons before disbanding after 1978.'},
  {id:'our-lady-of-the-harbor',name:'Our Lady of the Harbor',short:'Our Lady',abbr:'OLH',home:'East Boston',since:1977,strength:68,kit:['#00e0ff','#141b26','#feebff'],
-  history:''},
+  history:'Tight-knit East Boston parish squad organized in church halls; proud harbor underdogs who traveled across Boston until folding in 1979.'},
  {id:'muddy-river-hens',name:'Muddy River Hens',short:'Hens',abbr:'MRH',home:'Fenway',since:1978,strength:72,kit:['#fca900','#be0032','#008fcf'],
-  history:''},
+  history:'Fenway park rec club known for sloppy, wet-turf games along the Muddy River and improvised protective gear during the resurgence.'},
  {id:'charlestown-beacons',name:'Charlestown Beacons',short:'Beacons',abbr:'CHB',home:'Charlestown',since:1977,strength:75,kit:['#e3271c','#120e2c','#fc8e00'],
-  history:'Harbor-side and yard-adjacent club playing near Charlestown with physical, gritty play.'},
+  history:'Gritty Charlestown hilltop and Navy Yard-adjacent club known for physical, hard-hitting play and fierce harbor rivalries against Southie and East Boston until disbanding after 1980.'},
  {id:'st-anthonys-knights',name:'St. Anthony\'s Knights',short:'Knights',abbr:'SAK',home:'North End',since:1977,strength:74,kit:['#7d00ff','#010101','#b9babf'],
-  history:'North End parish/community club active in the early resurgence wave alongside Eastie harbor squads.'},
+  history:'Tight-knit North End parish and feast-society squad organized through local church halls; held their own against larger waterfront clubs before folding in 1979.'},
  {id:'copley-stacks',name:'Copley Stacks',short:'Stacks',abbr:'CPL',home:'Back Bay',since:1978,strength:70,kit:['#f82929','#0d101b'],
-  history:'Library-branch and night-school regulars known for clever formations and rulebook knowledge.'},
+  history:'Quirky Back Bay club formed by branch-library pages and night-school regulars; relied on clever formations and rulebook savvy to survive through the final 1982 sandlot season.'},
  {id:'uphams-corner-routers',name:'Uphams Corner Routers',short:'Routers',abbr:'UCR',home:'Dorchester',since:1979,strength:68,kit:['#6a0205','#fedc00'],
-  history:'Branch library bulletin-board underdog squad in Dorchester.'},
+  history:'Beloved Dorchester underdog squad recruited off Uphams Corner branch library corkboards; wore mismatched gear and lasted through the end of the neighborhood era in 1982.'},
  {id:'brighton-hill',name:'Brighton Hill',short:'Brighton',abbr:'BRH',home:'Brighton',since:1979,strength:73,kit:['#7aa921','#01040a'],
-  history:'Second-wave Brighton neighborhood club stepping in as early 1978-1979 teams folded.'}
+  history:'Second-wave Brighton neighborhood and park club that stepped in as early 1978-1979 squads folded, bringing steady weekend turnout through the final 1982 season.'}
 ];
 // The two clubs in the current match (index 0 is the home side) and their scoreboard names.
 // match() draws a new pairing each time; the rest of the engine and the view read teams[team].
