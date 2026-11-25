@@ -248,3 +248,7 @@ Every penalty awards a free run lane: three seconds unblocked in the ring, a blo
 ## Repository layout
 
 Sport documents and reference images live in `docs/`. Matchroom source is split into `src/` (hand-edited), `assets/` (textures), `tools/` (build and texture generator) and `dist/` (generated).
+
+## Animation handoff
+
+Matchroom builds include the 49-clip [animation reel](heaveball-latest-animation-preview.html). The build extracts the standalone HTML from the tracked handoff ZIP. The repository review at `docs/animation-handoff-review.md` records coverage, live 3D clip choices, and remaining gaps.

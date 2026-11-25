@@ -15,10 +15,12 @@ import json
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
+from zipfile import ZipFile
 
 root = Path(__file__).resolve().parent.parent
 src, assets, dist = root / "src", root / "assets", root / "dist"
 DEFAULT_FIELD = "park-red"
+ANIMATION_REEL = "heaveball-latest-animation-preview.html"
 
 if dist.exists():
     shutil.rmtree(dist)
@@ -50,6 +52,12 @@ tags = '<script src="match.js"></script><script src="view.js"></script>'
 assert tags in html, "src/index.html must load match.js then view.js"
 html = html.replace(tags, '<script id="game">(()=>{\n' + bundle + '\n})();</script>')
 (dist / "index.html").write_text(html)
+
+handoff_path = root.parent / "heaveball-animation-preview-handoff.zip"
+if not handoff_path.is_file():
+    handoff_path = root / handoff_path.name  # Standalone Matchroom Site checkout.
+with ZipFile(handoff_path) as handoff:
+    (dist / ANIMATION_REEL).write_bytes(handoff.read(ANIMATION_REEL))
 
 guide = (root / "summary.md").read_text().rstrip()
 guide += f"\n\n## Build record\n\nBuilt {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC} from `src/` and `assets/`.\n"
