@@ -69,7 +69,7 @@ function applyBranding(){
    const club=matchup[+node.dataset.team];
    if(node.tagName==='IMG'){node.src=(node.dataset.art==='mark'?markImage(club):crestImage(club)).src;continue}
    const field=node.dataset.field;
-   node.textContent=field==='short'?club.short:field==='meta'?club.abbr+' · '+club.home+' · Est. '+club.since:field==='history'?club.history:club.name;
+   node.textContent=field==='short'?club.short:field==='meta'?club.home+' · Est. '+club.since:field==='history'?club.history:club.name;
  }
  el('handbook').textContent=matchup[0].name+' vs '+matchup[1].name;
  document.title=matchup[0].short+' vs '+matchup[1].short+' · Heaveball Matchroom';
