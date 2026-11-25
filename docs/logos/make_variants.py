@@ -17,6 +17,19 @@ logo, such as the Dockers' windows.
     "Dorchester Dirts" --colors brown=3a1003 --layer 3a1003=brown --clear-holes
 
 --clear-holes makes enclosed background (the inside of the D) transparent too.
+
+For textured logos, add @MIN_AREA to a layer to drop specks and pinholes
+smaller than that many square pixels (outlines and holes are both loops),
+and ~CLOSE to close gaps up to that many pixels and let the layer grow out to
+the logo's edge (or, with /NAMES, only into pixels of those colours). A
+trailing ^ keeps only the layer's largest piece. The name
+"all" means every non-background pixel:
+
+  python3 -I docs/logos/make_variants.py docs/logos/roxbury-iron.png \
+    docs/logos/roxbury-iron-transparent.png docs/logos/roxbury-iron.svg \
+    "Roxbury Iron" --colors green=3e6a3f,darkgreen=213f25,orange=d66426,rust=6a4228 \
+    --layer 3a6440=all@1500 --layer d96a2c=orange/rust@1500~15^ \
+    --clear-holes
 """
 import argparse
 from collections import defaultdict
@@ -46,6 +59,23 @@ def background_mask(rgb, bgcol, include_enclosed=False):
     return np.asarray(m) == 128
 
 
+def largest_piece(mask):
+    """Keep only the largest 4-connected piece of a boolean mask."""
+    m = Image.fromarray(mask.astype(np.int32) * -1, "I").copy()  # -1 = unvisited
+    best, best_n, tag = None, 0, 1
+    while True:
+        left = np.argwhere(np.asarray(m) == -1)
+        if not len(left):
+            break
+        y, x = left[0]
+        ImageDraw.floodfill(m, (int(x), int(y)), tag)
+        n = int((np.asarray(m) == tag).sum())
+        if n > best_n:
+            best, best_n = tag, n
+        tag += 1
+    return np.asarray(m) == best if best is not None else mask
+
+
 def labels(rgb, palette):
     names = list(palette)
     cols = np.array([palette[n] for n in names], float)
@@ -54,19 +84,23 @@ def labels(rgb, palette):
 
 
 def transparent_png(rgb, bg, palette):
-    """Alpha 0 on the background, unmixed alpha on the anti-aliased rim.
+    """Alpha 0 on the background and an unmixed, anti-aliased rim.
     palette's first entry is the background colour."""
     cols = np.array(list(palette.values()), float)
     bgcol = cols[0]
-    near_bg = np.asarray(Image.fromarray(bg.astype(np.uint8) * 255).filter(ImageFilter.MaxFilter(5))) > 0
-    alpha = np.where(bg, 0.0, 1.0)
-    # On the rim, the foreground colour is the nearest non-background palette colour.
+    grow = lambda m: np.asarray(Image.fromarray(m.astype(np.uint8) * 255).filter(ImageFilter.MaxFilter(5))) > 0
+    rim = grow(bg) & grow(~bg)  # a few pixels either side of the logo's edge
+    # Estimate rim alpha against the nearest non-background palette colour ...
     fg_cols = cols[1:]
     d = ((rgb[:, :, None, :] - fg_cols[None, None]) ** 2).sum(-1)
     f = fg_cols[d.argmin(-1)]
-    a = (np.abs(rgb - bgcol) / np.maximum(np.abs(f - bgcol), 1)).max(-1)
-    alpha = np.where(near_bg, np.clip(a, 0, 1), alpha)
-    out = np.where(near_bg[..., None], f, rgb)
+    a = np.clip((np.abs(rgb - bgcol) / np.maximum(np.abs(f - bgcol), 1)).max(-1), 0, 1)
+    alpha = np.where(bg, 0.0, 1.0)
+    alpha = np.where(rim, a, alpha)
+    # ... then take the background out of each rim pixel, keeping its own colour
+    # (so textured logos keep their texture up to the edge).
+    unmixed = (rgb - (1 - alpha[..., None]) * bgcol) / np.maximum(alpha[..., None], 1e-3)
+    out = np.where(rim[..., None], np.clip(unmixed, 0, 255), rgb)
     return np.dstack([out, alpha * 255]).round().clip(0, 255).astype(np.uint8)
 
 
@@ -184,7 +218,7 @@ def main():
     ap.add_argument("out_svg")
     ap.add_argument("title")
     ap.add_argument("--colors", required=True, help="name=hex,name=hex")
-    ap.add_argument("--layer", action="append", required=True, help="FILL=name+name (repeatable)")
+    ap.add_argument("--layer", action="append", required=True, help="FILL=name+name[/grow+into][@MIN_AREA][~CLOSE][^] (repeatable)")
     ap.add_argument("--clear-holes", action="store_true")
     args = ap.parse_args()
 
@@ -205,6 +239,7 @@ def main():
     fg = ~outside
     masks = {n: (lab == names.index(n)) & fg for n in names if n != "bg"}
     masks["holes"] = (lab == names.index("bg")) & fg
+    masks["all"] = ~bg
     ys, xs = np.nonzero(~bg)
     m = 8
     x0, y0 = max(xs.min() - m, 0), max(ys.min() - m, 0)
@@ -212,10 +247,29 @@ def main():
     paths = []
     for spec in args.layer:
         fill, parts = spec.split("=")
+        keep_largest = parts.endswith("^")
+        parts = parts.rstrip("^")
+        parts, _, close = parts.partition("~")
+        parts, _, min_area = parts.partition("@")
+        parts, _, grow_into = parts.partition("/")
         mask = np.zeros_like(fg)
         for n in parts.split("+"):
             mask |= masks[n]
-        d = path_d(mask)
+        if close:
+            # close gaps up to `close` px, then grow to the logo's edge
+            mk = lambda m: Image.fromarray(m.astype(np.uint8) * 255)
+            n = int(close) | 1
+            m2 = mk(mask).filter(ImageFilter.MaxFilter(n)).filter(ImageFilter.MinFilter(n))
+            m2 = m2.filter(ImageFilter.MaxFilter(7))
+            allowed = mask.copy()
+            for n in grow_into.split("+") if grow_into else []:
+                allowed |= masks[n]
+            if not grow_into:
+                allowed = ~bg
+            mask = (np.asarray(m2) > 0) & allowed
+        if keep_largest:
+            mask = largest_piece(mask)
+        d = path_d(mask, min_area=float(min_area or 30))
         if d:
             paths.append(f'<path fill="#{fill.lstrip("#")}" fill-rule="evenodd" d="{d}"/>')
     svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x0} {y0} {x1 - x0} {y1 - y0}">'
