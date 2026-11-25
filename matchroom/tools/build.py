@@ -1,12 +1,14 @@
 """Build matchroom/dist from matchroom/src and matchroom/assets.
 
 src/      hand-edited page (index.html), engine (match.js) and renderer (view.js)
-assets/   field textures (fields/*.webp) and surround textures (surrounds/*.webp)
+assets/   field textures (fields/*.webp), surround textures (surrounds/*.webp)
+          and club crests (crests/*.webp, from tools/generate_crests.py)
 dist/     generated here; never edit by hand
 
 The game scripts are inlined into dist/index.html so the page also runs in
 previews that receive the HTML without its sibling files. The default field
 texture is embedded too; the other fields load from dist/fields on first use.
+Club crests are small, so all of them are embedded.
 """
 import base64
 import json
@@ -37,6 +39,8 @@ embedded = {DEFAULT_FIELD: data_uri(assets / "fields" / f"{DEFAULT_FIELD}.webp")
 surrounds = {DEFAULT_SURROUND: data_uri(assets / "surrounds" / f"{DEFAULT_SURROUND}.webp")}
 bundle = "const fieldImages=" + json.dumps(embedded) + ";\n"
 bundle += "const surroundImages=" + json.dumps(surrounds) + ";\n"
+crests = {path.stem: data_uri(path) for path in sorted((assets / "crests").glob("*.webp"))}
+bundle += "const crestImages=" + json.dumps(crests) + ";\n"
 bundle += (src / "match.js").read_text() + "\n" + (src / "view.js").read_text()
 
 html = (src / "index.html").read_text()
