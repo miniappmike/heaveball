@@ -74,7 +74,7 @@ const blowoutBase=5,comebackPerMinute=4,allOutWindow=60,heaveDeficit=3;
 // Rotation: energy below which a starter / substitute comes off, how much fresher a bench substitute / rested
 // starter must be to come on for a tired player, the planned stint lengths (game-clock seconds) for starters and
 // substitutes, the energy a bench player needs to come on for a planned change, and the shortest stint.
-const starterOut=.5,subOut=.55,subIn=.15,starterBack=.1,starterStint=720,subStint=600,restedEnergy=.9,subMinStint=240;
+const starterOut=.42,subOut=.62,subIn=.18,starterBack=.06,starterStint=960,subStint=360,restedEnergy=.9,subMinStint=240;
 const firstHalfHurry=90,reviewEvery=300,coachMinPossessions=4,leakyDefense=1.05,stalledOffense=.6;
 const center={x:25,y:17}, blue=p=>Math.abs(p.x-25)<=5&&Math.abs(p.y-17)<=5;
 const ringRadius=2;
