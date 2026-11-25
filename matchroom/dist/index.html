@@ -529,9 +529,9 @@ const closeGameHurry=120,desperationWindow=8;
 // Defaults were tuned on headless matches (see summary.md, Momentum).
 const momentumTuning={push:{forced:12,unforced:8,takeaway:15,2:7,3:9,5:12,penalty:4},
  chain:[1,1.25,1.5],counter:1.5,halfLife:150,deadZone:15,effect:.04,discipline:1.5,settle:.2,
- surgeAt:30,surgeTime:180,surgeEffect:.35,surgeCooldown:240,surgePhysical:true,comeback:1};
+ surgeAt:30,surgeTime:180,surgeEffect:.35,surgeCooldown:240,surgePhysical:true,surgeSpeedCap:5,comeback:1};
 // Mental traits momentum moves: Throw Accuracy, Hands, Reaction, Discipline, IQ, Kicking, Tackling. A surge with
-// surgePhysical also moves Speed, Jump and Agility.
+// surgePhysical also moves Speed, Jump and Agility; Speed moves at most surgeSpeedCap rating points either way.
 const momentumTraits=[1,5,6,7,8,9,11],surgeTraits=[1,3,4,5,6,7,8,9,10,11];
 const momentumDeadZone=momentumTuning.deadZone;
 // Blowouts: in the second half a deficit is out of reach when it exceeds blowoutBase plus comebackPerMinute
@@ -1116,7 +1116,8 @@ function match(report,clubPick,options={}){
      const k=momentumScale(p.team);
      for(let j=0;j<12;j++){
        const f=!traits.includes(j)?0:j===7&&k<0?M.discipline*k:k;
-       p.ratings[j]=clamp(p.base[j]*(1+f),1,100);
+       const change=s.surge&&j===3?clamp(p.base[j]*f,-M.surgeSpeedCap,M.surgeSpeedCap):p.base[j]*f;
+       p.ratings[j]=clamp(p.base[j]+change,1,100);
      }
    }
  }
