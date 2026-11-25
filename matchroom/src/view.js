@@ -8,9 +8,11 @@ const fieldTemplates=[
 
 if(!window.heaveballReady){
 const el=id=>document.getElementById(id),canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),colors=['#ff805d','#69bafa'];
-// Club branding. colors[team] is the club's primary colour, lightened just enough to read as text on the dark
-// site (4.5:1 contrast). Jerseys (kit) use the primary itself unless it clashes with the field or the home kit;
-// then the club's next logo colour, then white or black.
+// Club branding. Jerseys (kit) use the club's primary colour unless it clashes with the field or the home kit;
+// then the club's next logo colour, then white or black. colors[team], the colour of the club's names and text,
+// follows the jersey actually worn (so Roxbury in its orange kit reads orange, not green), lightened just enough
+// to read on the dark site (4.5:1). A plain black or white jersey uses its coloured trim, or else the club's
+// primary, so names never turn grey. The decorative glows and crest rings stay the club's primary.
 const hexRgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
 const toHex=c=>'#'+c.map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
 const mixColor=(a,b,t)=>{const x=hexRgb(a),y=hexRgb(b);return toHex(x.map((v,i)=>v+(y[i]-v)*t))};
@@ -52,12 +54,17 @@ function crestImage(club){
  if(!crestCache[club.id]){const image=crestCache[club.id]=new Image();image.src=(typeof crestImages!=='undefined'&&crestImages[club.id])||'crests/'+club.id+'.webp'}
  return crestCache[club.id];
 }
-function applyBranding(){
- const style=document.documentElement.style;
+function syncTeamColors(){
+ // Colourfulness on an absolute scale, so near-black and near-white count as plain (relative saturation does not).
+ const style=document.documentElement.style,chroma=c=>{const v=hexRgb(c);return (Math.max(...v)-Math.min(...v))/255};
  matchup.forEach((club,team)=>{
-   colors[team]=readable(club.kit[0]);
+   const k=kit(team);
+   colors[team]=readable([k.fill,k.trim,club.kit[0]].find(c=>chroma(c)>=.2)||club.kit[0]);
    style.setProperty('--team'+team,colors[team]);style.setProperty('--team'+team+'-primary',club.kit[0]);
  });
+}
+function applyBranding(){
+ syncTeamColors();
  for(const node of document.querySelectorAll('[data-team]')){
    const club=matchup[+node.dataset.team];
    if(node.tagName==='IMG'){node.src=(node.dataset.art==='mark'?markImage(club):crestImage(club)).src;continue}
@@ -199,7 +206,9 @@ const fieldPicker=el('field-picker');
 for(const template of fieldTemplates){const option=document.createElement('option');option.value=template.id;option.textContent=template.name;fieldPicker.append(option)}
 try{selectedField=fieldTemplates.find(t=>t.id===localStorage.getItem('heaveball-field'))||selectedField}catch{}
 fieldPicker.value=selectedField.id;
-fieldPicker.addEventListener('change',()=>{selectedField=fieldTemplates.find(t=>t.id===fieldPicker.value)||fieldTemplates[0];try{localStorage.setItem('heaveball-field',selectedField.id)}catch{}});
+fieldPicker.addEventListener('change',()=>{selectedField=fieldTemplates.find(t=>t.id===fieldPicker.value)||fieldTemplates[0];try{localStorage.setItem('heaveball-field',selectedField.id)}catch{}
+ // The field can change which kit a club wears, so the team text colours follow.
+ syncTeamColors();boxDirty=true});
 // Field textures load on first use. The build may embed the default one so the page draws without sibling files.
 function fieldImage(template){
  if(!template.image){template.image=new Image();template.image.src=(typeof fieldImages!=='undefined'&&fieldImages[template.id])||'fields/'+template.id+'.webp'}
