@@ -96,7 +96,7 @@ Substitutions are live and unlimited, and both teams can make one at the same de
 - **Records.** Players keep their own stats on and off the field. The box score lists all 12 players per team. The play-by-play logs each change, for example “Substitution · Dockers #25 Cruz replaces #27 Page (rotation)” or “(fatigue)” when the player coming off is below 50% energy.
 - **Sudden death.** No substitutions. Injuries do not exist yet; when they are added, an injury should be able to force a substitution at any time, including in sudden death.
 
-Before the rotation rules, teams made about 3.6 substitutions each a game, starters averaged 35 minutes, substitutes 10, and more than two substitutes per team barely played. With them (30-match tuning check), teams make about 25 substitutions each, roughly a basketball rotation; starters average about 29 minutes and substitutes about 22, and every substitute plays. Pure fatigue thresholds could not spread minutes: two bench Anchors share three field Anchors and the first always won ties, and a bench Heaver or Runner covers only its own half, so choosing the bench player with the fewest minutes is what brings everyone in.
+In a 120-match check of the full release (blowouts, all-out defense and rotation together), teams made 24.7 substitutions each a game, starters averaged 29.0 minutes and substitutes 22.0, every substitute played, and combined scoring was 60–62 a game. In the same build's late-game check, a trailing team had the ball in the final eight seconds in 39 of 120 games and none held it without attacking (38 passed, scored or lost it attacking; one was driving at the ring at the whistle); the longest possession was 421 s and 24 ran past three minutes. Before the rotation rules, teams made about 3.6 substitutions each a game, starters averaged 35 minutes, substitutes 10, and more than two substitutes per team barely played. With them (30-match tuning check), teams make about 25 substitutions each, roughly a basketball rotation; starters average about 29 minutes and substitutes about 22, and every substitute plays. Pure fatigue thresholds could not spread minutes: two bench Anchors share three field Anchors and the first always won ties, and a bench Heaver or Runner covers only its own half, so choosing the bench player with the fewest minutes is what brings everyone in.
 
 ## Coaches and in-game adjustments
 
@@ -237,4 +237,4 @@ Sport documents and reference images live in `docs/`. Matchroom source is split 
 
 ## Build record
 
-Built 2026-11-25 06:44 UTC from `src/` and `assets/`.
+Built 2026-11-25 06:48 UTC from `src/` and `assets/`.
