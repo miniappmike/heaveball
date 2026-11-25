@@ -514,6 +514,16 @@ const playbookCounter=[1,0,2,3,3,3,0,2];
 const OVERREACT_RATE=.5915,overreactCooldown=60,overreactPerHalf=4;
 // Close-game hurry-up (any deficit, last two minutes) and the last-play window for the desperation heave.
 const closeGameHurry=120,desperationWindow=8;
+// Blowouts: in the second half a deficit is out of reach when it exceeds blowoutBase plus comebackPerMinute
+// points per minute left (25 with 5:00 left, 13 with 2:00, 9 with 1:00). Out of reach, the trailing team stops
+// chasing: no hurry-up, no press, no all-out defense. The heave needs a deficit one score can erase (3 or less).
+// All-out defense: trailing within reach in the last allOutWindow seconds, the defense double-teams the carrier,
+// rushes the throw, jumps passes and springs the one-point ambush far more often, at the cost of open receivers.
+const blowoutBase=5,comebackPerMinute=4,allOutWindow=60,heaveDeficit=3;
+// Rotation: energy below which a starter / substitute comes off, how much fresher a bench substitute / rested
+// starter must be to come on for a tired player, the planned stint lengths (game-clock seconds) for starters and
+// substitutes, the energy a bench player needs to come on for a planned change, and the shortest stint.
+const starterOut=.5,subOut=.55,subIn=.15,starterBack=.1,starterStint=720,subStint=600,restedEnergy=.9,subMinStint=240;
 const firstHalfHurry=90,reviewEvery=300,coachMinPossessions=4,leakyDefense=1.05,stalledOffense=.6;
 const center={x:25,y:17}, blue=p=>Math.abs(p.x-25)<=5&&Math.abs(p.y-17)<=5;
 const ringRadius=2;
@@ -785,6 +795,9 @@ function match(report,clubPick){
    }
  }
  // sec is time on the field in game-clock seconds (the box score shows it as minutes).
+ // starter and enteredAt travel with the athlete through substitutions (see swapIn).
+ for(const p of players)Object.assign(p,{starter:true,enteredAt:0});
+ for(const p of bench)Object.assign(p,{starter:false,enteredAt:0});
  for(const p of players.concat(bench))p.stats={sec:0,pts:0,att:0,cmp:0,rec:0,tc:0,int:0,tkl:0,fum:0,to:0,pen:0,pbu:0,drp:0,hit:0};
  let s={tackleEvents:0,tackled:null,callEvents:0,call:null,penalized:null,scoreEvents:0,penaltyEvents:0,stoppageEvents:0,penaltyPending:false,stoppagePending:false,scramblePursuers:[],highlights:[],stints:[[],[]],posAge:0,players,bench,refereeHits:0,referee:{x:center.x,y:venue.referee.home[0],vx:0,vy:0,dodging:false},score:[0,0],half:1,time:1200,overtime:false,done:false},opening=Math.floor(rand()*2),carrier,pass,age,hold,cutter,run,worth,scoringPassYards=null,scoringThrower=null,cool=0;
  const subs=[null,null],pendingPlaybook=[null,null];
@@ -797,6 +810,7 @@ function match(report,clubPick){
  const contactIntensity=physicalGame?1.30+(intensityRoll-.91)*2.3:.92+intensityRoll*.22;
  const hitTarget=physicalGame?14+(intensityRoll-.91)*53:9;
  let bigHits=0;
+ const lateNotes=[{},{}];
  function bigHitChance(chance){
    if(bigHits>=20)return 0;
    if(quietGame)return chance*.035;
@@ -863,7 +877,8 @@ function match(report,clubPick){
      return best;
    };
    if(carrier&&(scheme.press||s.press)){
-     pair(p=>p.blocked||legalX(p,carrier.x)!==carrier.x?-Infinity:
+     // All-out defense sends a second presser: a double team on the carrier.
+     for(let n=allOut(1-off)?2:1;n>0;n--)pair(p=>p.blocked||legalX(p,carrier.x)!==carrier.x?-Infinity:
        -dist(p,goalSide(carrier,1.05))+p.ratings[3]*.025,{press:true});
    }
    // Reserve the inside help before handing out the off-ball marks.
@@ -1010,14 +1025,22 @@ function match(report,clubPick){
 
  // Trailing late in the second half: hurry-up on offense, a press on defense. A deficit of 5+ triggers it in the
  // last five minutes; any deficit triggers it in the last two.
+ function blowout(team){
+   return !s.overtime&&s.half===2&&s.score[1-team]-s.score[team]>blowoutBase+comebackPerMinute*s.time/60;
+ }
  function trailingLate(team){
    const deficit=s.score[1-team]-s.score[team];
-   return !s.overtime&&s.half===2&&(deficit>=5&&s.time<=300||deficit>0&&s.time<=closeGameHurry);
+   return !s.overtime&&s.half===2&&!blowout(team)&&(deficit>=5&&s.time<=300||deficit>0&&s.time<=closeGameHurry);
+ }
+ // The defending team (not in possession) goes all out: trailing, within reach, in the last minute.
+ function allOut(team){
+   return !s.overtime&&s.half===2&&s.time<=allOutWindow&&s.score[1-team]>s.score[team]&&!blowout(team);
  }
  // Last play: trailing with the clock about to expire, the offense skips every patient option and throws
  // straight at the ring (the desperation heave), or keeps driving at it from the runway.
  function desperate(team){
-   return !s.overtime&&s.half===2&&s.time<=desperationWindow&&s.score[1-team]>s.score[team];
+   const deficit=s.score[1-team]-s.score[team];
+   return !s.overtime&&s.half===2&&s.time<=desperationWindow&&deficit>0&&deficit<=heaveDeficit;
  }
  // Hurry-up offense: when trailing late, and for every offense in the last 1:30 of the first half.
  function urgent(team){
@@ -1628,7 +1651,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    if(!conservative(team))readTime=urgent(team)? 0 : 1.6+1.8*(1-aggression(team));
    const defender=players[(1-team)*8+6];
    const coach=s.playbooks[1-team];
-   const trapChance=.08+.27*coach.baseline+.17*judgment(defender)+(urgent(1-team)?.22:0);
+   const trapChance=.08+.27*coach.baseline+.17*judgment(defender)+(urgent(1-team)?.22:0)+(allOut(1-team)?.3:0);
    const protectingLead=conservative(1-team);
    if(!protectingLead&&rand()<trapChance)blueTrap=defender;
    if(plan==='Anchor leak'||plan==='Last-step handoff')openingCall=plan;
@@ -1729,19 +1752,19 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    let best=null;
    for(const d of players){
      if(d.team===off||!active(d)||d.blocked>0||d.stumble>0)continue;
-     const skill=(d.ratings[8]+d.ratings[6]+d.ratings[3])/3;
-     if(skill<gambleSkill)continue;
+     const skill=(d.ratings[8]+d.ratings[6]+d.ratings[3])/3,desperateD=allOut(d.team);
+     if(skill<(desperateD?gambleSkill-13:gambleSkill))continue;
      // Only tight coverage can gamble: the defender must be close to the intended receiver. Smart, quick
      // defenders read the passer's eyes and break before the release, which adds to the time they have.
      const k=clamp((skill-gambleSkill)/(95-gambleSkill),0,1),read=(.15+.25*k)*tell;
      const gap=dist(d,spot),reachable=topSpeed(d.ratings[3])*gambleBurst*(1-.15*fatigue(d))*(time+read)*.6+.5;
      const reachHeight=d.height/36+.39+d.ratings[4]*.0115;
-     if(!pass.target||dist(d,pass.target)>4.5||gap<1.5||gap>9||gap>reachable||spot.z>reachHeight+.3||legalX(d,spot.x)!==spot.x)continue;
+     if(!pass.target||dist(d,pass.target)>(desperateD?6.5:4.5)||gap<1.5||gap>9||gap>reachable||spot.z>reachHeight+.3||legalX(d,spot.x)!==spot.x)continue;
      if(!best||skill>best.skill)best={d,skill};
    }
    if(!best)return;
    const k=clamp((best.skill-gambleSkill)/(95-gambleSkill),0,1);
-   if(rand()>=GAMBLE_RATE*(.4+.6*k)*tell)return;
+   if(rand()>=Math.min(.95,GAMBLE_RATE*(.4+.6*k)*tell*(allOut(best.d.team)?1.8:1)))return;
    pass.gamble={d:best.d,spot,f,success:.30+.20*k,done:false};
    s.gambles.attempts++;
    log(best.d.name+' reads the long pass and jumps the route');
@@ -1853,7 +1876,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  // substitute sprint on from the bench. The carrier usually holds the ball until the substitute is set.
  // Bench players recover energy while they sit.
  s.subEvents=0;s.subCount=[0,0];s.gambles={attempts:0,resolved:0,wins:0};s.smotherTips=0;s.releaseTips=0;
- const personal=['name','jersey','role','height','weight','ratings','stamina','energy','stats'];
+ const personal=['name','jersey','role','height','weight','ratings','stamina','energy','stats','starter','enteredAt'];
  const benchOf=b=>venue.benches.filter(v=>v.team===b.team)[(b.i-8)>>1];
  const eligible=(field,b)=>(field.role==='Anchor')===(b.role==='Anchor')&&(field.role==='Anchor'||benchOf(b).side===field.side);
  function swapIn(sub){
@@ -1861,7 +1884,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    const leaving=out.name;
    for(const k of personal)[out[k],seat[k]]=[seat[k],out[k]];
    // The substitute starts from the bench seat; the player coming off takes that seat.
-   Object.assign(out,{lapse:0,subbing:false,entering:true,x:seat.x,y:seat.y,vx:0,vy:0});
+   Object.assign(out,{lapse:0,subbing:false,entering:true,x:seat.x,y:seat.y,vx:0,vy:0,enteredAt:gameClock()});
    stars=findStars();s.subEvents++;s.subCount[out.team]++;
    log('Substitution · '+teams[out.team]+' #'+out.jersey+' '+out.name+' replaces #'+seat.jersey+' '+leaving+' ('+sub.reason+')');
    sub.phase='on';sub.age=0;
@@ -1887,12 +1910,32 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    const sub=subs[off];
    // The carrier usually lets the substitute get set before starting the offense.
    if(sub&&carrier?.team===off&&stationary&&!urgent(off))readTime=Math.max(readTime,age+.3);
-   if(sub||s.overtime||!carrier||carrier.team!==off||!stationary||pile||lane||pass||loose||s.penaltyPending)return;
-   let best=null;
-   for(const field of players)if(field.team===off&&field!==carrier&&!field.sidelined&&!(field.edgeTime>0)&&field.energy<.5)
-     for(const seat of bench)if(seat.team===off&&eligible(field,seat)&&seat.energy-field.energy>.3&&
-       (!best||field.energy<best.field.energy||field===best.field&&seat.energy>best.seat.energy))best={field,seat};
-   if(best)requestSub(best.field,best.seat,'fatigue');
+   if(s.overtime||!carrier||carrier.team!==off||!stationary||pile||lane||pass||loose||s.penaltyPending)return;
+   // Rotation at a stationary restart, for both teams, planned like a coach managing minutes. A field player
+   // comes off when tired below their threshold (starters play deeper into fatigue than substitutes) or when
+   // their stint reaches its planned length (longer for starters), after at least subMinStint on the field.
+   // The replacement is the eligible bench player with the fewest minutes so far who is rested enough, so the
+   // whole bench plays; a rested starter needs less of an energy edge to come back than a substitute.
+   for(const team of [off,1-off]){
+     if(subs[team])continue;
+     const clock=gameClock();
+     let best=null;
+     for(const field of players){
+       if(field.team!==team||field===carrier||field.sidelined||field.edgeTime>0)continue;
+       const stint=clock-field.enteredAt;
+       if(stint<subMinStint)continue;
+       const tired=field.energy<(field.starter?starterOut:subOut),due=stint>=(field.starter?starterStint:subStint);
+       if(!tired&&!due)continue;
+       for(const seat of bench){
+         if(seat.team!==team||!eligible(field,seat))continue;
+         const edge=seat.energy-field.energy,ready=tired?edge>(seat.starter?starterBack:subIn):seat.energy>=restedEnergy;
+         if(!ready)continue;
+         const rank=seat.stats.sec-seat.energy*30-(tired?600:0)-stint*.1;
+         if(!best||rank<best.rank)best={field,seat,rank,tired};
+       }
+     }
+     if(best)requestSub(best.field,best.seat,best.field.energy<.5?'fatigue':'rotation');
+   }
  }
  // Coach adjustments. Every five minutes of game clock and at halftime each coach reviews the stretch
  // since their last change. Adaptability sets whether they notice (stubborn coaches mostly wait for
@@ -2051,6 +2094,12 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    run=false;cornerReturn=anchorLeak=relay=openingCall=swing=null;
  }
  s.urgent=hurry;s.conservative=safe;s.press=trailingLate(1-s.team);s.coachingTeam=s.team;
+ // One play-by-play note each when a trailing team stops chasing a blowout or goes all out on defense.
+ for(const t of [0,1]){
+   const deficit=s.score[1-t]-s.score[t],left=Math.floor(s.time/60)+':'+String(Math.floor(s.time%60)).padStart(2,'0');
+   if(!lateNotes[t].chase&&blowout(t)&&s.time<=300&&deficit>=5){lateNotes[t].chase=true;log(teams[t]+' trails by '+deficit+' with '+left+' left and stops chasing')}
+   if(!lateNotes[t].allOut&&allOut(t)){lateNotes[t].allOut=true;log(teams[t]+' goes all out on defense, down '+deficit+' with '+left+' left')}
+ }
  s.posAge+=dt;s.possession[s.team]+=dt; if(carrier&&Math.abs(carrier.y-17)<=5&&!blue(carrier))s.runway[s.team]+=dt;
  if(hold>0){
    hold=Math.max(0,hold-dt);
@@ -2067,6 +2116,8 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  if(s.impact&&(s.impact.time-=dt)<=0)s.impact=null;
  const scheme=defenses[s.defenses[1-off]];
  if(carrier&&scheme.rush)readTime=Math.min(readTime,age+(scheme.rushRead??Math.max(.38,1.45-scheme.rush*3.2)));
+ // All-out defense rushes every carrier into a quick decision.
+ if(carrier&&allOut(1-off))readTime=Math.min(readTime,age+.45);
  if(!lane&&!s.overtime)readDefense(off,focus,active,scheme);
  if(openingCall&&carrier&&!pile&&!lane&&!s.overtime&&!circulate(off)&&!conservative(off)&&
     (!run||openingCall==='Last-step handoff')&&Math.abs(carrier.y-17)>5&&Math.abs(carrier.x-25)>=5){
