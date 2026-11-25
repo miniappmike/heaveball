@@ -65,6 +65,18 @@ const playbookCounter=[1,0,2,3,3,3,0,2];
 const OVERREACT_RATE=.5915,overreactCooldown=60,overreactPerHalf=4;
 // Close-game hurry-up (any deficit, last two minutes) and the last-play window for the desperation heave.
 const closeGameHurry=120,desperationWindow=8;
+// Momentum: one bar from -100 (all away) to +100 (all home), starting level. Each event pushes it toward the club
+// that benefits. A club's next event in an unbroken chain is worth ×1.25, then ×1.5 from the third on. An event by a
+// club the bar leans against past the dead zone is worth ×1.5 (a run snapped). Gains shrink as the bar nears the
+// benefiting club's end (× (1 − lean/100)). The lean halves every momentumHalfLife game-clock seconds and at
+// halftime. Past the dead zone, the club with momentum plays its mental traits up to momentumEffect better at full
+// lean and the other club that much worse (Discipline drops momentumDiscipline times as far). A coach's reviewed
+// scheme change while facing a run pulls the bar momentumSettle of the way back toward level.
+const momentumPush={forced:12,unforced:8,takeaway:15,2:7,3:9,5:12,penalty:4};
+const momentumChain=[1,1.25,1.5],momentumCounter=1.5,momentumHalfLife=150,momentumDeadZone=15;
+const momentumEffect=.04,momentumDiscipline=1.5,momentumSettle=.2,momentumTiers=[40,70];
+// Mental traits momentum moves: Throw Accuracy, Hands, Reaction, Discipline, IQ, Kicking, Tackling.
+const momentumTraits=[1,5,6,7,8,9,11];
 // Blowouts: in the second half a deficit is out of reach when it exceeds blowoutBase plus comebackPerMinute
 // points per minute left (25 with 5:00 left, 13 with 2:00, 9 with 1:00). Out of reach, the trailing team stops
 // chasing: no hurry-up, no press, no all-out defense. The heave needs a deficit one score can erase (3 or less).
@@ -315,7 +327,7 @@ function benchPlayer(team,slot,name){
  const seat=(slot%2?.5:-.5)*venue.bench.seatGap;
  return Object.assign(p,{i:8+slot,bench:true,side:bench.side,hx:bench.x,hy:bench.y+seat,x:bench.x,y:bench.y+seat});
 }
-function match(report,clubPick){
+function match(report,clubPick,options={}){
  drawMatchup(clubPick);
  let pool=names.slice(),pick=()=>pool.splice(Math.floor(rand()*pool.length),1)[0];
  let players=Array.from({length:16},(_,i)=>player(i>>3,i%8,pick()));
@@ -617,13 +629,82 @@ function match(report,clubPick){
  }
  function points(p,n,summary,detail=summary.charAt(0).toLowerCase()+summary.slice(1)+' · '+n+' point'){
    const prior=s.score[p.team]-s.score[1-p.team];
-   p.stats.pts+=n;s.score[p.team]+=n;call(n===1?'Takeaway!':'Center!',p,detail);s.scoreEvents++;s.scoringSpot=ballAt(p);
+   p.stats.pts+=n;s.score[p.team]+=n;momentum(p.team,n===1?momentumPush.takeaway:momentumPush[n]||momentumPush[2]);call(n===1?'Takeaway!':'Center!',p,detail);s.scoreEvents++;s.scoringSpot=ballAt(p);
    if(s.overtime)summary+=' to win in sudden death';
    else if(prior<0&&prior+n===0)summary+=' to tie the game';
    else if(prior<=0&&prior+n>0&&s.score[1-p.team]>0)summary+=' to take the lead';
    highlight(p,summary,n);
  }
  function finishStint(){if(s.team!==undefined&&s.posAge>0)s.stints[s.team].push(s.posAge);s.posAge=0}
+ // Momentum (see momentumPush). s.momentum is positive toward the home club. Ratings are rescaled in place
+ // from each athlete's base copy, so the rest of the engine reads p.ratings unchanged.
+ s.momentumOn=options.momentum!==false;s.momentum=0;s.momentumEvents=0;
+ for(const p of players.concat(bench))p.base=p.ratings.slice();
+ let chain={team:-1,length:0},appliedLean=0;const tierShown=[0,0];
+ function momentumScale(team){
+   const lean=(team===0?1:-1)*s.momentum;
+   if(Math.abs(lean)<momentumDeadZone)return 0;
+   return momentumEffect*lean/100;
+ }
+ function applyMomentum(){
+   const lean=Math.abs(s.momentum)<momentumDeadZone?0:s.momentum;
+   if(Math.abs(lean-appliedLean)<.5&&(lean===0)===(appliedLean===0))return;
+   appliedLean=lean;
+   for(const p of players.concat(bench)){
+     const k=momentumScale(p.team);
+     for(const j of momentumTraits){
+       const f=j===7&&k<0?momentumDiscipline*k:k;
+       p.ratings[j]=clamp(p.base[j]*(1+f),1,100);
+     }
+   }
+ }
+ function momentumTier(team){
+   const lean=(team===0?1:-1)*s.momentum;
+   return momentumTiers.filter(t=>lean>=t).length;
+ }
+ // Play-by-play notes: a club's run starts when the lean reaches a tier and ends only when the bar falls back
+ // inside the dead zone, so a bar hovering near a tier does not repeat itself. Notes wait for the next step so
+ // they follow the play that caused them.
+ const momentumNotes=[];
+ function momentum(team,push){
+   if(!s.momentumOn||s.done)return;
+   const sign=team===0?1:-1,lean=sign*s.momentum;
+   chain=chain.team===team?{team,length:chain.length+1}:{team,length:0};
+   let gain=push*momentumChain[Math.min(chain.length,momentumChain.length-1)];
+   if(lean<=-momentumDeadZone)gain*=momentumCounter;
+   if(lean>0)gain*=1-lean/100;
+   s.momentum=clamp(s.momentum+sign*gain,-100,100);s.momentumEvents++;
+   noteTier(team);applyMomentum();
+ }
+ function noteTier(by){
+   for(const team of [0,1]){
+     const lean=(team===0?1:-1)*s.momentum,tier=momentumTier(team);
+     if(tier>tierShown[team]){momentumNotes.push(teams[team]+(tier===1?' seizes the momentum':' is rolling'));tierShown[team]=tier}
+     else if(tierShown[team]&&lean<momentumDeadZone){
+       if(by===1-team)momentumNotes.push(teams[by]+' stops the '+teams[team]+' run');
+       tierShown[team]=0;
+     }
+   }
+ }
+ function decayMomentum(dt){
+   if(!s.momentum&&!momentumNotes.length)return;
+   while(momentumNotes.length)log(momentumNotes.shift());
+   s.momentum*=Math.pow(.5,dt/momentumHalfLife);
+   if(Math.abs(s.momentum)<.05)s.momentum=0;
+   noteTier();applyMomentum();
+ }
+ function settleMomentum(team){
+   const lean=(team===0?1:-1)*s.momentum;
+   if(!s.momentumOn||lean>-momentumDeadZone)return;
+   s.momentum*=1-momentumSettle;noteTier();applyMomentum();
+ }
+ // The pregame Momentum setting; turning it off returns every rating to its base and levels the bar.
+ s.setMomentum=on=>{
+   s.momentumOn=on;
+   if(!on){s.momentum=0;momentumNotes.length=0;tierShown[0]=tierShown[1]=0;chain={team:-1,length:0};applyMomentum()}
+ };
+ // A turnover the defense forced, or one the offense gave away, benefits the club that gains the ball.
+ const forced=team=>momentum(team,momentumPush.forced),unforced=team=>momentum(team,momentumPush.unforced);
  let loose=null,stationary=false,origin=center,lastChoice=[-1,-1],readTime=0;
  s.possession=[0,0];s.runway=[0,0];
  function spaceRoute(p,off){
@@ -670,7 +751,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      movePlayer(p,exit.x,exit.y);p.edgeTime=.55;
      log(p.name+' is pushed out of bounds off the ball by '+d.name);
    }else{
-     d.stats.tkl++;p.stats.to++;call('Turnover',p,'is pushed out of bounds · '+possessionText(d.team));
+     d.stats.tkl++;p.stats.to++;forced(d.team);call('Turnover',p,'is pushed out of bounds · '+possessionText(d.team));
      const contactText=kind==='pile'?' from the pile':'';
      log(p.name+' is pushed out of bounds'+contactText+' by '+d.name+' · turnover');
      highlightTurnover(d,'Forced a turnover by driving '+p.name+' out of bounds');
@@ -684,6 +765,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    if(!grounded||!noPossession(ball))return false;
    if(responsible?.team===lastTeam)responsible.stats.to++;
    const awarded=1-lastTeam;
+   if(lastTeam===s.team)(driven?forced:unforced)(awarded);
    log('No-possession zone · ball out of bounds · '+teams[awarded]+' quadrant reset');
    call(driven?'No Possession Zone':'Ball Out of Bounds',responsible,
      (driven?'is driven into the no-possession zone · ':'· ')+possessionText(awarded));
@@ -752,7 +834,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  function penalize(p,why){
    p.stats.pen++;log('Penalty · '+p.name+' '+why);
-   pendingLane=1-p.team;s.penaltyEvents++;s.penaltyPending=true;s.penalized=p;call('Penalty',p,why);
+   pendingLane=1-p.team;momentum(1-p.team,momentumPush.penalty);s.penaltyEvents++;s.penaltyPending=true;s.penalized=p;call('Penalty',p,why);
    s.contact=pile=null;
  }
  function dirtEntryPenalty(p){
@@ -794,7 +876,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    if(!lane&&rand()<.014+(100-p.ratings[5])*.0007){
      log(stopped);p.stats.fum++;log(p.name+' fumbles on contact');spill(p,'fumble',p.x,p.y);return
    }
-   if(turnover){p.stats.to++;call('Turnover',d,'stops '+p.name+' and wins possession');highlightTurnover(d,'Stopped '+p.name+' and won possession')}
+   if(turnover){p.stats.to++;forced(d.team);call('Turnover',d,'stops '+p.name+' and wins possession');highlightTurnover(d,'Stopped '+p.name+' and won possession')}
    swing=null;
    log(stopped+(turnover?' · turnover':' · quadrant restart'));s.tackled=p;if(turnover)stoppage();else s.tackleEvents++;
    if(!lane&&Math.abs(p.y-17)>5&&Math.abs(p.x-25)>=5){
@@ -1349,7 +1431,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  }
  function intercept(p,inFlight,contested=false){
    const detail=inFlight?'intercepts in the passing lane':contested?'wins a contested interception':'intercepts the pass';
-   pass.thrower.stats.to++;call('Turnover',p,detail);p.stats.int++;assign(p);cool=.6;
+   pass.thrower.stats.to++;if(!blue(p))forced(p.team);call('Turnover',p,detail);p.stats.int++;assign(p);cool=.6;
    log(p.name+' '+detail);
    if(blue(p)){points(p,1,'Intercepted a pass in the center zone');log('Center interception · 1 point');scoringRestart={team:p.team,index:nearestQuadrant(p)}}
    else highlightTurnover(p,'Intercepted a pass to take possession');
@@ -1427,7 +1509,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  // substitute sprint on from the bench. The carrier usually holds the ball until the substitute is set.
  // Bench players recover energy while they sit.
  s.subEvents=0;s.subCount=[0,0];s.gambles={attempts:0,resolved:0,wins:0};s.smotherTips=0;s.releaseTips=0;
- const personal=['name','jersey','role','height','weight','ratings','stamina','energy','stats','starter','enteredAt'];
+ const personal=['name','jersey','role','height','weight','ratings','base','stamina','energy','stats','starter','enteredAt'];
  const benchOf=b=>venue.benches.filter(v=>v.team===b.team)[(b.i-8)>>1];
  const eligible=(field,b)=>(field.role==='Anchor')===(b.role==='Anchor')&&(field.role==='Anchor'||benchOf(b).side===field.side);
  function swapIn(sub){
@@ -1540,7 +1622,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
          log(teams[team]+' coach '+c.name+' changes the offense to '+playbooks[pick].name+' from the next restart');
        }
      }
-     if(changed){coachWindow[team]={score:s.score.slice(),poss:s.stints.map(x=>x.length)};noteChange(team)}
+     if(changed){coachWindow[team]={score:s.score.slice(),poss:s.stints.map(x=>x.length)};noteChange(team);settleMomentum(team)}
    }
  }
  // One referee works a dirt strip: the top strip in the first half, the bottom strip after halftime.
@@ -1580,7 +1662,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    const {radius,height}=venue.referee;
    if(!noPossession(ref)||ball.z>height+ballRadius||dist(ball,ref)>radius+ballRadius)return false;
    if(responsible?.team===lastTeam)responsible.stats.to++;
-   const awarded=1-lastTeam;s.refereeHits++;
+   const awarded=1-lastTeam;s.refereeHits++;if(lastTeam===s.team)unforced(awarded);
    log('Ball hits the referee on the dirt · out of bounds · '+teams[awarded]+' quadrant reset');
    call('Ball Out of Bounds',responsible,'· hits the referee · '+possessionText(awarded));
    restartAfterPause(awarded,undefined,nearestQuadrant(ball));
@@ -1604,6 +1686,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    secondHalfPending=false;s.half=2;s.time=1200;
    coachReview(true);reviewMark=1200;
    Object.assign(ref,{x:center.x,y:venue.referee.home[1],vx:0,vy:0});
+   s.momentum/=2;applyMomentum();noteTier();
    restart(1-opening);log('Second half begins');
    return;
  }
@@ -1621,6 +1704,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
  if(scoringRestart){restart(scoringRestart.team,undefined,scoringRestart.index);scoringRestart=null;s.scoringSpot=null}
  // Playing time follows the game clock: field slots hold whoever is on, and stats move with the athlete on a substitution.
  for(const p of players)p.stats.sec+=dt;
+ decayMomentum(dt);
  if(s.overtime)s.time+=dt;
  else if((s.time-=dt)>0&&(s.half-1)*1200+1200-s.time>=reviewMark+reviewEvery){
    reviewMark+=reviewEvery;coachReview(false);
@@ -1979,7 +2063,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
    if(loose.x<0||loose.x>50||loose.y<0||loose.y>34){
      const awarded=1-loose.last;
      if(loose.responsible?.team===off&&awarded!==off){
-       loose.responsible.stats.to++;call('Turnover',loose.responsible,'· '+possessionText(awarded));
+       loose.responsible.stats.to++;unforced(awarded);call('Turnover',loose.responsible,'· '+possessionText(awarded));
      }
      log('Loose ball out · last-touch ruling');restartAfterPause(awarded,undefined,nearestQuadrant(loose));return
    }
@@ -1988,7 +2072,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      const {player:q,contested}=recovery;
      const {kind,originTeam,responsible}=loose,spot=loose;
      if(kind==='fumble'&&q.team!==originTeam){
-       responsible.stats.to++;call('Turnover',q,'recovers the fumble');
+       responsible.stats.to++;if(!blue(spot))forced(q.team);call('Turnover',q,'recovers the fumble');
        if(!blue(spot))highlightTurnover(q,'Recovered an opponent’s fumble to take possession');
      }
      loose=null;log(q.name+' recovers the '+kind+(contested?' · won the scramble':''));
@@ -2010,7 +2094,7 @@ function restartAfterPause(team,side,index){stoppage();delayedRestart={team,side
      log(kicker.name+' misses the airborne save · ball out');
    }else if(f<1)return;
    else log(kicker?kicker.name+' cannot reach the airborne save · ball out':'Ball out of bounds');
-   pass.thrower.stats.to++;
+   pass.thrower.stats.to++;unforced(1-off);
    call('Turnover',pass.thrower,'throws out of bounds · '+possessionText(1-off));
    restartAfterPause(1-off,undefined,nearestQuadrant(pass));
    return;

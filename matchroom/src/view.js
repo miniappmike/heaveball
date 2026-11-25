@@ -83,6 +83,9 @@ clubPickers.forEach((picker,i)=>picker.onchange=()=>{
  if(picker.value&&picker.value===other.value){other.value=picker.dataset.last;other.dataset.last=other.value}
  picker.dataset.last=picker.value;fresh();
 });
+// Momentum setting (pregame), remembered per browser.
+let momentumOn=true;
+try{momentumOn=localStorage.getItem('heaveball-momentum')!=='off'}catch{}
 const tackleDuration=2000,fixedStep=.04,halftimeDuration=15000,scoringDuration=3500,penaltyDuration=3500,stoppageDuration=3500;
 let sim,playing=false,carry=0,wall=performance.now(),speed=1,backgroundTimer=0;
 let statsMode=null,statsPage=0,statsDeadline=0,frozenTime=null,finalStats=null;
@@ -107,7 +110,7 @@ function report(s,msg){
  el('feed').prepend(row);
  if(el('feed').children.length>80)el('feed').lastChild.remove();
 }
-function scout(){let p=roster()[+el('roster').value],h=Math.round(p.height);el('build').textContent=p.role+' · '+Math.floor(h/12)+'′'+h%12+'″ · '+Math.round(p.weight)+' lb';el('cards').replaceChildren(...traits.map((name,i)=>{let line=document.createElement('span'),num=document.createElement('b');num.textContent=p.ratings[i];line.append(name,num);return line}))}
+function scout(){let p=roster()[+el('roster').value],h=Math.round(p.height);el('build').textContent=p.role+' · '+Math.floor(h/12)+'′'+h%12+'″ · '+Math.round(p.weight)+' lb';el('cards').replaceChildren(...traits.map((name,i)=>{let line=document.createElement('span'),num=document.createElement('b');num.textContent=(p.base||p.ratings)[i];line.append(name,num);return line}))}
 const roster=()=>sim.players.concat(sim.bench);
 // Substitutions move players between field slots and bench seats, so the list is rebuilt after each one.
 let shownSubs=0;
@@ -119,7 +122,7 @@ function rosterOptions(){
  const keep=list.findIndex(p=>p.name===chosen);if(keep>=0)el('roster').value=keep;
  scout();
 }
-function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;callAge=Infinity;boxDirty=true;el('feed').replaceChildren();sim=match(report,clubPickers.map(p=>p.value));applyBranding();playing=false;carry=0;rosterOptions();briefing()}
+function fresh(){shownHighlights=-1;closeStats();finalStats=null;el('final-box').hidden=true;wall=performance.now();breakUntil=0;callAge=Infinity;boxDirty=true;el('feed').replaceChildren();sim=match(report,clubPickers.map(p=>p.value),{momentum:momentumOn});applyBranding();playing=false;carry=0;rosterOptions();briefing()}
 function briefing(){
  const average=values=>values.reduce((sum,v)=>sum+v,0)/values.length;
  const squads=teams.map((_,i)=>sim.players.filter(p=>p.team===i));
@@ -193,6 +196,8 @@ function briefing(){
 }
 
 el('reroll').onclick=fresh;
+const momentumToggle=el('momentum-toggle');momentumToggle.checked=momentumOn;
+momentumToggle.addEventListener('change',()=>{momentumOn=momentumToggle.checked;sim.setMomentum(momentumOn);try{localStorage.setItem('heaveball-momentum',momentumOn?'on':'off')}catch{}});
 el('start').onclick=()=>{el('pregame').hidden=true;wall=performance.now();playing=true;scheduleBackground()};
 const syncSpeeds=()=>document.querySelectorAll('#speeds button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.speed===el('pace').value)));
 el('pace').onchange=()=>{advance(performance.now());speed=Number(el('pace').value);syncSpeeds()};
@@ -330,6 +335,15 @@ function drawThinBar(v){
  ctx.save();ctx.setTransform(v.dpr,0,0,v.dpr,0,0);ctx.textBaseline='middle';
  ctx.fillStyle='#171c19';ctx.fillRect(0,0,w,h);
  ctx.fillStyle='rgba(255,255,255,.07)';ctx.fillRect(0,h-1,w,1);
+ // Momentum: a thin strip along the bottom edge that grows from the middle toward the club with momentum
+ // (home to the left), in that club's colour. Ticks mark the dead zone where neither club gains anything.
+ if(sim.momentumOn){
+   const half=w/2,lean=sim.momentum,len=Math.abs(lean)/100*half,mh=3;
+   ctx.fillStyle='rgba(255,255,255,.05)';ctx.fillRect(0,h-mh,w,mh);
+   if(len>=.5){ctx.globalAlpha=Math.abs(lean)<momentumDeadZone?.45:1;ctx.fillStyle=colors[lean>0?0:1];ctx.fillRect(lean>0?half-len:half,h-mh,len,mh);ctx.globalAlpha=1}
+   ctx.fillStyle='rgba(255,255,255,.35)';
+   for(const x of [half-half*momentumDeadZone/100,half,half+half*momentumDeadZone/100])ctx.fillRect(Math.round(x)-.5,h-mh-(x===half?2:0),1,mh+(x===half?2:0));
+ }
  const cy=h/2+1,big=Math.round(h*.68),label=Math.round(h*.46),pad=narrow?10:16;
  // Center group: crest, abbreviation, score, divider, score, abbreviation, crest.
  ctx.font=big+'px '+barFont;
